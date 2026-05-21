@@ -1,0 +1,74 @@
+# 00 — Vision
+
+_Date: 2026-05-21_
+
+## What we're building
+
+A **working quadcopter built from scratch**, on real hardware, running firmware we wrote ourselves.
+
+## Why
+
+The drone is the **vehicle for learning**, not the end product. The goal is to understand the *entire* stack end-to-end, from electrons to autonomous behaviour, by building each layer ourselves rather than configuring an existing one.
+
+Concretely, by the time we're done we want to deeply understand:
+
+- **Sensors** — how an IMU works, what raw gyro/accel data actually looks like, why it needs filtering.
+- **Sensor fusion** — how noisy 3-axis gyro + accel data becomes a stable orientation estimate (complementary filter → Mahony → maybe EKF).
+- **Control theory in practice** — PID loops, why tuning is hard, why cascaded loops (rate → angle) exist.
+- **Motor mixing** — how three desired torques + a thrust command become four motor outputs.
+- **Real-time embedded systems** — interrupt-driven I/O, control-loop timing, why jitter kills stability.
+- **Radio link** — RC protocols, packet framing, failsafes.
+- **Power & electronics** — LiPo chemistry, ESCs, current draw, regulation.
+- **Safety engineering** — what failsafes matter and why.
+
+## Why roll our own (not PX4 / ArduPilot)
+
+Using an existing stack would get a drone flying much faster — but the inner loops, sensor drivers, and fusion code would remain a black box. Since *understanding* is the deliverable, we accept the cost of rebuilding what already exists in exchange for genuinely owning every line of code in the flight loop.
+
+This is the same trade-off as writing your own kernel vs. using Linux: nobody does it because it's economical, they do it to learn how kernels actually work.
+
+## Non-goals (explicit)
+
+To keep scope from exploding, we are explicitly **not** trying to:
+
+- Build something competitive with commercial / hobby-grade flight controllers.
+- Achieve full autonomy (waypoint missions, SLAM, computer vision) — at least not in the first arc.
+- Produce a polished product.
+- Reinvent radio-link physical layer (we'll use an off-the-shelf RX module).
+- Reinvent the ESC protocol (we'll speak existing standards like DShot).
+
+We're writing the **firmware** — the part that turns sensor data into motor commands. We're using off-the-shelf parts for everything below that line (motors, ESCs, RX, frame, battery).
+
+## Definition of success
+
+Tiered, smallest-first:
+
+1. **Tier 0 — Hello hardware.** MCU running, blinking, talking over serial. _(Baseline that everything depends on.)_
+2. **Tier 1 — Sensors alive.** Read raw IMU data over I²C or SPI, stream it out, plot it on a host.
+3. **Tier 2 — Attitude estimate.** Fused orientation that is stable when the board is moved by hand. Verified visually.
+4. **Tier 3 — Bench-mounted single-motor control.** One motor on a rig, closed-loop control reacting to a tilted IMU. Proves the whole chain works at small scale.
+5. **Tier 4 — Tethered hover.** Full quad, tied down, holds attitude when the rig is perturbed. Throttle authority limited.
+6. **Tier 5 — Manual flight.** Untethered hover and gentle flight under manual radio control. **This is "done" for the first arc.**
+7. **Tier 6+ (stretch) — Altitude hold, position hold (with GPS / optical flow), simple autonomy.**
+
+Each tier is its own milestone with its own success criteria. Don't move on until the previous tier is solid.
+
+## Approach principles
+
+- **Build the test rig before the drone.** A tethered / propeller-less bench setup is what makes iteration safe and fast.
+- **Instrument everything.** Stream data out over serial / USB / WiFi from the start. Tuning blind is impossible.
+- **One variable at a time.** Standard engineering discipline — even more important when something can take your fingers off.
+- **Phased commits.** Don't try to write the EKF before the complementary filter works.
+
+## Open questions
+
+These need to be resolved (each via its own ADR) before we start ordering parts:
+
+- MCU and dev board.
+- Firmware language (C vs C++ vs Rust). Affects toolchain, ecosystem, debug story.
+- IMU part number.
+- Frame class (size / weight) — drives motor / prop / battery selection.
+- Radio link.
+- Host-side tooling (what do we use to plot streaming telemetry?).
+
+See `Doc/decisions/` as these are resolved.
