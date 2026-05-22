@@ -1,9 +1,11 @@
 # ADR 0002 — MCU and firmware language: BBC micro:bit v2 + Rust
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR 0004](0004-concurrency-embassy-channels.md), 2026-05-22)
 - **Date:** 2026-05-21
 - **Supersedes:** —
-- **Related:** [ADR 0001](0001-platform-airframe-stack.md)
+- **Related:** [ADR 0001](0001-platform-airframe-stack.md), [ADR 0004](0004-concurrency-embassy-channels.md)
+
+> **Update (2026-05-22):** The crate baseline below originally listed both the `microbit-v2` BSP (which wraps `nrf-hal`) and `embassy-nrf` — those two stacks aren't naturally coherent. [ADR 0004](0004-concurrency-embassy-channels.md) resolves this: we drop the BSP and go straight to `embassy-nrf` with a channel-based actor pattern. The rest of this ADR (board choice, language choice, debug tooling) stands.
 
 ## Context
 

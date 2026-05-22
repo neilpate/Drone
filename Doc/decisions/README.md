@@ -12,5 +12,6 @@ Each non-trivial design decision gets its own file here.
 ## Index
 
 - [0001 — Platform, airframe, and firmware approach](0001-platform-airframe-stack.md) — Accepted, 2026-05-21
-- [0002 — MCU and firmware language: micro:bit v2 + Rust](0002-mcu-and-language.md) — Accepted, 2026-05-21
+- [0002 — MCU and firmware language: micro:bit v2 + Rust](0002-mcu-and-language.md) — Accepted, 2026-05-21 (amended by 0004)
 - [0003 — IMU: ICM-42688-P on SPI](0003-imu-icm42688-spi.md) — Accepted, 2026-05-21
+- [0004 — Concurrency model: Embassy with channel-based actor pattern](0004-concurrency-embassy-channels.md) — Accepted, 2026-05-22

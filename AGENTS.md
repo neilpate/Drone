@@ -57,13 +57,14 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 
 **Status:** Vision agreed (2026-05-21). Hardware/language baseline chosen (2026-05-21). IMU chosen (2026-05-21). Ready to start Tier 0/1 bring-up once parts arrive.
 
-**Locked-in choices** (see [ADR 0001](Doc/decisions/0001-platform-airframe-stack.md), [ADR 0002](Doc/decisions/0002-mcu-and-language.md), [ADR 0003](Doc/decisions/0003-imu-icm42688-spi.md)):
+**Locked-in choices** (see [ADR 0001](Doc/decisions/0001-platform-airframe-stack.md), [ADR 0002](Doc/decisions/0002-mcu-and-language.md), [ADR 0003](Doc/decisions/0003-imu-icm42688-spi.md), [ADR 0004](Doc/decisions/0004-concurrency-embassy-channels.md)):
 - **Real hardware** (no simulator).
 - **Quadcopter** airframe.
 - **Roll our own firmware** from scratch — no PX4 / ArduPilot.
 - **Primary goal: learning** — understand the whole stack end-to-end.
 - **MCU:** BBC micro:bit v2 (nRF52833, Cortex-M4F) for Tiers 0–3. Two boards owned — second one becomes ground station / remote.
-- **Language:** Rust (`no_std`, `embassy-nrf`, `probe-rs`, `defmt`).
+- **Language:** Rust (`no_std`, `probe-rs`, `defmt`).
+- **HAL / concurrency:** `embassy-nrf` (async HAL, no BSP) + `embassy-executor` + `embassy-sync`. Channel-based actor pattern — each subsystem is an `async` task with a typed `Channel` inbox.
 - **External IMU:** ICM-42688-P on SPI (6-DoF, no mag for now). INT1-driven sampling.
 
 **Next open questions:**
@@ -88,8 +89,9 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 ## Decisions log (quick index)
 
 - [0001](Doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope. (2026-05-21)
-- [0002](Doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Tiers 0–3. (2026-05-21)
+- [0002](Doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Tiers 0–3. (2026-05-21, amended by 0004)
 - [0003](Doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)
+- [0004](Doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP. (2026-05-22)
 
 ---
 
