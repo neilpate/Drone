@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members  = ["crates/*"]
 
 # Crates that are safe to build for the host on `cargo <cmd>` invoked from the
