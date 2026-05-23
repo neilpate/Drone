@@ -22,15 +22,25 @@ use panic_probe as _;
 
 use embassy_executor::Spawner;
 use embassy_nrf::config::Config;
+use embassy_nrf::gpio::{Level, Output, OutputDrive};
 use embassy_time::Timer;
 
 #[embassy_executor::main]
 async fn main(_spawner: Spawner) {
-    let _p = embassy_nrf::init(Config::default());
+    let p = embassy_nrf::init(Config::default());
 
     defmt::info!("firmware-drone: boot (scaffold)");
 
+    // micro:bit v2 LED matrix: top-left LED sits between Row 1 (P0.21) and
+    // Col 1 (P0.28). Row HIGH + Col LOW = current flows through the LED.
+    // Hold the row HIGH and toggle the column to blink one pixel.
+    let _row1 = Output::new(p.P0_21, Level::High, OutputDrive::Standard);
+    let mut col1 = Output::new(p.P0_28, Level::High, OutputDrive::Standard);
+
     loop {
-        Timer::after_secs(1).await;
+        col1.set_low();
+        Timer::after_millis(500).await;
+        col1.set_high();
+        Timer::after_millis(500).await;
     }
 }
