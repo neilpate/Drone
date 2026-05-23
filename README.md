@@ -6,10 +6,12 @@ The drone is the artefact; understanding the whole stack end-to-end is the deliv
 
 ## Status
 
-Early days. Decisions made, no code yet.
+Vision, architecture, and seven ADRs in place. No code yet. Next step: Phase 1 bring-up once hardware (ICM-42688 breakout, motor + ESC + bench PSU) arrives. See [`Doc/00-vision.md`](Doc/00-vision.md) for the phase plan and [`Doc/decisions/`](Doc/decisions/README.md) for the full decision history.
 
-- **Platform:** BBC micro:bit v2 (nRF52833) for Phases 1–3, expected MCU migration later.
-- **Language:** Rust (`no_std`, `embassy-nrf`).
+Headline choices (see ADRs below for the rest):
+
+- **Platform:** BBC micro:bit v2 (nRF52833) for Phases 1–3; custom nRF5340 PCBA for Phases 4–5.
+- **Language:** Rust (`no_std`, `embassy-nrf`) on the firmware; Rust on the PC-side ground-station application too.
 - **IMU:** ICM-42688-P on SPI (external; micro:bit's onboard sensor has no gyro).
 - **Airframe:** quadcopter.
 - **Flight stack:** rolling our own — no PX4 / ArduPilot.

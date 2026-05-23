@@ -162,7 +162,7 @@ These are the sub-decisions this architecture *invites* but does not make:
 - **RF link protocol** — Nordic ESB vs bare proprietary GFSK vs BLE. Strong default is ESB. → future ADR.
 - **Wire framing** — should USB (PC ↔ ground µbit) and RF (ground µbit ↔ drone) use the **same** framing/message format so the ground µbit is almost a dumb bridge? Strong lean: yes. → future ADR.
 - **Ground-station division of labour** — how much of the protocol lives on the ground µbit vs the PC in v1. The recommendation in this doc (ground µbit owns the Link layer, PC owns the App layer) is the candidate; needs an ADR to lock it in.
-- **Failsafe behaviour** — what the drone does when commands stop arriving. Phased (bench phase vs flight phase). → ADR before Phase 4.
+- **Failsafe behaviour** — what the drone does when commands stop arriving. Phased (bench phase vs flight phase). → **ADR before Phase 3** (first free flight).
 - **Latency budget** — informal target: 5–15 ms pilot stick → motor response. Worth measuring once Phase 3 hardware exists.
 - **Controller interface in v2** — USB HID is hard on nRF52833 (no USB host). Bluetooth controller? Different controller? Successor MCU? → v2-era decision.
 - **LCD choice** — deferred until v2.

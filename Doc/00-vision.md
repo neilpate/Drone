@@ -70,7 +70,7 @@ Explicitly out of scope for the first arc, but recorded so the design doesn't ac
 ## Approach principles
 
 - **Build the test rig before the drone.** A tethered / propeller-less bench setup is what makes iteration safe and fast.
-- **Instrument everything.** Stream data out over serial / USB / WiFi from the start. Tuning blind is impossible.
+- **Instrument everything.** Stream data out over serial / USB from the start. Tuning blind is impossible.
 - **One variable at a time.** Standard engineering discipline — even more important when something can take your fingers off.
 - **Phased commits.** Don't try to write the EKF before the complementary filter works.
 
@@ -83,6 +83,8 @@ Resolved (see `Doc/decisions/`):
 - IMU part number — ICM-42688-P on SPI. ADR 0003.
 - Concurrency / HAL — Embassy + channel-based actor pattern, no BSP. ADR 0004.
 - PC-side software language — Rust, with a shared `proto` crate for the wire protocol. ADR 0005.
+- Mechanical CAD — Fusion 360, with `.step` exports committed alongside `.f3d`. ADR 0006.
+- Testing and CI strategy — unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred. ADR 0007.
 
 Still open (each will get its own ADR when resolved):
 
