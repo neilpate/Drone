@@ -30,6 +30,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 - Don't create files unless needed.
 - Don't add comments / docstrings / type hints to code you didn't change.
 - Implement rather than just suggest, unless ambiguity requires a question.
+- **Hold the showcase quality bar.** This is a hobby project but also a public showcase. "It's just a hobby project" is not a valid excuse to skip a test, leave a TODO, or take an undocumented shortcut. Engineering choices target current best practice for embedded Rust. See [Doc/00-vision.md](Doc/00-vision.md) “Quality bar”.
 
 ## Writing style (docs, ADRs, commit messages, replies)
 

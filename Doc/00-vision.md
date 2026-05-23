@@ -27,6 +27,15 @@ Using an existing stack would get a drone flying much faster — but the inner l
 
 This is the same trade-off as writing your own kernel vs. using Linux: nobody does it because it's economical, they do it to learn how kernels actually work.
 
+## Quality bar
+
+This is a hobby project, but it doubles as a public showcase of the author's (and assisting AI's) software-engineering practice. "It's just a hobby project" is not a valid excuse to skip a test, leave a TODO, or commit a half-baked decision. Concretely:
+
+- Engineering choices target current best practice for embedded Rust (Embassy, `probe-rs`, `defmt`, `embedded-test`, `rerun`, ADR-driven design).
+- The code, the docs, the commit history, and the ADRs are all written as if a stranger will read them — because they will.
+- Phase boundaries are also showcase moments: a tagged commit, a short write-up, a photo or video where it makes sense.
+- Shortcuts are taken consciously and recorded, never silently.
+
 ## Non-goals (explicit)
 
 To keep scope from exploding, we are explicitly **not** trying to:
