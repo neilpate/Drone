@@ -63,6 +63,11 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 - Don't auto-commit on the user's behalf unless explicitly asked. Suggest a commit (with a Conventional-Commits-formatted message) when a sensible boundary is reached.
 - Never `--force` push, never amend a pushed commit, never `reset --hard` without asking.
 
+## End-of-session ritual
+
+- When the user signals end of session ("done for today", "good stopping point", etc.), update the **Status** section of [README.md](README.md) to reflect the latest progress: current phase, what's working on hardware, what's next. Then commit + push along with any other end-of-session work.
+- This keeps the front door of the repo honest for any stranger landing in cold — and for future-you on another PC.
+
 ---
 
 ## Project: Drone
