@@ -32,4 +32,4 @@ Mechanical CAD files (`.f3d` + `.step` + print-ready `.stl` / `.3mf`) live under
 
 ## Status
 
-Vision and architecture agreed. Nine ADRs in place ([decisions/](decisions/README.md)). No code yet — next step is Phase 1 bring-up once hardware (ICM-42688 breakout, motor + ESC + bench PSU) arrives. See [`00-vision.md`](00-vision.md) for the phase plan.
+Vision and architecture agreed. Ten ADRs in place ([decisions/](decisions/README.md)). No code yet — next step is Phase 1 bring-up once hardware (ICM-42688 breakout, motor + ESC + bench PSU) arrives. See [`00-vision.md`](00-vision.md) for the phase plan.

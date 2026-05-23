@@ -20,3 +20,4 @@ Each non-trivial design decision gets its own file here.
 - [0007 — Testing and CI strategy](0007-testing-and-ci-strategy.md) — Accepted, 2026-05-23
 - [0008 — Repository folder layout](0008-repository-folder-layout.md) — Accepted, 2026-05-23
 - [0009 — Workspace bootstrap and crate naming](0009-workspace-bootstrap-and-crate-naming.md) — Accepted, 2026-05-23
+- [0010 — Board Support Package (BSP) layer](0010-board-support-package.md) — Accepted, 2026-05-23
