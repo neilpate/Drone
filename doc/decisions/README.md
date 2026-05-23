@@ -18,3 +18,4 @@ Each non-trivial design decision gets its own file here.
 - [0005 — PC-side software in Rust](0005-pc-software-language-rust.md) — Accepted, 2026-05-23
 - [0006 — Mechanical CAD: Fusion 360](0006-mechanical-cad-fusion360.md) — Accepted, 2026-05-23
 - [0007 — Testing and CI strategy](0007-testing-and-ci-strategy.md) — Accepted, 2026-05-23
+- [0008 — Repository folder layout](0008-repository-folder-layout.md) — Accepted, 2026-05-23
