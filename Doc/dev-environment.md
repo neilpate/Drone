@@ -84,6 +84,24 @@ Day-to-day, the author has both micro:bits plugged into the dev machine via USB 
 - `cargo run` / `cargo flash` invocations specify the probe selector explicitly: `--probe <vid>:<pid>:<serial>` or a shorter alias once `xtask` exists.
 - **Never** rely on "the first probe found" — that's how you flash the wrong board.
 
+## Build flavour per phase
+
+Maps the phases ([00-vision.md](00-vision.md)) to the Cargo feature flags defined in [07-safety.md B.8](07-safety.md):
+
+| Phase | Drone build | Ground-station build |
+|---|---|---|
+| 1 | `--features bench` | n/a (Cargo feature) |
+| 2 | `--features bench` (bench-restrained, no props); `--features bench` *inside the test enclosure* for full-power spin-up | n/a |
+| 3 — tethered | `--features tethered` | n/a |
+| 3 — free flight | `--features flight` | n/a |
+| 4 | `--features bench` | n/a |
+| 5 — tethered | `--features tethered` | n/a |
+| 5 — free flight | `--features flight` | n/a |
+
+Ground-station code is a separate binary on the PC and on the second micro:bit — it doesn't carry the bench/tethered/flight axis. Its build flavour question is just debug vs release.
+
+The build script will refuse to compile if zero or more than one of `{bench, tethered, flight}` is enabled. Picking the wrong one is a safety incident waiting to happen ([07-safety.md B.8](07-safety.md)).
+
 ---
 
 ## Future additions

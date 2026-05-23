@@ -49,7 +49,7 @@ The cost is a real one — compile times, occasionally fighting the borrow check
 ### What this commits us to
 
 - **Toolchain:** stable Rust, `thumbv7em-none-eabihf` target, `probe-rs`, `defmt`, `cargo-binutils`. Setup gets its own how-to doc when we write code.
-- **Crate baseline (likely):** `microbit-v2`, `embassy-executor`, `embassy-nrf`, `embassy-time`, `defmt`, `defmt-rtt`, `panic-probe`, `embedded-hal` (1.0+).
+- **Crate baseline (likely):** `embassy-executor`, `embassy-nrf`, `embassy-time`, `embassy-sync`, `embassy-futures`, `defmt`, `defmt-rtt`, `panic-probe`, `embedded-hal` (1.0+), `embedded-hal-async`. (No BSP — see [ADR 0004](0004-concurrency-embassy-channels.md).)
 - **An external IMU is mandatory.** The micro:bit v2's onboard sensor is an LSM303AGR — accelerometer + magnetometer, **no gyroscope**. Accel-only attitude is useless under vibration. This forces [ADR 0003 — IMU selection] to be the next decision, and pulls forward needing an I²C or SPI driver crate (or writing one) early.
 - **A "ground station" micro:bit role.** The second board becomes a fixed part of the development setup — receiver of telemetry, sender of commands. Worth treating as a deliverable in its own right, with its own firmware tree.
 - **Planned MCU migration around Phase 4.** Don't build anything that locks us to micro:bit hardware specifically; keep board-specific code behind the BSP boundary.
