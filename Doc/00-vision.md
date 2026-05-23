@@ -69,7 +69,9 @@ Explicitly out of scope for the first arc, but recorded so the design doesn't ac
 
 ## Definition of done
 
-The project is **done** when **all** of the following are true. Until then it is in-progress; after then, further work is explicitly optional and treated as a new arc.
+**This is a hobby project. There is no obligation to finish it.** Life, other interests, or simple loss of interest are all valid reasons to stop at any phase. If the project pauses for a year, or is abandoned outright after Phase 2, that's a fine outcome — the learning banked up to that point is the deliverable, not a flying drone. The criteria below describe what a *completed* project looks like; they are not a debt.
+
+With that said: if the project does run to completion, **done** means **all** of the following are true. Until then it is in-progress; after then, further work is explicitly optional and treated as a new arc.
 
 **Engineering deliverables:**
 
@@ -91,6 +93,7 @@ The project is **done** when **all** of the following are true. Until then it is
 - The drone surviving any particular flight, demonstrating any particular performance figure (top speed, hover time), or being competitive with off-the-shelf flight controllers. The learning is the deliverable; flight performance is a side effect ([AGENTS.md](../AGENTS.md) scope guardrail).
 - Certification of any kind. This is a hobby build under UK CAA hobbyist rules ([07-safety.md A.6](07-safety.md)).
 - Long-term maintenance. Once "done" is reached, the repo enters archive mode unless explicitly revived.
+- **Any obligation to actually reach "done".** Stopping early at any phase boundary is a legitimate outcome — see the framing at the top of this section.
 
 ## Approach principles
 
