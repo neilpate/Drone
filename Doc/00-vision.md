@@ -67,6 +67,31 @@ Explicitly out of scope for the first arc, but recorded so the design doesn't ac
 - **Analog FPV camera + 5.8 GHz VTX.** Orthogonal payload: a tiny analog camera and 5.8 GHz video transmitter sit on the airframe and use their own 5.8 GHz radio link to a standalone receiver. The flight controller does not see them. Drives a small weight / mount budget on the Phase 4 PCBA and frame, but no firmware impact.
 - **Altitude hold / position hold / autonomy.** Would require either a barometer (altitude) or GPS + optical flow (position), plus a much bigger fusion stack (EKF). Not on the path; not ruled out.
 
+## Definition of done
+
+The project is **done** when **all** of the following are true. Until then it is in-progress; after then, further work is explicitly optional and treated as a new arc.
+
+**Engineering deliverables:**
+
+- Phase 5 milestone met: the custom nRF5340 PCBA flies under its own firmware, hand-tuned, with the same control envelope as Phase 3 demonstrated repeatably.
+- All ADRs that were open at any point are closed — either accepted (with a dated ADR file) or explicitly withdrawn (with a superseding ADR explaining why).
+- Every failsafe listed in [07-safety.md](07-safety.md) Part B has been bench-proven (Part C) and the verification recorded. No "we'll check that later".
+- The firmware passes the full CI pipeline ([ADR 0007](decisions/0007-testing-and-ci-strategy.md)) cleanly: Tier 0 static checks, Tier 1 host unit tests on the `core` modules. Tier 2 HIL is **nice-to-have**, not blocking — it is explicitly deferred per ADR 0007.
+- No `TODO`, `FIXME`, or `XXX` markers remain in committed code or docs without an issue / ADR / note explaining why they were left.
+
+**Showcase deliverables:**
+
+- Each phase boundary (1 → 2 → 3 → 4 → 5) has a tagged commit and a short write-up: what was built, what was learned, what surprised us, link to the relevant code / ADRs.
+- A top-level video or photo set demonstrating Phase 3 (first hover) and Phase 5 (custom-PCBA flight). Doesn't need to be polished — needs to be evidence.
+- The repo is **landable cold**: a stranger cloning it can read `README.md` → `AGENTS.md` → `Doc/00-vision.md` → the ADR index and understand the *what*, *why*, and *current state* without asking the author.
+
+**Explicitly not part of "done":**
+
+- Beyond-Phase-5 items (analog FPV, altitude / position hold, autonomy) are optional extensions, not done-criteria.
+- The drone surviving any particular flight, demonstrating any particular performance figure (top speed, hover time), or being competitive with off-the-shelf flight controllers. The learning is the deliverable; flight performance is a side effect ([AGENTS.md](../AGENTS.md) scope guardrail).
+- Certification of any kind. This is a hobby build under UK CAA hobbyist rules ([07-safety.md A.6](07-safety.md)).
+- Long-term maintenance. Once "done" is reached, the repo enters archive mode unless explicitly revived.
+
 ## Approach principles
 
 - **Build the test rig before the drone.** A tethered / propeller-less bench setup is what makes iteration safe and fast. The **test enclosure** (netted cage, [07-safety.md A.8](07-safety.md)) is the Phase 2 instance of this principle: built and proven before the first props-on full-power run.
