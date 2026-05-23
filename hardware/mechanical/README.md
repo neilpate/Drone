@@ -1,8 +1,8 @@
-# Hardware/Mechanical/
+# hardware/mechanical/
 
 Mechanical CAD: airframe, motor mounts, sensor mounts, test enclosure, anything 3D-printed or machined.
 
-**Tool:** Fusion 360 ([ADR 0006](../../Doc/decisions/0006-mechanical-cad-fusion360.md)).
+**Tool:** Fusion 360 ([ADR 0006](../../doc/decisions/0006-mechanical-cad-fusion360.md)).
 
 **Committed file types** (per ADR 0006):
 

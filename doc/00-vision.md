@@ -85,7 +85,7 @@ With that said: if the project does run to completion, **done** means **all** of
 
 - Each phase boundary (1 → 2 → 3 → 4 → 5) has a tagged commit and a short write-up: what was built, what was learned, what surprised us, link to the relevant code / ADRs.
 - A top-level video or photo set demonstrating Phase 3 (first hover) and Phase 5 (custom-PCBA flight). Doesn't need to be polished — needs to be evidence.
-- The repo is **landable cold**: a stranger cloning it can read `README.md` → `AGENTS.md` → `Doc/00-vision.md` → the ADR index and understand the *what*, *why*, and *current state* without asking the author.
+- The repo is **landable cold**: a stranger cloning it can read `README.md` → `AGENTS.md` → `doc/00-vision.md` → the ADR index and understand the *what*, *why*, and *current state* without asking the author.
 
 **Explicitly not part of "done":**
 
@@ -104,7 +104,7 @@ With that said: if the project does run to completion, **done** means **all** of
 
 ## Open questions
 
-Resolved (see `Doc/decisions/`):
+Resolved (see `doc/decisions/`):
 
 - MCU and dev board — micro:bit v2 (nRF52833) for Phases 1–3, custom nRF5340 PCBA for Phases 4–5. ADR 0002.
 - Firmware language — Rust, `no_std`. ADR 0002.

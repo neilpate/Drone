@@ -20,7 +20,7 @@ Domain docs are numbered `0N-topic.md`. Process / tooling docs are unnumbered an
 - `decisions/` — Architecture Decision Records (ADRs), one file per decision.
 - `research/` — external references, datasheets, links, notes. See [research/README.md](research/README.md) for what belongs there.
 
-Mechanical CAD files (`.f3d` + `.step` + print-ready `.stl` / `.3mf`) live under [`Hardware/Mechanical/`](../Hardware/Mechanical/) ([ADR 0006](decisions/0006-mechanical-cad-fusion360.md)). Electrical / PCBA design files live under [`Hardware/Electrical/`](../Hardware/Electrical/) (Phase 4 onwards). Rust crates live under [`crates/`](../crates/).
+Mechanical CAD files (`.f3d` + `.step` + print-ready `.stl` / `.3mf`) live under [`hardware/mechanical/`](../hardware/mechanical/) ([ADR 0006](decisions/0006-mechanical-cad-fusion360.md)). Electrical / PCBA design files live under [`hardware/electrical/`](../hardware/electrical/) (Phase 4 onwards). Rust crates live under [`crates/`](../crates/).
 
 ## Conventions
 

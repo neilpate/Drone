@@ -48,7 +48,7 @@ Tier 0 and 1 are mandatory. Tier 2 is a planned future investment.
 
 ### 5. Tooling left deliberately unspecified
 
-The following are *not* locked in by this ADR (deferred to a future `Doc/05-ci-and-testing.md` written when the first crate lands):
+The following are *not* locked in by this ADR (deferred to a future `doc/05-ci-and-testing.md` written when the first crate lands):
 
 - The specific task-runner (`cargo xtask` is the leading candidate; `just` is acceptable).
 - The exact GitHub Actions YAML layout, action versions, cache strategy.

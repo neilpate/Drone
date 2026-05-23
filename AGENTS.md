@@ -10,7 +10,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 
 - **Read this first** at the start of any session before doing work.
 - **Update it** whenever a decision is made, a convention is set, or a non-obvious fact is learned.
-- Keep entries short. Link out to `Doc/` for long-form content.
+- Keep entries short. Link out to `doc/` for long-form content.
 - Date significant additions: `(YYYY-MM-DD)`.
 
 ---
@@ -30,7 +30,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 - Don't create files unless needed.
 - Don't add comments / docstrings / type hints to code you didn't change.
 - Implement rather than just suggest, unless ambiguity requires a question.
-- **Hold the showcase quality bar.** This is a hobby project but also a public showcase. "It's just a hobby project" is not a valid excuse to skip a test, leave a TODO, or take an undocumented shortcut. Engineering choices target current best practice for embedded Rust. See [Doc/00-vision.md](Doc/00-vision.md) “Quality bar”.
+- **Hold the showcase quality bar.** This is a hobby project but also a public showcase. "It's just a hobby project" is not a valid excuse to skip a test, leave a TODO, or take an undocumented shortcut. Engineering choices target current best practice for embedded Rust. See [doc/00-vision.md](doc/00-vision.md) “Quality bar”.
 - **Prefer the idiomatic choice.** Where practical, do what someone fluent in the ecosystem would expect — Cargo conventions, Embassy patterns, standard crate / module / file naming, standard layouts. A stranger landing in the repo should not be surprised by *how* anything is done. Surprises are reserved for problem-specific decisions (recorded in an ADR), not for picking a non-standard layout, naming scheme, or pattern when a standard one fits.
 
 ## Writing style (docs, ADRs, commit messages, replies)
@@ -67,7 +67,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 
 ## Project: Drone
 
-**Status:** Vision agreed (2026-05-21). Hardware/language baseline chosen (2026-05-21). IMU chosen (2026-05-21). Phase plan redefined (2026-05-23, hardware-build oriented; see [Doc/00-vision.md](Doc/00-vision.md)). Ready to start Phase 1 bring-up once parts arrive.
+**Status:** Vision agreed (2026-05-21). hardware/language baseline chosen (2026-05-21). IMU chosen (2026-05-21). Phase plan redefined (2026-05-23, hardware-build oriented; see [doc/00-vision.md](doc/00-vision.md)). Ready to start Phase 1 bring-up once parts arrive.
 
 ### Scope guardrail (read every time)
 
@@ -76,10 +76,10 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - What teaches the most per unit of effort, not what flies best.
 - Staying in the **nRF52 / nRF53 family** for hardware continuity. The agreed migration path is **micro:bit v2 (Phases 1–3) → custom nRF5340 PCBA, designed in-house (Phases 4–5)**. Do not propose STM32H7 / ELRS / "real FC" upgrades unless the user explicitly asks.
 - One-off build, cost-insensitive within reason — but "commercial-grade" is not a target. "Good enough to learn from and to make a quad that flies in a garden" is.
-- The drone is the **vehicle for learning** ([00-vision.md](Doc/00-vision.md)). Understanding the stack is the deliverable; flight performance is a side effect.
+- The drone is the **vehicle for learning** ([00-vision.md](doc/00-vision.md)). Understanding the stack is the deliverable; flight performance is a side effect.
 - **Video downlink (post-Phase 5)** is intended to be **analog FPV** — orthogonal payload, no FC firmware impact. Do not propose digital HD systems (DJI O3, HDZero) or DIY WiFi streaming as upgrades unless asked.
 
-**Locked-in choices** (see [ADR 0001](Doc/decisions/0001-platform-airframe-stack.md), [ADR 0002](Doc/decisions/0002-mcu-and-language.md), [ADR 0003](Doc/decisions/0003-imu-icm42688-spi.md), [ADR 0004](Doc/decisions/0004-concurrency-embassy-channels.md)):
+**Locked-in choices** (see [ADR 0001](doc/decisions/0001-platform-airframe-stack.md), [ADR 0002](doc/decisions/0002-mcu-and-language.md), [ADR 0003](doc/decisions/0003-imu-icm42688-spi.md), [ADR 0004](doc/decisions/0004-concurrency-embassy-channels.md)):
 - **Real hardware** (no simulator).
 - **Quadcopter** airframe.
 - **Roll our own firmware** from scratch — no PX4 / ArduPilot.
@@ -95,10 +95,10 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - Host-side telemetry tooling (Phase 1 will need it).
 - **Custom PCBA design (Phase 4)** — nRF5340 module on a carrier board, KiCad, hand-rolled. Future ADR when committed.
 
-**Documentation lives in:** [Doc/](Doc/README.md)
-**Hardware files live in:** [Hardware/](Hardware/README.md) (mechanical CAD under `Hardware/Mechanical/`, electrical / PCBA under `Hardware/Electrical/`).
+**Documentation lives in:** [doc/](doc/README.md)
+**Hardware files live in:** [hardware/](hardware/README.md) (mechanical CAD under `hardware/mechanical/`, electrical / PCBA under `hardware/electrical/`).
 **Rust crates live in:** [crates/](crates/README.md) (empty until Phase 1 design lands).
-**Architecture Decision Records:** `Doc/decisions/` (one file per decision, format `NNNN-title.md`).
+**Architecture Decision Records:** `doc/decisions/` (one file per decision, format `NNNN-title.md`).
 
 ---
 
@@ -106,19 +106,19 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 
 - Markdown for all docs.
 - Use ADRs for any non-trivial design choice.
-- Keep the doc index ([Doc/README.md](Doc/README.md)) in sync when adding new doc files.
+- Keep the doc index ([doc/README.md](doc/README.md)) in sync when adding new doc files.
 
 ---
 
 ## Decisions log (quick index)
 
-- [0001](Doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope. (2026-05-21)
-- [0002](Doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Phases 1–3. (2026-05-21, amended by 0004)
-- [0003](Doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)
-- [0004](Doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP. (2026-05-22)
-- [0005](Doc/decisions/0005-pc-software-language-rust.md) — PC-side software written in Rust; shared `proto` crate for the wire protocol. (2026-05-23)
-- [0006](Doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability. (2026-05-23)
-- [0007](Doc/decisions/0007-testing-and-ci-strategy.md) — Testing and CI: unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred. (2026-05-23)
+- [0001](doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope. (2026-05-21)
+- [0002](doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Phases 1–3. (2026-05-21, amended by 0004)
+- [0003](doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)
+- [0004](doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP. (2026-05-22)
+- [0005](doc/decisions/0005-pc-software-language-rust.md) — PC-side software written in Rust; shared `proto` crate for the wire protocol. (2026-05-23)
+- [0006](doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability. (2026-05-23)
+- [0007](doc/decisions/0007-testing-and-ci-strategy.md) — Testing and CI: unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred. (2026-05-23)
 
 ---
 

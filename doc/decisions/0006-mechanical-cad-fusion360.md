@@ -21,7 +21,7 @@ Candidates considered:
 ## Decision
 
 - **Fusion 360** is the mechanical CAD tool for the project.
-- **Source files (`.f3d`) live in the repo** alongside firmware and docs, under [`Hardware/Mechanical/`](../../Hardware/Mechanical/).
+- **Source files (`.f3d`) live in the repo** alongside firmware and docs, under [`hardware/mechanical/`](../../hardware/mechanical/).
 - **Every committed `.f3d` ships with an exported `.step`** alongside it. STEP is the vendor-neutral interchange format; this is our escape hatch if Autodesk's free tier becomes unworkable.
 - **Print-ready `.stl` (or `.3mf`) files are also committed** for parts we've actually printed, so anyone (including future-us on a fresh machine) can re-print without re-running CAD.
 
@@ -42,9 +42,9 @@ Candidates considered:
 
 ### What this commits us to
 
-- A [`Hardware/Mechanical/`](../../Hardware/Mechanical/) folder structure for committing CAD sources, STEP exports, and print-ready meshes. Layout decided when the first part lands.
+- A [`hardware/mechanical/`](../../hardware/mechanical/) folder structure for committing CAD sources, STEP exports, and print-ready meshes. Layout decided when the first part lands.
 - Committing both source (`.f3d`) and neutral (`.step`) for every meaningful part — small ongoing discipline tax, big portability win.
-- A future hardware / mechanical doc (`Doc/03-mechanical.md` or similar) when the parts count justifies one.
+- A future hardware / mechanical doc (`doc/03-mechanical.md` or similar) when the parts count justifies one.
 
 ### What this rules out (for now)
 
@@ -53,7 +53,7 @@ Candidates considered:
 
 ### What stays open
 
-- **Folder layout** within `Hardware/Mechanical/` — decided when the first part lands.
+- **Folder layout** within `hardware/mechanical/` — decided when the first part lands.
 - **Slicer choice** (PrusaSlicer / OrcaSlicer / Bambu Studio / Cura) — orthogonal to CAD; printer-dependent; not worth an ADR.
 - **Whether to also use OpenSCAD** for trivial parametric brackets — case-by-case, no global rule.
 - **Migration plan to FreeCAD** if Autodesk's free tier becomes unworkable. The STEP exports are the contingency; the trigger and process are not pre-decided.

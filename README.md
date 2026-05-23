@@ -6,7 +6,7 @@ The drone is the artefact; understanding the whole stack end-to-end is the deliv
 
 ## Status
 
-Vision, architecture, and seven ADRs in place. No code yet. Next step: Phase 1 bring-up once hardware (ICM-42688 breakout, motor + ESC + bench PSU) arrives. See [`Doc/00-vision.md`](Doc/00-vision.md) for the phase plan and [`Doc/decisions/`](Doc/decisions/README.md) for the full decision history.
+Vision, architecture, and seven ADRs in place. No code yet. Next step: Phase 1 bring-up once hardware (ICM-42688 breakout, motor + ESC + bench PSU) arrives. See [`doc/00-vision.md`](doc/00-vision.md) for the phase plan and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
 
 Headline choices (see ADRs below for the rest):
 
@@ -16,24 +16,24 @@ Headline choices (see ADRs below for the rest):
 - **Airframe:** quadcopter.
 - **Flight stack:** rolling our own — no PX4 / ArduPilot.
 
-See [Doc/00-vision.md](Doc/00-vision.md) for the full vision and the phased milestone plan.
+See [doc/00-vision.md](doc/00-vision.md) for the full vision and the phased milestone plan.
 
 ## Repository layout
 
 - [`AGENTS.md`](AGENTS.md) — shared context file for AI coding assistants (Copilot, Claude, etc.). Read first.
-- [`Doc/`](Doc/README.md) — design notes, vision, architecture, hardware/software/control docs.
-- [`Doc/02-architecture.md`](Doc/02-architecture.md) — system architecture overview (two micro:bits, RF link, ground-station evolution).
-- [`Doc/decisions/`](Doc/decisions/README.md) — Architecture Decision Records (ADRs).
+- [`doc/`](doc/README.md) — design notes, vision, architecture, hardware/software/control docs.
+- [`doc/02-architecture.md`](doc/02-architecture.md) — system architecture overview (two micro:bits, RF link, ground-station evolution).
+- [`doc/decisions/`](doc/decisions/README.md) — Architecture Decision Records (ADRs).
 
 ## Decisions so far
 
-- [ADR 0001](Doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope.
-- [ADR 0002](Doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 + Rust for Phases 1–3.
-- [ADR 0003](Doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI.
-- [ADR 0004](Doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP.
-- [ADR 0005](Doc/decisions/0005-pc-software-language-rust.md) — PC-side software in Rust; shared `proto` crate for the wire protocol.
-- [ADR 0006](Doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability.
-- [ADR 0007](Doc/decisions/0007-testing-and-ci-strategy.md) — Testing and CI: unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred.
+- [ADR 0001](doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope.
+- [ADR 0002](doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 + Rust for Phases 1–3.
+- [ADR 0003](doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI.
+- [ADR 0004](doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP.
+- [ADR 0005](doc/decisions/0005-pc-software-language-rust.md) — PC-side software in Rust; shared `proto` crate for the wire protocol.
+- [ADR 0006](doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability.
+- [ADR 0007](doc/decisions/0007-testing-and-ci-strategy.md) — Testing and CI: unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred.
 
 ## Licence
 
