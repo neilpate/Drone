@@ -20,8 +20,9 @@ The author is **a single operator working alone, indoors initially, with no prio
 
 | Hazard | Worst credible outcome | Primary mitigation |
 |---|---|---|
-| Spinning propeller | Finger laceration / amputation; eye injury from shed prop | Props off bench; safety glasses always when motors can spin; arming model in firmware |
+| Spinning propeller | Finger laceration / amputation; eye injury from shed prop | Props off bench; safety glasses always when motors can spin; arming model in firmware; test enclosure for any full-power run with props on (A.8) |
 | Bare-shaft brushless motor running unexpectedly | Skin pinch, projectile risk if grub screw exits | Bench PSU current-limited; firmware arming model; physical clamp on motor |
+| Shed prop / shed motor at full thrust | High-velocity projectile across the room | Test enclosure (A.8); firmware power-limit mode whenever outside the enclosure (B.9) |
 | LiPo thermal runaway (vent-with-flame) | Fire; toxic smoke; property damage | Hobby-grade balance charger; LiPo charging bag; non-flammable surface; never unattended; physical isolation from flammables |
 | LiPo short circuit (dropped tool, damaged insulation) | As above | Tidy bench; insulated tools; inspect leads before every use; XT/JST connectors not bare wire |
 | LiPo overdischarge / overcharge | Cell damage, future thermal event | Firmware low-voltage cut (Part B); never store at 4.2 V/cell or below 3.5 V/cell |
@@ -49,6 +50,7 @@ Minimum kit, always present at the bench / flight area:
 |---|---|---|---|---|---|---|
 | **1** | 1 | **No** | No (bench PSU) | Glasses | Workshop bench, motor clamped | Single motor; if it runs away, it spins in a clamp. Lowest-risk phase. |
 | **2** | 4 | **No** | No (bench PSU) | Glasses | Workshop bench, frame physically restrained | Four motors but no thrust. Mixer / DShot validation. |
+| **2 — full-power spin-up** | 4 | **Yes** | Yes (LiPo) | Glasses | **Inside test enclosure** (A.8); frame restrained | First time props meet motors at flight power. Mandatory enclosure. |
 | **3 — first flights** | 4 | **Yes** | Yes (LiPo) | Glasses; closed-toe shoes; long sleeves removed | **Cleared indoor area** (A.6); tether attached | Free-flight regime begins. Tether is mandatory until controlled hover is repeatable. |
 | **3 — post-tether** | 4 | Yes | Yes | As above | Cleared indoor area | Tether removed only after pre-flight failsafe verification (Part C). |
 | **3 — outdoor** | 4 | Yes | Yes | As above + weather-appropriate | Outdoor (A.6) | Only after stable indoor flight is repeatable. Conservative conditions (A.7). |
@@ -143,6 +145,29 @@ A small frame is more forgiving of every kind of mistake: crashes, runaway thrus
 
 **Recommendation feeding back into the Phase 3 ADR:** start at ~3″ ducted, escalate only if needed. Not yet locked in.
 
+### A.8 Test enclosure for full-power runs
+
+The single biggest physical-safety jump is the moment props first turn at flight power. Up to that point everything is either propless or thrust-limited; from that point on, a shed prop or a shed motor becomes a high-velocity projectile.
+
+**Rule:** any test that commands the motors above the power-limit cap (B.9) with props fitted must take place **inside a dedicated test enclosure**, regardless of phase. This includes:
+
+- First spin-up with props on (Phase 2 full-power).
+- Thrust-stand / motor characterisation runs.
+- Mixer / failsafe verification at flight throttle.
+- Any firmware change that touches the control loop, mixer, ESC driver, or arming model — re-verified inside the enclosure before the next flight.
+
+**Minimum enclosure spec** (to be refined when built; ADR pending):
+
+- **Containment on all sides** the drone could plausibly reach in a runaway. Floor, walls, ceiling, all closed during the test.
+- **Material:** netting (debris netting, golf-cage net, or similar) over a rigid frame. Net stops a shed prop; frame stops the drone bodily. Polycarbonate windows acceptable for a viewing panel, **not** for the whole structure — a 5″ prop will go through thin polycarb.
+- **Size:** large enough that the drone is physically restrained (clamped or tethered short) at the centre and cannot reach a wall under any commanded thrust. A ~1 m cube is the practical minimum for the small-frame class (A.7); larger is better.
+- **Anchor point** inside for a short tether / clamp that fixes the airframe in space.
+- **Visibility** from outside: viewing panel or open-mesh side so the pilot stays *outside* the enclosure during the run.
+- **Access:** door / panel that opens fully for setup, latches positively shut for the test.
+- **No one inside the enclosure** while motors are armed. Ever.
+
+The enclosure is a Phase 2 deliverable — built before the first full-power spin-up. Until it exists, the firmware power-limit cap (B.9) is the *only* sanction keeping a runaway in check, and the cap must be set low enough that a runaway cannot lift the drone off the bench.
+
 ---
 
 ## Part B — Firmware safety
@@ -204,13 +229,25 @@ These are rules the firmware must enforce regardless of pilot input or link stat
 
 Three Cargo feature flags, mutually exclusive, exactly one of which must be active for a build to succeed:
 
-| Feature | Use | Watchdog | Panic handler | Motor outputs |
-|---|---|---|---|---|
-| `bench` | Phases 1, 2, 4 (no props, no battery) | Disabled | Halt | Enabled |
-| `tethered` | Phase 3 / 5 first flights (battery + tether) | Enabled | Reset | Enabled |
-| `flight` | Phase 3 / 5 untethered flight | Enabled | Reset | Enabled, full envelope |
+| Feature | Use | Watchdog | Panic handler | Motor outputs | Default power cap (B.9) |
+|---|---|---|---|---|---|
+| `bench` | Phases 1, 2, 4 (no props, no battery) | Disabled | Halt | Enabled | Low-power on |
+| `tethered` | Phase 3 / 5 first flights (battery + tether) | Enabled | Reset | Enabled | Low-power on |
+| `flight` | Phase 3 / 5 untethered flight | Enabled | Reset | Enabled, full envelope | Low-power on; full-power requires explicit pilot unlock |
 
 `bench` and `flight` must be visually distinguishable in the ground-station UI (different colour band, large text) so the pilot cannot accidentally fly a `bench` build.
+
+### B.9 Power-limit mode (low-power default outside the enclosure)
+
+Orthogonal to build flavour: the firmware boots in **low-power mode** in every build. Full-power output is gated behind an explicit pilot action.
+
+- **Low-power cap** clamps the per-motor output to a configurable fraction of full PWM / DShot range — set low enough that the drone cannot lift off, and low enough that a shed prop carries little energy. Starting value: **~25 % of full throttle**, tuned downward if a runaway at the cap still has enough thrust to be dangerous on the bench.
+- The cap is applied **after** the mixer and **after** the throttle slew limiter (B.2), at the lowest sensible layer of the motor driver. It cannot be bypassed by setpoint shaping.
+- **Full-power unlock requires a deliberate, two-step pilot action** from the ground station (e.g. arm a `FULL_POWER` toggle, then confirm). Reverts to low-power on disarm, on link loss, on any fault flag, and on reset.
+- **Full-power unlock is refused** unless the ground UI is showing a flag that the operator has set to confirm the drone is in the enclosure (Phase 2 spin-up) or that they are committing to an outdoor / flight session (Phase 3+). The flag is operator-asserted, not sensed — the firmware cannot tell where the drone is — but it forces a pause and a conscious confirmation.
+- **Telemetry continuously reports the current cap state** (low / full) and the ground UI displays it prominently. Same colour/visual rules as build flavour (B.8).
+
+Intent: every accidental command sequence, every untested firmware change, every "just one more bench tweak" runs into the low-power cap first. Full power is something you *opt into*, in the enclosure or on the flight area, never something you *forget to turn off*.
 
 ---
 
@@ -235,6 +272,9 @@ Before the first flight, each of the following must have been triggered intentio
 | Battery thresholds (B.5) | Apply a slowly-decreasing voltage to the battery sense input → all three thresholds trigger at correct points. |
 | Watchdog (B.6) | Insert a long `block_on(pending::<()>)` in the control-loop task → chip must reset. |
 | Panic reset (B.7) | Insert a `panic!()` in a non-critical task → chip must reset, drone boots disarmed. |
+| Power-limit default (B.9) | Boot any build, arm, command full throttle → motor output must be clamped to the low-power cap. |
+| Power-limit revert (B.9) | Unlock full power, then disarm / drop link / trigger a fault → next arm must come up in low-power. |
+| Power-limit unlock gate (B.9) | Attempt full-power unlock without the operator-asserted location flag → unlock must be refused. |
 
 These tests should be **automated where possible** (host-runnable unit tests on the `core` modules per [ADR 0007](decisions/0007-testing-and-ci-strategy.md)). The on-hardware tests become HIL tests once Tier 2 CI lands.
 
@@ -258,12 +298,13 @@ Read aloud in order. Anything that doesn't pass → stop, fix, restart.
 4. **LiPo inspection.** No swelling, no nicks, leads intact. Voltage ≥ 3.7 V/cell.
 5. **Drone inspection.** All four motor screws tight. Props correct rotation, no cracks, no chips. No loose wires. Frame intact.
 6. **Build flavour confirmed.** Ground UI displays the expected build flavour (`tethered` or `flight`) — not `bench`.
-7. **Tether attached** (Phase 3 first flights).
-8. **Ground micro:bit + PC running.** Telemetry flowing. RSSI healthy.
-9. **Failsafe verification done this session** (C.2). Confirmed by checking the verification log.
-10. **Extinguisher / fire blanket within reach** (especially indoor first flights).
-11. **Phone in pocket, somebody knows the session is starting.**
-12. **Arming sequence.** Throttle min. Arm. Verify motors idle. **Take off.**
+7. **Power-limit state confirmed.** Ground UI shows the drone booted in low-power. Full-power unlock will be done deliberately, after take-off intent is confirmed (B.9).
+8. **Tether attached** (Phase 3 first flights).
+9. **Ground micro:bit + PC running.** Telemetry flowing. RSSI healthy.
+10. **Failsafe verification done this session** (C.2). Confirmed by checking the verification log.
+11. **Extinguisher / fire blanket within reach** (especially indoor first flights).
+12. **Phone in pocket, somebody knows the session is starting.**
+13. **Arming sequence.** Throttle min. Arm. Verify motors idle. **Take off.**
 
 ---
 
@@ -293,6 +334,8 @@ These will be resolved as Phase 3 prep firms up. Each becomes either a section u
 - **Specific charger model.** Hobby-grade balance charger; brand TBD.
 - **LiPo storage box.** LiPo bag minimum; Bat-Safe-class metal box preferred. TBD.
 - **Tether design.** Catch line, not power line. Attachment point on frame. Length. Material. TBD.
+- **Test enclosure build.** Frame material, net spec, size, anchor / clamp design, viewing panel, door latching. Phase 2 deliverable; likely its own short ADR or build doc.
+- **Power-limit cap value.** ~25 % starting figure (B.9) needs to be validated against the chosen frame: must be low enough that a runaway cannot lift off, high enough to be useful for tuning.
 - **Battery-voltage sense circuit.** Divider ratio, ADC channel, filter time constant. Specified in the firmware safety ADR when written.
 - **Failsafe ADR.** Part B is the working specification; will be formalised in an ADR before Phase 3 (per [02-architecture.md](02-architecture.md)).
 - **Local regulatory status.** Confirm UK CAA registration thresholds and any flight-restriction zones for the planned outdoor location.
