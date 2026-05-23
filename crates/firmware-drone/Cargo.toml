@@ -1,0 +1,37 @@
+[package]
+name        = "firmware-drone"
+version     = "0.1.0"
+description = "Drone firmware: on-target binary for the BBC micro:bit v2 (nRF52833)."
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+publish              = false
+autotests            = false
+autobenches          = false
+autoexamples         = false
+
+[[bin]]
+name    = "firmware-drone"
+path    = "src/main.rs"
+test    = false
+bench   = false
+doctest = false
+
+[dependencies]
+firmware-drone-core = { path = "../firmware-drone-core" }
+
+embassy-executor = { workspace = true }
+embassy-nrf      = { workspace = true }
+embassy-time     = { workspace = true }
+embassy-sync     = { workspace = true }
+embassy-futures  = { workspace = true }
+
+cortex-m    = { workspace = true }
+cortex-m-rt = { workspace = true }
+
+defmt       = { workspace = true }
+defmt-rtt   = { workspace = true }
+panic-probe = { workspace = true }
+
+[lints]
+workspace = true

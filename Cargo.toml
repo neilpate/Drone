@@ -1,0 +1,94 @@
+[workspace]
+resolver = "2"
+members  = ["crates/*"]
+
+# Crates that are safe to build for the host on `cargo <cmd>` invoked from the
+# repo root (no `-p` flag). On-target firmware crates are deliberately excluded
+# because they require a cross target and per-crate linker flags; build them
+# from inside their own directory (which picks up that crate's .cargo/config.toml),
+# or explicitly with `cargo build -p firmware-drone --target thumbv7em-none-eabihf`.
+# `xtask` (when it lands) will own the cross-build recipe.
+default-members = [
+    "crates/firmware-drone-core",
+]
+
+[workspace.package]
+edition      = "2024"
+license      = "MIT OR Apache-2.0"
+repository   = "https://github.com/neilpate/Drone"
+rust-version = "1.93"
+
+# Shared dependency pins. Per ADR 0009, individual crates reference these
+# with `workspace = true` rather than re-declaring versions.
+#
+# Versions current as of bootstrap (2026-05-23). Bump deliberately via PR.
+[workspace.dependencies]
+# --- Embassy stack (nRF flavour) ----------------------------------------------
+embassy-executor = { version = "0.6", features = [
+    "arch-cortex-m",
+    "executor-thread",
+    "defmt",
+    "task-arena-size-8192",
+] }
+embassy-nrf = { version = "0.2", features = [
+    "nrf52833",
+    "time-driver-rtc1",
+    "gpiote",
+    "defmt",
+    "unstable-pac",
+] }
+embassy-time = { version = "0.3", features = [
+    "defmt",
+    "defmt-timestamp-uptime",
+    "generic-queue-8",
+] }
+embassy-sync    = { version = "0.6", features = ["defmt"] }
+embassy-futures = { version = "0.1" }
+
+# --- Cortex-M runtime ---------------------------------------------------------
+cortex-m    = { version = "0.7", features = ["inline-asm", "critical-section-single-core"] }
+cortex-m-rt = "0.7"
+
+# --- Logging / panic ----------------------------------------------------------
+defmt       = "0.3"
+defmt-rtt   = "0.4"
+panic-probe = { version = "0.3", features = ["print-defmt"] }
+
+# --- HAL traits (for `core` crates that need them) ----------------------------
+embedded-hal       = "1.0"
+embedded-hal-async = "1.0"
+
+# --- Pure-logic helpers (host-testable, no_std) -------------------------------
+heapless   = "0.8"
+micromath  = "2.1"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# `pedantic` deliberately not enabled at workspace level — too noisy for
+# embedded boilerplate (e.g. `_spawner: Spawner` triggers `used_underscore_binding`).
+# Re-evaluate when the codebase has more pure logic to bite on.
+
+# --- Build profiles -----------------------------------------------------------
+# Embassy-style: optimise dependencies even in dev so stack usage and timing
+# behaviour are representative; keep our own code lightly optimised but still
+# debuggable.
+[profile.dev]
+opt-level     = 1
+debug         = 2
+codegen-units = 1
+lto           = false
+
+[profile.dev.package."*"]
+opt-level = 3
+debug     = 2
+
+[profile.release]
+opt-level       = "s"
+debug           = 2     # defmt + probe-rs need symbols; symbols are stripped from the flashed image, not from the ELF
+codegen-units   = 1
+lto             = "fat"
+overflow-checks = false
