@@ -56,6 +56,6 @@ async fn heartbeat(row: AnyPin, col: AnyPin) -> ! {
         col.set_low();
         Timer::after_millis(500).await;
         col.set_high();
-        Timer::after_millis(100).await;
+        Timer::after_millis(500).await;
     }
 }
