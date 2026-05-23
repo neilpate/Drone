@@ -22,7 +22,7 @@ Constraints / inputs:
 - **MCU:** BBC micro:bit v2 (Nordic **nRF52833**, ARM Cortex-M4F @ 64 MHz, 128 KB RAM, 512 KB flash).
 - **Language:** **Rust** (embedded, `no_std`), using the `microbit-v2` BSP crate and the `embassy-nrf` HAL / async runtime.
 - **Debug / flash:** `probe-rs` over the on-board DAPLink (CMSIS-DAP) — single USB cable does flash, debug, and `defmt` log streaming.
-- **Scope of this choice:** micro:bit v2 is the platform for **Tiers 0 through ~3** of the vision (see [00-vision.md](../00-vision.md)). For Tier 4+ (full quad, tethered hover) we expect to migrate to a purpose-built flight-controller board, almost certainly another Cortex-M part so the Rust codebase mostly carries over. That migration will get its own ADR when the time comes.
+- **Scope of this choice:** micro:bit v2 is the platform for **Phases 1–3** of the vision (see [00-vision.md](../00-vision.md)). For Phase 4 onwards we expect to migrate to a purpose-built flight-controller board, almost certainly another Cortex-M part so the Rust codebase mostly carries over. That migration will get its own ADR when the time comes.
 
 ## Why micro:bit v2
 
@@ -30,7 +30,7 @@ Constraints / inputs:
 - **Solid MCU.** nRF52833 is in the same architectural ballpark (Cortex-M4F, 64 MHz, single-precision FPU) as MCUs used in actual hobby flight controllers. Sensor fusion and PID loops will fit comfortably.
 - **Best-in-class Rust support.** Dedicated BSP crate (`microbit-v2`), mature HAL (`nrf-hal` / `embassy-nrf`), well-trodden tutorials (the [Discovery book](https://docs.rust-embedded.org/discovery-mb2/) targets this exact board).
 - **Built-in debugger.** DAPLink on board — no separate ST-Link / J-Link to buy and wire up. Flashing, semihosting / RTT logging, and breakpoints all work over the single USB cable.
-- **Two boards is genuinely useful.** The nRF52833 has a 2.4 GHz radio. The second micro:bit can act as a **ground station / remote control / telemetry sink** using Nordic's proprietary radio protocol or BLE. This defers ADR 0005 (radio link) and ADR 0006 (host-side tooling) and lets us reach Tier 2/3 with no extra hardware purchases.
+- **Two boards is genuinely useful.** The nRF52833 has a 2.4 GHz radio. The second micro:bit can act as a **ground station / remote control / telemetry sink** using Nordic's proprietary radio protocol or BLE. This defers ADR 0005 (radio link) and ADR 0006 (host-side tooling) and lets us reach Phase 2/3 with no extra hardware purchases.
 
 ## Why Rust (not C / C++)
 
@@ -52,17 +52,17 @@ The cost is a real one — compile times, occasionally fighting the borrow check
 - **Crate baseline (likely):** `microbit-v2`, `embassy-executor`, `embassy-nrf`, `embassy-time`, `defmt`, `defmt-rtt`, `panic-probe`, `embedded-hal` (1.0+).
 - **An external IMU is mandatory.** The micro:bit v2's onboard sensor is an LSM303AGR — accelerometer + magnetometer, **no gyroscope**. Accel-only attitude is useless under vibration. This forces [ADR 0003 — IMU selection] to be the next decision, and pulls forward needing an I²C or SPI driver crate (or writing one) early.
 - **A "ground station" micro:bit role.** The second board becomes a fixed part of the development setup — receiver of telemetry, sender of commands. Worth treating as a deliverable in its own right, with its own firmware tree.
-- **Planned MCU migration around Tier 4.** Don't build anything that locks us to micro:bit hardware specifically; keep board-specific code behind the BSP boundary.
+- **Planned MCU migration around Phase 4.** Don't build anything that locks us to micro:bit hardware specifically; keep board-specific code behind the BSP boundary.
 
 ### What this rules out (for now)
 
 - C / C++ firmware, including any temptation to copy-paste from Betaflight / Cleanflight sources. (We can read them for inspiration; we don't link to them.)
 - ESP32 / RP2040 / Teensy ecosystems. Not because they're bad — they're great — but committing to one Rust+nRF toolchain keeps cognitive load low.
-- Mounting the flight controller on a real drone frame *yet*. micro:bit v2's form factor and edge connector are bench-friendly, not flight-friendly. Tier 3 work happens on a rig, not in the air.
+- Mounting the flight controller on a real drone frame *yet*. micro:bit v2's form factor and edge connector are bench-friendly, not flight-friendly. Phase 3 work happens on a rig, not in the air.
 
 ### Known limitations to revisit later
 
-- **PWM / DShot generation for 4 motors** is awkward on micro:bit v2 — limited timer/PPI routing, and the edge connector doesn't expose enough convenient pins. Workable for 1–2 motors on a bench rig (Tier 3); a likely forcing function for the MCU migration at Tier 4.
+- **PWM / DShot generation for 4 motors** is awkward on micro:bit v2 — limited timer/PPI routing, and the edge connector doesn't expose enough convenient pins. Workable for 1–2 motors on a bench rig (Phase 3); a likely forcing function for the MCU migration at Phase 4.
 - **Edge connector mechanical fragility.** Fine for desk work; not for anything vibrating.
 - **Board weight & shape.** Not flyable on a small frame even if we wanted to.
 
@@ -72,4 +72,4 @@ The cost is a real one — compile times, occasionally fighting the borrow check
 - Frame / motor / ESC / battery → ADR 0004.
 - Radio link choice (Nordic proprietary vs BLE vs eventually ELRS) → ADR 0005.
 - Host-side tooling (what plots the telemetry stream?) → ADR 0006.
-- Successor flight-controller board for Tier 4+ → future ADR.
+- Successor flight-controller board for Phase 4+ → future ADR.

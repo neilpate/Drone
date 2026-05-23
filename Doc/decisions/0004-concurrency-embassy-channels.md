@@ -25,7 +25,7 @@ Candidates considered:
 - **Async runtime:** `embassy-executor` (thumbv7em, single-core).
 - **Synchronisation primitives:** `embassy-sync` (`Channel`, `Signal`, `Mutex`).
 - **Timing:** `embassy-time`.
-- **Scope:** Tiers 0 through ~3. Same revisit point as ADR 0002 (Tier 4+ flight-controller migration is a future ADR and may revisit this too).
+- **Scope:** Phases 1 through 3. Same revisit point as ADR 0002 (Phase 4+ flight-controller migration is a future ADR and may revisit this too).
 
 ## Why Embassy-with-channels (over the alternatives)
 
@@ -34,7 +34,7 @@ Candidates considered:
 - **Static, allocation-free, bounded.** Channels have fixed capacity known at compile time. No heap, no dynamic dispatch, no surprises — appropriate for a flight controller.
 - **Async maps cleanly to interrupt-driven peripherals.** IMU INT1 (see [ADR 0003](0003-imu-icm42688-spi.md)), SPI completion, timer ticks, UART RX — all become `.await` points. No hand-rolled state machines around ISRs.
 - **Not RTIC** because the actor mental model is what the user wants. RTIC's task+priority model is excellent but conceptually different; if it turns out to be a better fit for the hard-real-time control loop later, that's a focused revisit, not a stack rewrite.
-- **Not blocking nrf-hal** because we'd throw it away the moment concurrency bites (probably mid-Tier-2). Better to absorb the async learning curve up front than to rewrite.
+- **Not blocking nrf-hal** because we'd throw it away the moment concurrency bites (probably mid-Phase-2). Better to absorb the async learning curve up front than to rewrite.
 
 ## Why no BSP
 
@@ -68,6 +68,6 @@ Candidates considered:
 
 ### What stays open
 
-- **Successor flight-controller board for Tier 4+** (already open in ADR 0002) — may revisit the concurrency model at the same time.
+- **Successor flight-controller board for Phase 4+** (already open in ADR 0002) — may revisit the concurrency model at the same time.
 - **Hard-real-time control loop strategy.** Likely a high-priority Embassy task driven by a timer interrupt; if jitter becomes a problem we revisit (RTIC, or a hand-rolled high-priority ISR alongside Embassy).
 - **Telemetry transport on the wire** — separate ADR (radio link).

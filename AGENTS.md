@@ -65,32 +65,33 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 
 ## Project: Drone
 
-**Status:** Vision agreed (2026-05-21). Hardware/language baseline chosen (2026-05-21). IMU chosen (2026-05-21). Ready to start Tier 0/1 bring-up once parts arrive.
+**Status:** Vision agreed (2026-05-21). Hardware/language baseline chosen (2026-05-21). IMU chosen (2026-05-21). Phase plan redefined (2026-05-23, hardware-build oriented; see [Doc/00-vision.md](Doc/00-vision.md)). Ready to start Phase 1 bring-up once parts arrive.
 
 ### Scope guardrail (read every time)
 
 This is a **hobby learning project**, not a commercial-grade flight controller. When weighing options, bias toward:
 
 - What teaches the most per unit of effort, not what flies best.
-- Staying in the **nRF52 / nRF53 family** for hardware continuity. The agreed migration path is **micro:bit v2 (Tiers 0–3) → nRF5340 (Tier 4+)**. Do not propose STM32H7 / ELRS / "real FC" upgrades unless the user explicitly asks.
+- Staying in the **nRF52 / nRF53 family** for hardware continuity. The agreed migration path is **micro:bit v2 (Phases 1–3) → custom nRF5340 PCBA, designed in-house (Phases 4–5)**. Do not propose STM32H7 / ELRS / "real FC" upgrades unless the user explicitly asks.
 - One-off build, cost-insensitive within reason — but "commercial-grade" is not a target. "Good enough to learn from and to make a quad that flies in a garden" is.
 - The drone is the **vehicle for learning** ([00-vision.md](Doc/00-vision.md)). Understanding the stack is the deliverable; flight performance is a side effect.
+- **Video downlink (post-Phase 5)** is intended to be **analog FPV** — orthogonal payload, no FC firmware impact. Do not propose digital HD systems (DJI O3, HDZero) or DIY WiFi streaming as upgrades unless asked.
 
 **Locked-in choices** (see [ADR 0001](Doc/decisions/0001-platform-airframe-stack.md), [ADR 0002](Doc/decisions/0002-mcu-and-language.md), [ADR 0003](Doc/decisions/0003-imu-icm42688-spi.md), [ADR 0004](Doc/decisions/0004-concurrency-embassy-channels.md)):
 - **Real hardware** (no simulator).
 - **Quadcopter** airframe.
 - **Roll our own firmware** from scratch — no PX4 / ArduPilot.
 - **Primary goal: learning** — understand the whole stack end-to-end.
-- **MCU:** BBC micro:bit v2 (nRF52833, Cortex-M4F) for Tiers 0–3. Two boards owned — second one becomes ground station / remote.
+- **MCU:** BBC micro:bit v2 (nRF52833, Cortex-M4F) for Phases 1–3. Two boards owned — second one becomes ground station / remote.
 - **Language:** Rust (`no_std`, `probe-rs`, `defmt`).
 - **HAL / concurrency:** `embassy-nrf` (async HAL, no BSP) + `embassy-executor` + `embassy-sync`. Channel-based actor pattern — each subsystem is an `async` task with a typed `Channel` inbox.
 - **External IMU:** ICM-42688-P on SPI (6-DoF, no mag for now). INT1-driven sampling.
 
 **Next open questions:**
-- Frame size / motor / ESC / battery class — not urgent until Tier 3/4.
+- Frame size / motor / ESC / battery class — not urgent until Phase 3. Likely 3″–5″ prop class to leave headroom for the Phase-6+ analog FPV payload.
 - Radio link — deferred; second micro:bit covers early needs.
-- Host-side telemetry tooling (Tier 1 will need it).
-- Successor flight-controller board for Tier 4+ — future ADR.
+- Host-side telemetry tooling (Phase 1 will need it).
+- **Custom PCBA design (Phase 4)** — nRF5340 module on a carrier board, KiCad, hand-rolled. Future ADR when committed.
 
 **Documentation lives in:** [Doc/](Doc/README.md)
 **Architecture Decision Records:** `Doc/decisions/` (one file per decision, format `NNNN-title.md`).
@@ -108,7 +109,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 ## Decisions log (quick index)
 
 - [0001](Doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope. (2026-05-21)
-- [0002](Doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Tiers 0–3. (2026-05-21, amended by 0004)
+- [0002](Doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Phases 1–3. (2026-05-21, amended by 0004)
 - [0003](Doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)
 - [0004](Doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP. (2026-05-22)
 

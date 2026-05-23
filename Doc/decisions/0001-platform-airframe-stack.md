@@ -29,7 +29,7 @@ Off-the-shelf parts are used for everything *below* the firmware line: motors, E
 
 - **A much longer path to first flight.** We accept this.
 - **Doing the hard parts the hard way**: sensor fusion (complementary → Mahony → potentially EKF), real-time timing on bare metal, cascaded PID tuning by hand.
-- **A bench / tether rig as a first-class deliverable.** Free-flying an untested control loop with spinning props is unacceptable. Safe iteration depends on having instrumented bench setups before each tier of flight.
+- **A bench / tether rig as a first-class deliverable.** Free-flying an untested control loop with spinning props is unacceptable. Safe iteration depends on having instrumented bench setups before each phase of flight.
 - **Heavy investment in instrumentation** — streaming telemetry, host-side plotting — from day one. You cannot tune control loops blind.
 - **A phased plan** (see [00-vision.md](../00-vision.md) "Definition of success") so the scope doesn't collapse under its own weight.
 

@@ -161,8 +161,8 @@ These are the sub-decisions this architecture *invites* but does not make:
 - **RF link protocol** — Nordic ESB vs bare proprietary GFSK vs BLE. Strong default is ESB. → future ADR.
 - **Wire framing** — should USB (PC ↔ ground µbit) and RF (ground µbit ↔ drone) use the **same** framing/message format so the ground µbit is almost a dumb bridge? Strong lean: yes. → future ADR.
 - **Ground-station division of labour** — how much of the protocol lives on the ground µbit vs the PC in v1. The recommendation in this doc (ground µbit owns the Link layer, PC owns the App layer) is the candidate; needs an ADR to lock it in.
-- **Failsafe behaviour** — what the drone does when commands stop arriving. Tiered (bench tier vs flight tier). → ADR before Tier 4.
-- **Latency budget** — informal target: 5–15 ms pilot stick → motor response. Worth measuring once Tier 3 hardware exists.
+- **Failsafe behaviour** — what the drone does when commands stop arriving. Phased (bench phase vs flight phase). → ADR before Phase 4.
+- **Latency budget** — informal target: 5–15 ms pilot stick → motor response. Worth measuring once Phase 3 hardware exists.
 - **Controller interface in v2** — USB HID is hard on nRF52833 (no USB host). Bluetooth controller? Different controller? Successor MCU? → v2-era decision.
 - **LCD choice** — deferred until v2.
 
@@ -173,3 +173,17 @@ These are the sub-decisions this architecture *invites* but does not make:
 - Specific failsafe behaviour.
 - Specific PC-side tooling.
 - Frame, motors, ESCs, battery (covered by future ADRs / hardware doc).
+
+## Future: video subsystem (post-Phase 5)
+
+A camera + downlink is on the roadmap as a post-flight stretch goal. The approach is deliberately **orthogonal to the flight controller**:
+
+- **Analog camera + 5.8 GHz VTX** on the airframe, powered from the battery, radiating to a standalone 5.8 GHz receiver next to the ground station.
+- **No connection to the FC.** The nRF5340 firmware is unaware of the camera's existence. The camera and VTX share only the battery and the airframe.
+- **No connection to the ground micro:bit / PC.** The video receiver is its own device with its own screen. Telemetry stays on the nRF link; video stays on 5.8 GHz analog. Two independent radios on the drone, two independent receivers on the ground.
+
+Implications for current decisions:
+
+- **Weight and mount budget on the Phase 4 PCBA / frame.** Plan for ~10 g of camera + VTX + cabling and a front-facing camera mount. Argues for a 3″–5″ propeller class rather than the smallest possible build.
+- **No software, protocol, or architectural impact** on anything in this doc. The 4-layer stack, the v1/v2 ground-station evolution, the asymmetric command/telemetry channels — all unchanged.
+- **Digital HD video systems** (DJI O3, HDZero, etc.) and **DIY WiFi-based streaming** (ESP32-S3 + camera) are explicitly rejected for now as out of scope for a hobby/learning project. Analog FPV is the lowest-risk way to get a picture without overreaching.

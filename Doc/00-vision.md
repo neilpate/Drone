@@ -41,17 +41,22 @@ We're writing the **firmware** — the part that turns sensor data into motor co
 
 ## Definition of success
 
-Tiered, smallest-first:
+The project is split into hardware-build phases, smallest-first. Each phase has a drone-side build state, a drone-side firmware milestone, and a parallel ground-station milestone. Don't move on until the previous phase is solid.
 
-1. **Tier 0 — Hello hardware.** MCU running, blinking, talking over serial. _(Baseline that everything depends on.)_
-2. **Tier 1 — Sensors alive.** Read raw IMU data over I²C or SPI, stream it out, plot it on a host.
-3. **Tier 2 — Attitude estimate.** Fused orientation that is stable when the board is moved by hand. Verified visually.
-4. **Tier 3 — Bench-mounted single-motor control.** One motor on a rig, closed-loop control reacting to a tilted IMU. Proves the whole chain works at small scale.
-5. **Tier 4 — Tethered hover.** Full quad, tied down, holds attitude when the rig is perturbed. Throttle authority limited.
-6. **Tier 5 — Manual flight.** Untethered hover and gentle flight under manual radio control. **This is "done" for the first arc.**
-7. **Tier 6+ (stretch) — Altitude hold, position hold (with GPS / optical flow), simple autonomy.**
+| Phase | Drone build state | Drone firmware milestone | Ground-station milestone |
+|---|---|---|---|
+| **1 — Initial prototyping** | micro:bit on bench, ICM-42688 wired up, **one motor + ESC on a clamp**, bench PSU (no battery), hard-tethered to desk | blinky → IMU sample over SPI → **Mahony fusion** → single-motor closed-loop response to tilt, simple PWM to one ESC | second micro:bit + PC, USB serial bridge, PS controller read on PC, plot raw IMU + fused attitude on PC, send single throttle command |
+| **2 — Advanced prototyping** | micro:bit on bench, **4 motors + ESCs**, 3D-printed rigid mount (not flight-frame), bench PSU, hard-tethered | full motor mixer, **DShot** instead of PWM, four-motor response to tilt (still bench, no thrust), basic failsafe (cut throttle on link loss) | controller commands all 4 channels (throttle / roll / pitch / yaw), telemetry shows all 4 motor outputs |
+| **3 — Initial flights** | lighter 3D-printed flight frame, **battery on board**, **safety tether** (catch line, not power) | first hover attempts, PID tuning, more aggressive failsafe (e.g. land mode), in-air diagnostics | telemetry over RF only (no USB to drone), arming / disarming UX |
+| **4 — New hardware bring-up** | **custom PCBA with nRF5340 module**, lightest 3D-printed frame, no battery, hard-tethered | port Embassy + actor code from micro:bit, validate every subsystem on new hardware (no flight) | unchanged from Phase 3 in shape; now talking to new MCU. Air protocol unchanged. |
+| **5 — First flight on new hardware** | nRF5340 PCBA, flight frame, battery, safety tether | re-tune PIDs for new dynamics, replicate Phase 3 capabilities on new hardware | unchanged |
 
-Each tier is its own milestone with its own success criteria. Don't move on until the previous tier is solid.
+### Beyond Phase 5
+
+Explicitly out of scope for the first arc, but recorded so the design doesn't accidentally rule them out:
+
+- **Analog FPV camera + 5.8 GHz VTX.** Orthogonal payload: a tiny analog camera and 5.8 GHz video transmitter sit on the airframe and use their own 5.8 GHz radio link to a standalone receiver. The flight controller does not see them. Drives a small weight / mount budget on the Phase 4 PCBA and frame, but no firmware impact.
+- **Altitude hold / position hold / autonomy.** Would require either a barometer (altitude) or GPS + optical flow (position), plus a much bigger fusion stack (EKF). Not on the path; not ruled out.
 
 ## Approach principles
 
