@@ -14,7 +14,7 @@ Domain docs are numbered `0N-topic.md`. Process / tooling docs are unnumbered an
 - `04-software-stack.md` — languages, frameworks, libraries, build setup. _(not yet written)_
 - `05-communication.md` — RF link, USB, message formats, framing. _(not yet written)_
 - `06-control.md` — flight control, PID tuning, sensor fusion notes. _(not yet written)_
-- `07-safety.md` — failsafes, arming, battery monitoring, bench discipline. _(not yet written; **prerequisite for Phase 3 free flight**)_
+- `07-safety.md` — failsafes, arming, battery monitoring, bench discipline. **Prerequisite for Phase 3 free flight.**
 - `ci-and-testing.md` — CI tiers, local-first feedback, hook setup, runner. _(not yet written; will land with the first Cargo workspace)_
 - `dev-environment.md` — toolchain setup, `probe-rs`, board labelling, two-board workflow. _(not yet written; will land with the first Cargo workspace)_
 - `decisions/` — Architecture Decision Records (ADRs), one file per decision.
