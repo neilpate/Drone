@@ -114,6 +114,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0004](Doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP. (2026-05-22)
 - [0005](Doc/decisions/0005-pc-software-language-rust.md) — PC-side software written in Rust; shared `proto` crate for the wire protocol. (2026-05-23)
 - [0006](Doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability. (2026-05-23)
+- [0007](Doc/decisions/0007-testing-and-ci-strategy.md) — Testing and CI: unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred. (2026-05-23)
 
 ---
 
