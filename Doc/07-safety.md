@@ -35,12 +35,20 @@ Anything not on this list that turns up in practice goes in the **incident log**
 
 ### A.2 Personal protective equipment (PPE)
 
-Minimum kit, always present at the bench / flight area:
+One hard rule, the rest is sensible advice. A rule that gets ignored is worse than no rule, so this list is deliberately short.
 
-- **Safety glasses (ANSI Z87.1 or EN 166).** Worn any time motors can physically spin (regardless of whether props are fitted). Cheap, no excuse.
-- **Closed-toe shoes** on flight days.
-- **No loose sleeves, no dangling jewellery, no ties** when working near spinning hardware.
-- **Long hair tied back.**
+**Mandatory:**
+
+- **Safety glasses (ANSI Z87.1 or EN 166).** Worn any time motors can physically spin (regardless of whether props are fitted). Cheap, no excuse. Eyes don't grow back; everything else on this list does.
+
+**Sensible, not enforced:**
+
+- Closed-toe shoes on flight days.
+- No loose sleeves, no dangling jewellery, no ties when working near spinning hardware.
+- Long hair tied back.
+
+**Always to hand:**
+
 - **First-aid kit within reach.** Plasters, sterile pads, burn gel.
 - **Phone within reach** with emergency number ready (lone-worker discipline; see A.5).
 
@@ -51,9 +59,9 @@ Minimum kit, always present at the bench / flight area:
 | **1** | 1 | **No** | No (bench PSU) | Glasses | Workshop bench, motor clamped | Single motor; if it runs away, it spins in a clamp. Lowest-risk phase. |
 | **2** | 4 | **No** | No (bench PSU) | Glasses | Workshop bench, frame physically restrained | Four motors but no thrust. Mixer / DShot validation. |
 | **2 — full-power spin-up** | 4 | **Yes** | Yes (LiPo) | Glasses | **Inside test enclosure** (A.8); frame restrained | First time props meet motors at flight power. Mandatory enclosure. |
-| **3 — first flights** | 4 | **Yes** | Yes (LiPo) | Glasses; closed-toe shoes; long sleeves removed | **Cleared indoor area** (A.6); tether attached | Free-flight regime begins. Tether is mandatory until controlled hover is repeatable. |
+| **3 — first flights** | 4 | **Yes** | Yes (LiPo) | Glasses | **Cleared indoor area** (A.6); tether attached | Free-flight regime begins. Tether is mandatory until controlled hover is repeatable. |
 | **3 — post-tether** | 4 | Yes | Yes | As above | Cleared indoor area | Tether removed only after pre-flight failsafe verification (Part C). |
-| **3 — outdoor** | 4 | Yes | Yes | As above + weather-appropriate | Outdoor (A.6) | Only after stable indoor flight is repeatable. Conservative conditions (A.7). |
+| **3 — outdoor** | 4 | Yes | Yes | Glasses; weather-appropriate clothing | Outdoor (A.6) | Only after stable indoor flight is repeatable. Conservative conditions (A.7). |
 | **4** | 4 | No | No (bench PSU) | Glasses | Workshop bench | New hardware bring-up. Back to bench discipline. |
 | **5** | 4 | Yes | Yes | As Phase 3 | As Phase 3 | First flight on new hardware. Re-run the entire Part-C verification before flight. |
 
@@ -294,7 +302,7 @@ Read aloud in order. Anything that doesn't pass → stop, fix, restart.
 
 1. **Pilot fit.** Rested, sober, not distracted, not rushing.
 2. **Area clear.** Cleared zone (A.6); no people, pets, valuables in cone; door closed.
-3. **PPE on.** Glasses on. Closed-toe shoes. Sleeves clear.
+3. **PPE on.** Glasses on. (Closed-toe shoes and sleeves clear if you remembered.)
 4. **LiPo inspection.** No swelling, no nicks, leads intact. Voltage ≥ 3.7 V/cell.
 5. **Drone inspection.** All four motor screws tight. Props correct rotation, no cracks, no chips. No loose wires. Frame intact.
 6. **Build flavour confirmed.** Ground UI displays the expected build flavour (`tethered` or `flight`) — not `bench`.
