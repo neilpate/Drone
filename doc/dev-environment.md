@@ -26,6 +26,23 @@ To be installed at the start of Phase 1. Versions to be locked via `rust-toolcha
 
 The first commit that adds the Cargo workspace will also add a `rust-toolchain.toml` pinning these versions and a `.vscode/extensions.json` recommending the extensions above.
 
+### Verified on real hardware
+
+The above toolchain — Rust 1.95 stable, `thumbv7em-none-eabihf`, `probe-rs`, `flip-link`, `defmt`, `defmt-rtt`, `panic-probe`, the Embassy stack — has been validated end-to-end on a BBC micro:bit v2 (2026-05-23): build, flash via the on-board CMSIS-DAP probe, `defmt` log stream over RTT, and source-level debugging from VS Code via the `probe-rs.probe-rs-debugger` extension. First on-target output was the boot banner; first peripheral exercised was the 5x5 LED matrix (P0.21 row drive + P0.28 column sink, 1 Hz heartbeat).
+
+### Source-level debugging in VS Code
+
+The repo ships `.vscode/launch.json`, `.vscode/tasks.json`, and `.vscode/extensions.json` to make F5 a working "build, flash, attach debugger, stream `defmt`" cycle. Requirements:
+
+- `probe-rs.probe-rs-debugger` extension installed (VS Code prompts on first open via [`.vscode/extensions.json`](../.vscode/extensions.json)).
+- The same `probe-rs` CLI on `PATH` that `cargo run` uses (versions of CLI and extension should track each other — major drift breaks the DAP wire format).
+
+What F5 does: runs the `build firmware-drone (debug)` task, then the extension flashes the resulting ELF, halts the core at the reset vector (in `cortex-m-rt`'s startup, *before* `main`), and attaches. `defmt` frames from RTT are decoded into the Debug Console with timestamps. Breakpoints are hardware breakpoints set in the Cortex-M4's FPB unit — about six are available, after which new ones silently fail to bind.
+
+The launch config defaults to `haltAfterReset: false` on the debug profile so the firmware runs straight to your breakpoints; the release profile keeps `haltAfterReset: true` for cases where a panic at `static` init or in startup needs to be caught.
+
+Stepping through `async` code: Embassy lowers each `async fn` into a state machine, so single-stepping over `.await` is misleading. Set breakpoints after the await, not on it.
+
 ### Windows-specific notes
 
 - **DAPLink USB driver.** The micro:bit v2 enumerates as a CMSIS-DAP v2 device on Windows 10/11 without any driver install — WinUSB is bound automatically. If `probe-rs list` does not see the board, check Device Manager: under "Universal Serial Bus devices" there should be a "DAPLink CMSIS-DAP" entry. If it appears under "Other devices" with a yellow exclamation, install [Zadig](https://zadig.akeo.ie/) and bind WinUSB manually.
