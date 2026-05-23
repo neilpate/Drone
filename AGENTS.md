@@ -100,6 +100,10 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - Host-side telemetry tooling (Phase 1 will need it).
 - **Custom PCBA design (Phase 4)** — nRF5340 module on a carrier board, KiCad, hand-rolled. Future ADR when committed.
 
+**Next session (picked up where we left off):**
+- **BSP exposes typed peripheral handles, not raw pins.** Refactor the heartbeat task to take a board-owned `StatusLed` handle instead of a `(row, col)` pin pair. micro:bit v2's matrix is wiring, not policy — the task signature should not encode it. Pattern generalises to every future peripheral (motor, IMU, radio). Rule of thumb: BSP hides *wiring*, tasks own *policy*. No ADR yet — wait until a second peripheral applies the same pattern, then capture both in one ADR. See chat 2026-05-23.
+- **GitHub-side project tracking.** Investigate using GitHub Issues / Projects (or the GraphQL Projects v2 API) as the canonical TODO/backlog rather than scattered notes in AGENTS.md and chat. Open questions: which tier (issues only vs full Projects board), how it interacts with the AGENTS.md "Next open questions" section, whether a small `gh`-cli or API wrapper is worth scripting. Not an ADR-grade decision yet — just a scoping conversation.
+
 **Documentation lives in:** [doc/](doc/README.md)
 **Hardware files live in:** [hardware/](hardware/README.md) (mechanical CAD under `hardware/mechanical/`, electrical / PCBA under `hardware/electrical/`).
 **Rust crates live in:** [crates/](crates/README.md) (empty until Phase 1 design lands).
