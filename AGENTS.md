@@ -96,6 +96,8 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - **Custom PCBA design (Phase 4)** — nRF5340 module on a carrier board, KiCad, hand-rolled. Future ADR when committed.
 
 **Documentation lives in:** [Doc/](Doc/README.md)
+**Hardware files live in:** [Hardware/](Hardware/README.md) (mechanical CAD under `Hardware/Mechanical/`, electrical / PCBA under `Hardware/Electrical/`).
+**Rust crates live in:** [crates/](crates/README.md) (empty until Phase 1 design lands).
 **Architecture Decision Records:** `Doc/decisions/` (one file per decision, format `NNNN-title.md`).
 
 ---
