@@ -55,7 +55,7 @@ The project is split into hardware-build phases, smallest-first. Each phase has 
 | Phase | Drone build state | Drone firmware milestone | Ground-station milestone |
 |---|---|---|---|
 | **1 — Initial prototyping** | micro:bit on bench, ICM-42688 wired up, **one motor + ESC on a clamp**, bench PSU (no battery), hard-tethered to desk | blinky → IMU sample over SPI → **Mahony fusion** → single-motor closed-loop response to tilt, simple PWM to one ESC | second micro:bit + PC, USB serial bridge, PS controller read on PC, plot raw IMU + fused attitude on PC, send single throttle command |
-| **2 — Advanced prototyping** | micro:bit on bench, **4 motors + ESCs**, 3D-printed rigid mount (not flight-frame), bench PSU, hard-tethered | full motor mixer, **DShot** instead of PWM, four-motor response to tilt (still bench, no thrust), basic failsafe (cut throttle on link loss) | controller commands all 4 channels (throttle / roll / pitch / yaw), telemetry shows all 4 motor outputs |
+| **2 — Advanced prototyping** | micro:bit on bench, **4 motors + ESCs**, 3D-printed rigid mount (not flight-frame), bench PSU, hard-tethered. **Test enclosure built** before first props-on full-power run (netted cage, [07-safety.md A.8](07-safety.md)) | full motor mixer, **DShot** instead of PWM, four-motor response to tilt (still bench, no thrust), basic failsafe (cut throttle on link loss), **firmware power-limit mode** ([07-safety.md B.9](07-safety.md)) | controller commands all 4 channels (throttle / roll / pitch / yaw), telemetry shows all 4 motor outputs, **power-limit / unlock UI** |
 | **3 — Initial flights** | **flight hardware selected and committed**: frame class, motors, ESCs, propellers, LiPo battery, RX. Lighter 3D-printed flight frame, **battery on board**, **safety tether** (catch line, not power) | first hover attempts, PID tuning, more aggressive failsafe (e.g. land mode), in-air diagnostics | telemetry over RF only (no USB to drone), arming / disarming UX |
 | **4 — New hardware bring-up** | **custom PCBA with nRF5340 module**, designed around the Phase 3 battery / frame / motor / ESC choices (not new selections). Lightest 3D-printed frame, hard-tethered, **bench PSU for first power-on** (battery comes back once the regulator and current draw are validated) | port Embassy + actor code from micro:bit, validate every subsystem on new hardware (no flight) | unchanged from Phase 3 in shape; now talking to new MCU. Air protocol unchanged. |
 | **5 — First flight on new hardware** | nRF5340 PCBA, flight frame, battery, safety tether | re-tune PIDs for new dynamics, replicate Phase 3 capabilities on new hardware | unchanged |
@@ -69,7 +69,7 @@ Explicitly out of scope for the first arc, but recorded so the design doesn't ac
 
 ## Approach principles
 
-- **Build the test rig before the drone.** A tethered / propeller-less bench setup is what makes iteration safe and fast.
+- **Build the test rig before the drone.** A tethered / propeller-less bench setup is what makes iteration safe and fast. The **test enclosure** (netted cage, [07-safety.md A.8](07-safety.md)) is the Phase 2 instance of this principle: built and proven before the first props-on full-power run.
 - **Instrument everything.** Stream data out over serial / USB from the start. Tuning blind is impossible.
 - **One variable at a time.** Standard engineering discipline — even more important when something can take your fingers off.
 - **Phased commits.** Don't try to write the EKF before the complementary filter works.
@@ -93,4 +93,5 @@ Still open (each will get its own ADR when resolved):
 - Wire framing / encoding between drone and PC (postcard, COBS-framed bincode, JSON for bring-up, …).
 - PC-side GUI / plotting framework — strong candidate is [`rerun.io`](https://rerun.io) (Rust-native time-series + 3D visualisation, designed for robotics telemetry). `egui` + `egui_plot` is the fallback. Not locked in.
 - Failsafe behaviour — must be settled before Phase 3 free flight.
+- Test enclosure design — frame material, net spec, size, anchor point, viewing panel, door latching. Phase 2 deliverable ([07-safety.md A.8](07-safety.md)); likely its own short ADR or build doc.
 - Custom PCBA design (Phase 4) — nRF5340 module choice, carrier-board layout, power tree.
