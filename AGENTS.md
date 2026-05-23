@@ -67,6 +67,15 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 
 **Status:** Vision agreed (2026-05-21). Hardware/language baseline chosen (2026-05-21). IMU chosen (2026-05-21). Ready to start Tier 0/1 bring-up once parts arrive.
 
+### Scope guardrail (read every time)
+
+This is a **hobby learning project**, not a commercial-grade flight controller. When weighing options, bias toward:
+
+- What teaches the most per unit of effort, not what flies best.
+- Staying in the **nRF52 / nRF53 family** for hardware continuity. The agreed migration path is **micro:bit v2 (Tiers 0–3) → nRF5340 (Tier 4+)**. Do not propose STM32H7 / ELRS / "real FC" upgrades unless the user explicitly asks.
+- One-off build, cost-insensitive within reason — but "commercial-grade" is not a target. "Good enough to learn from and to make a quad that flies in a garden" is.
+- The drone is the **vehicle for learning** ([00-vision.md](Doc/00-vision.md)). Understanding the stack is the deliverable; flight performance is a side effect.
+
 **Locked-in choices** (see [ADR 0001](Doc/decisions/0001-platform-airframe-stack.md), [ADR 0002](Doc/decisions/0002-mcu-and-language.md), [ADR 0003](Doc/decisions/0003-imu-icm42688-spi.md), [ADR 0004](Doc/decisions/0004-concurrency-embassy-channels.md)):
 - **Real hardware** (no simulator).
 - **Quadcopter** airframe.
