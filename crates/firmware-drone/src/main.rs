@@ -22,25 +22,40 @@ use panic_probe as _;
 
 use embassy_executor::Spawner;
 use embassy_nrf::config::Config;
-use embassy_nrf::gpio::{Level, Output, OutputDrive};
+use embassy_nrf::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use embassy_time::Timer;
 
+mod board;
+
 #[embassy_executor::main]
-async fn main(_spawner: Spawner) {
+async fn main(spawner: Spawner) {
     let p = embassy_nrf::init(Config::default());
+    let board = board::Board::new(p);
 
-    defmt::info!("firmware-drone: boot (scaffold)");
+    defmt::info!("firmware-drone on {}: boot (scaffold)", board::NAME);
 
-    // micro:bit v2 LED matrix: top-left LED sits between Row 1 (P0.21) and
-    // Col 1 (P0.28). Row HIGH + Col LOW = current flows through the LED.
-    // Hold the row HIGH and toggle the column to blink one pixel.
-    let _row1 = Output::new(p.P0_21, Level::High, OutputDrive::Standard);
-    let mut col1 = Output::new(p.P0_28, Level::High, OutputDrive::Standard);
+    spawner.must_spawn(heartbeat(
+        board.heartbeat_row.degrade(),
+        board.heartbeat_col.degrade(),
+    ));
+}
+
+/// "Firmware is alive" heartbeat: blinks one LED on the board.
+///
+/// Row is held HIGH for the lifetime of the task; the column is toggled,
+/// so column LOW = LED on, column HIGH = LED off. This matches the
+/// charlieplexed LED matrix on the micro:bit v2; a future board with a
+/// dedicated status LED will short one of the two pins to its power rail.
+#[embassy_executor::task]
+async fn heartbeat(row: AnyPin, col: AnyPin) -> ! {
+    defmt::info!("firmware-drone: hearbeat task started");
+    let _row = Output::new(row, Level::High, OutputDrive::Standard);
+    let mut col = Output::new(col, Level::High, OutputDrive::Standard);
 
     loop {
-        col1.set_low();
+        col.set_low();
         Timer::after_millis(500).await;
-        col1.set_high();
-        Timer::after_millis(500).await;
+        col.set_high();
+        Timer::after_millis(100).await;
     }
 }

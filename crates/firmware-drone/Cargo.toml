@@ -17,6 +17,12 @@ test    = false
 bench   = false
 doctest = false
 
+[features]
+# Exactly one `board-*` feature must be active per build. The selection is
+# enforced at compile time by `src/board/mod.rs`. See ADR 0010.
+default = ["board-microbit-v2"]
+board-microbit-v2 = []
+
 [dependencies]
 firmware-drone-core = { path = "../firmware-drone-core" }
 
