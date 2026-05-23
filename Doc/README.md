@@ -6,7 +6,7 @@ This directory holds the design notes, decisions, and references for the Drone p
 
 - `README.md` — this file; index and conventions
 - `00-vision.md` — high-level goals: what we're building and why
-- `01-requirements.md` — functional and non-functional requirements
+- `01-requirements.md` — functional and non-functional requirements _(not yet written)_
 - `02-architecture.md` — system architecture, components, data flow
 - `03-hardware.md` — hardware choices, sensors, actuators, wiring
 - `04-software-stack.md` — languages, frameworks, libraries, OS

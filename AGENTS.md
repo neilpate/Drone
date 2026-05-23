@@ -31,6 +31,16 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 - Don't add comments / docstrings / type hints to code you didn't change.
 - Implement rather than just suggest, unless ambiguity requires a question.
 
+## Writing style (docs, ADRs, commit messages, replies)
+
+- Keep it professional. This is engineering documentation, not a blog post.
+- No casual section headings: avoid `TL;DR`, `tl;dr`, `In a nutshell`, `The gist`, etc. Use `Summary`, `Overview`, or just lead with the point.
+- No emojis unless the user explicitly asks.
+- No marketing tone ("blazing fast", "powerful", "seamless").
+- No exclamation marks in docs/ADRs.
+- Em-dashes, plain prose, and short sentences are fine and preferred over chatty hedging.
+- When summarising trade-offs, state them plainly; don't soften with "it's worth noting that\u2026" filler.
+
 ## Code-writing boundary (important)
 
 - **The user writes the code.** This is a learning project — writing it themselves is the point.
