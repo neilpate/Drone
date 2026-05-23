@@ -1,0 +1,84 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // Source-level debug of firmware-drone on a BBC micro:bit v2
+            // (nRF52833) via the on-board CMSIS-DAP probe.
+            //
+            // Requires:
+            //   - probe-rs.probe-rs-debugger extension (see extensions.json)
+            //   - probe-rs CLI on PATH (same one `cargo run` already uses)
+            //
+            // What this does:
+            //   1. Runs the `build firmware-drone (debug)` task to produce
+            //      the ELF at target/thumbv7em-none-eabihf/debug/firmware-drone.
+            //   2. Connects to the probe, flashes the ELF, halts at reset.
+            //   3. Attaches the debugger and surfaces defmt-RTT output in
+            //      the Debug Console.
+            //
+            // Set breakpoints in the gutter as you would for any other
+            // language. The micro:bit's Cortex-M4 has a small number of
+            // hardware breakpoints (~6); past that, setting more silently
+            // fails until you clear some.
+            "type": "probe-rs-debug",
+            "request": "launch",
+            "name": "firmware-drone (debug, micro:bit v2)",
+            "cwd": "${workspaceFolder}",
+            "chip": "nRF52833_xxAA",
+            "connectUnderReset": false,
+            "preLaunchTask": "build firmware-drone (debug)",
+            "flashingConfig": {
+                "flashingEnabled": true,
+                "haltAfterReset": false
+            },
+            "coreConfigs": [
+                {
+                    "coreIndex": 0,
+                    "programBinary": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/firmware-drone",
+                    // Decode defmt frames from RTT during the debug session
+                    // and stream them to the Debug Console.
+                    "rttEnabled": true,
+                    "rttChannelFormats": [
+                        {
+                            "channelNumber": 0,
+                            "dataFormat": "Defmt",
+                            "showTimestamp": true
+                        }
+                    ]
+                }
+            ],
+            "consoleLogLevel": "Console"
+        },
+        {
+            // Same as above but flashes the release build. Use this once the
+            // debug build is too slow / too large to be useful. Debug info is
+            // still present (release profile keeps DWARF for defmt anyway).
+            "type": "probe-rs-debug",
+            "request": "launch",
+            "name": "firmware-drone (release, micro:bit v2)",
+            "cwd": "${workspaceFolder}",
+            "chip": "nRF52833_xxAA",
+            "connectUnderReset": false,
+            "preLaunchTask": "build firmware-drone (release)",
+            "flashingConfig": {
+                "flashingEnabled": true,
+                "haltAfterReset": true
+            },
+            "coreConfigs": [
+                {
+                    "coreIndex": 0,
+                    "programBinary": "${workspaceFolder}/target/thumbv7em-none-eabihf/release/firmware-drone",
+                    "rttEnabled": true,
+                    "rttChannelFormats": [
+                        {
+                            "channelNumber": 0,
+                            "dataFormat": "Defmt",
+                            "showTimestamp": true
+                        }
+                    ]
+                }
+            ],
+            "consoleLogLevel": "Console"
+        }
+    ]
+}

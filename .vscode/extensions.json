@@ -1,0 +1,14 @@
+{
+    // Extensions recommended to anyone opening this workspace. VS Code shows
+    // a prompt on first open. None of these are required to build from the
+    // CLI — they only affect the in-editor experience.
+    "recommendations": [
+        // Rust language server (completion, diagnostics, formatting).
+        "rust-lang.rust-analyzer",
+        // probe-rs DAP adapter: source-level debugging of the firmware over
+        // SWD via the on-board CMSIS-DAP probe. See .vscode/launch.json.
+        "probe-rs.probe-rs-debugger",
+        // TOML support (Cargo.toml, rust-toolchain.toml, .cargo/config.toml).
+        "tamasfe.even-better-toml"
+    ]
+}

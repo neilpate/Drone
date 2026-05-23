@@ -1,0 +1,58 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // Build the firmware ELF that launch.json flashes. Invoked as the
+        // `preLaunchTask` of the "firmware-drone (debug)" launch config.
+        //
+        // `cargo build` (not `run`) — we want the ELF, not to flash via the
+        // cargo runner. probe-rs-debugger does the flashing itself so it can
+        // hold the core in reset and attach the debugger cleanly.
+        {
+            "label": "build firmware-drone (debug)",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build",
+                "--bin",
+                "firmware-drone"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/crates/firmware-drone"
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "clear": true,
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "build firmware-drone (release)",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build",
+                "--release",
+                "--bin",
+                "firmware-drone"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/crates/firmware-drone"
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "presentation": {
+                "clear": true,
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        }
+    ]
+}
