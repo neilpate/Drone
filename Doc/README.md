@@ -16,9 +16,9 @@ Domain docs are numbered `0N-topic.md`. Process / tooling docs are unnumbered an
 - `06-control.md` — flight control, PID tuning, sensor fusion notes. _(not yet written)_
 - `07-safety.md` — failsafes, arming, battery monitoring, bench discipline. **Prerequisite for Phase 3 free flight.**
 - `ci-and-testing.md` — CI tiers, local-first feedback, hook setup, runner. _(not yet written; will land with the first Cargo workspace)_
-- `dev-environment.md` — toolchain setup, `probe-rs`, board labelling, two-board workflow. _(not yet written; will land with the first Cargo workspace)_
+- `dev-environment.md` — toolchain setup, `probe-rs`, board labelling, two-board workflow. Windows-specific notes included.
 - `decisions/` — Architecture Decision Records (ADRs), one file per decision.
-- `research/` — external references, datasheets, links, notes. _(folder not yet created; will be populated as references accumulate)_
+- `research/` — external references, datasheets, links, notes. See [research/README.md](research/README.md) for what belongs there.
 
 Mechanical CAD files (`.f3d` + `.step` + print-ready `.stl` / `.3mf`) will live in a top-level `Mech/` folder when the first part lands ([ADR 0006](decisions/0006-mechanical-cad-fusion360.md)).
 
