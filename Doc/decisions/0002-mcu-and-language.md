@@ -30,7 +30,7 @@ Constraints / inputs:
 - **Solid MCU.** nRF52833 is in the same architectural ballpark (Cortex-M4F, 64 MHz, single-precision FPU) as MCUs used in actual hobby flight controllers. Sensor fusion and PID loops will fit comfortably.
 - **Best-in-class Rust support.** Dedicated BSP crate (`microbit-v2`), mature HAL (`nrf-hal` / `embassy-nrf`), well-trodden tutorials (the [Discovery book](https://docs.rust-embedded.org/discovery-mb2/) targets this exact board).
 - **Built-in debugger.** DAPLink on board — no separate ST-Link / J-Link to buy and wire up. Flashing, semihosting / RTT logging, and breakpoints all work over the single USB cable.
-- **Two boards is genuinely useful.** The nRF52833 has a 2.4 GHz radio. The second micro:bit can act as a **ground station / remote control / telemetry sink** using Nordic's proprietary radio protocol or BLE. This defers ADR 0005 (radio link) and ADR 0006 (host-side tooling) and lets us reach Phase 2/3 with no extra hardware purchases.
+- **Two boards is genuinely useful.** The nRF52833 has a 2.4 GHz radio. The second micro:bit can act as a **ground station / remote control / telemetry sink** using Nordic's proprietary radio protocol or BLE. This defers the radio-link ADR and the PC-software ADR (now [ADR 0005](0005-pc-software-language-rust.md)) and lets us reach Phase 2/3 with no extra hardware purchases.
 
 ## Why Rust (not C / C++)
 
@@ -71,5 +71,5 @@ The cost is a real one — compile times, occasionally fighting the borrow check
 - IMU part choice → ADR 0003.
 - Frame / motor / ESC / battery → ADR 0004.
 - Radio link choice (Nordic proprietary vs BLE vs eventually ELRS) → ADR 0005.
-- Host-side tooling (what plots the telemetry stream?) → ADR 0006.
+- Host-side tooling (what plots the telemetry stream?) — language settled by [ADR 0005](0005-pc-software-language-rust.md); framework choice still open.
 - Successor flight-controller board for Phase 4+ → future ADR.

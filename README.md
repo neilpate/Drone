@@ -29,3 +29,4 @@ See [Doc/00-vision.md](Doc/00-vision.md) for the full vision and the phased mile
 - [ADR 0002](Doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 + Rust for Phases 1–3.
 - [ADR 0003](Doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI.
 - [ADR 0004](Doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP.
+- [ADR 0005](Doc/decisions/0005-pc-software-language-rust.md) — PC-side software in Rust; shared `proto` crate for the wire protocol.

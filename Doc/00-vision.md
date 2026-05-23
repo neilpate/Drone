@@ -73,12 +73,13 @@ Resolved (see `Doc/decisions/`):
 - Firmware language — Rust, `no_std`. ADR 0002.
 - IMU part number — ICM-42688-P on SPI. ADR 0003.
 - Concurrency / HAL — Embassy + channel-based actor pattern, no BSP. ADR 0004.
+- PC-side software language — Rust, with a shared `proto` crate for the wire protocol. ADR 0005.
 
 Still open (each will get its own ADR when resolved):
 
 - Frame class (size / weight) — drives motor / prop / battery selection. Needed by Phase 3.
 - Radio link — second micro:bit + ESB covers Phases 1–2; longer-term choice still open.
-- Host-side tooling — what do we use to plot streaming telemetry?
-- Wire framing / USB protocol between drone and ground station.
+- Wire framing / encoding between drone and PC (postcard, COBS-framed bincode, JSON for bring-up, …).
+- PC-side GUI / plotting framework (likely `egui` + `egui_plot`; not locked in).
 - Failsafe behaviour — must be settled before Phase 3 free flight.
 - Custom PCBA design (Phase 4) — nRF5340 module choice, carrier-board layout, power tree.
