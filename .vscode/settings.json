@@ -1,0 +1,37 @@
+{
+    // ---------------------------------------------------------------------
+    // rust-analyzer: mixed-target workspace configuration
+    // ---------------------------------------------------------------------
+    //
+    // The repo is currently embedded-only (firmware-drone, firmware-drone-core,
+    // both no_std targeting nRF52833). rust-analyzer otherwise defaults to the
+    // host triple (x86_64-pc-windows-msvc), which makes cortex-m's ARM inline
+    // assembly (`asm!("bkpt #...", inout("r0") ...)`) appear invalid.
+    //
+    // Set the analyser's target to match what `cargo build` actually uses for
+    // the firmware crates. When host-only crates (groundstation, xtask) land,
+    // switch to `rust-analyzer.linkedProjects` with per-crate targets.
+    "rust-analyzer.cargo.target": "thumbv7em-none-eabihf",
+    // Don't analyse dev-deps / tests / examples; firmware crates have those
+    // turned off anyway (see crates/firmware-drone/Cargo.toml).
+    "rust-analyzer.cargo.allTargets": false,
+    // ---------------------------------------------------------------------
+    // Formatting
+    // ---------------------------------------------------------------------
+    "[rust]": {
+        "editor.defaultFormatter": "rust-lang.rust-analyzer",
+        "editor.formatOnSave": true
+    },
+    "[toml]": {
+        "editor.formatOnSave": false
+    },
+    // ---------------------------------------------------------------------
+    // Files
+    // ---------------------------------------------------------------------
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "files.associations": {
+        "memory.x": "linker-script",
+        "*.x": "linker-script"
+    }
+}
