@@ -158,6 +158,7 @@ These are **not** symmetric and the link layer / protocol should not pretend the
 
 These are the sub-decisions this architecture *invites* but does not make:
 
+- **PC-side visualisation framework** — strong candidate is [`rerun.io`](https://rerun.io) (Rust-native, robotics-shaped, embeds in a few lines). `egui` + `egui_plot` is the DIY fallback. → future ADR when Phase 1 needs live plots.
 - **RF link protocol** — Nordic ESB vs bare proprietary GFSK vs BLE. Strong default is ESB. → future ADR.
 - **Wire framing** — should USB (PC ↔ ground µbit) and RF (ground µbit ↔ drone) use the **same** framing/message format so the ground µbit is almost a dumb bridge? Strong lean: yes. → future ADR.
 - **Ground-station division of labour** — how much of the protocol lives on the ground µbit vs the PC in v1. The recommendation in this doc (ground µbit owns the Link layer, PC owns the App layer) is the candidate; needs an ADR to lock it in.
@@ -173,6 +174,13 @@ These are the sub-decisions this architecture *invites* but does not make:
 - Specific failsafe behaviour.
 - Specific PC-side tooling.
 - Frame, motors, ESCs, battery (covered by future ADRs / hardware doc).
+
+## Considered and rejected
+
+Recorded here so they don't get relitigated. If the trade-offs ever shift, supersede with an ADR.
+
+- **ROS2 as the PC-side architecture.** Discussed 2026-05-23. Rejected because (a) `rclrs` / `r2r` are alpha-grade, so adopting ROS2 first-class would force the PC side off Rust and onto Python/C++ — directly against [ADR 0005](decisions/0005-pc-software-language-rust.md); (b) DDS is overkill for a single drone↔PC pair; (c) we'd still need a bridge node decoding our serial protocol into ROS2 topics, so the "single source of truth" win evaporates; (d) hiding the framing / dispatch layer behind a well-known abstraction undercuts the learning goal in [ADR 0001](decisions/0001-platform-airframe-stack.md). `rerun.io` covers the one genuine ROS2 win (great telemetry visualisation) without the rest.
+- **Gazebo (or any simulator) as a Phase 1–2 substitute for hardware.** Discussed 2026-05-23. Rejected because real ESC quirks, real motor noise on the IMU, real RF dropouts and real timing jitter *are* what we're here to learn ([ADR 0001](decisions/0001-platform-airframe-stack.md)). Parked as an *optional* Phase 3+ tool for safe PID tuning, not part of the core path.
 
 ## Future: video subsystem (post-Phase 5)
 

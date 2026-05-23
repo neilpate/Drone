@@ -80,6 +80,6 @@ Still open (each will get its own ADR when resolved):
 - Frame class (size / weight) — drives motor / prop / battery selection. Needed by Phase 3.
 - Radio link — second micro:bit + ESB covers Phases 1–2; longer-term choice still open.
 - Wire framing / encoding between drone and PC (postcard, COBS-framed bincode, JSON for bring-up, …).
-- PC-side GUI / plotting framework (likely `egui` + `egui_plot`; not locked in).
+- PC-side GUI / plotting framework — strong candidate is [`rerun.io`](https://rerun.io) (Rust-native time-series + 3D visualisation, designed for robotics telemetry). `egui` + `egui_plot` is the fallback. Not locked in.
 - Failsafe behaviour — must be settled before Phase 3 free flight.
 - Custom PCBA design (Phase 4) — nRF5340 module choice, carrier-board layout, power tree.
