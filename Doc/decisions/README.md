@@ -16,3 +16,4 @@ Each non-trivial design decision gets its own file here.
 - [0003 — IMU: ICM-42688-P on SPI](0003-imu-icm42688-spi.md) — Accepted, 2026-05-21
 - [0004 — Concurrency model: Embassy with channel-based actor pattern](0004-concurrency-embassy-channels.md) — Accepted, 2026-05-22
 - [0005 — PC-side software in Rust](0005-pc-software-language-rust.md) — Accepted, 2026-05-23
+- [0006 — Mechanical CAD: Fusion 360](0006-mechanical-cad-fusion360.md) — Accepted, 2026-05-23

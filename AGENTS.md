@@ -113,6 +113,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0003](Doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)
 - [0004](Doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP. (2026-05-22)
 - [0005](Doc/decisions/0005-pc-software-language-rust.md) — PC-side software written in Rust; shared `proto` crate for the wire protocol. (2026-05-23)
+- [0006](Doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability. (2026-05-23)
 
 ---
 
