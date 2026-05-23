@@ -16,7 +16,7 @@ default-members = [
 edition      = "2024"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/neilpate/Drone"
-rust-version = "1.93"
+rust-version = "1.95"
 
 # Shared dependency pins. Per ADR 0009, individual crates reference these
 # with `workspace = true` rather than re-declaring versions.
