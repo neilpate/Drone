@@ -67,13 +67,18 @@ Explicitly out of scope for the first arc, but recorded so the design doesn't ac
 
 ## Open questions
 
-These need to be resolved (each via its own ADR) before we start ordering parts:
+Resolved (see `Doc/decisions/`):
 
-- MCU and dev board.
-- Firmware language (C vs C++ vs Rust). Affects toolchain, ecosystem, debug story.
-- IMU part number.
-- Frame class (size / weight) — drives motor / prop / battery selection.
-- Radio link.
-- Host-side tooling (what do we use to plot streaming telemetry?).
+- MCU and dev board — micro:bit v2 (nRF52833) for Phases 1–3, custom nRF5340 PCBA for Phases 4–5. ADR 0002.
+- Firmware language — Rust, `no_std`. ADR 0002.
+- IMU part number — ICM-42688-P on SPI. ADR 0003.
+- Concurrency / HAL — Embassy + channel-based actor pattern, no BSP. ADR 0004.
 
-See `Doc/decisions/` as these are resolved.
+Still open (each will get its own ADR when resolved):
+
+- Frame class (size / weight) — drives motor / prop / battery selection. Needed by Phase 3.
+- Radio link — second micro:bit + ESB covers Phases 1–2; longer-term choice still open.
+- Host-side tooling — what do we use to plot streaming telemetry?
+- Wire framing / USB protocol between drone and ground station.
+- Failsafe behaviour — must be settled before Phase 3 free flight.
+- Custom PCBA design (Phase 4) — nRF5340 module choice, carrier-board layout, power tree.
