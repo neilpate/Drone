@@ -31,6 +31,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 - Don't add comments / docstrings / type hints to code you didn't change.
 - Implement rather than just suggest, unless ambiguity requires a question.
 - **Hold the showcase quality bar.** This is a hobby project but also a public showcase. "It's just a hobby project" is not a valid excuse to skip a test, leave a TODO, or take an undocumented shortcut. Engineering choices target current best practice for embedded Rust. See [Doc/00-vision.md](Doc/00-vision.md) “Quality bar”.
+- **Prefer the idiomatic choice.** Where practical, do what someone fluent in the ecosystem would expect — Cargo conventions, Embassy patterns, standard crate / module / file naming, standard layouts. A stranger landing in the repo should not be surprised by *how* anything is done. Surprises are reserved for problem-specific decisions (recorded in an ADR), not for picking a non-standard layout, naming scheme, or pattern when a standard one fits.
 
 ## Writing style (docs, ADRs, commit messages, replies)
 
