@@ -1,0 +1,43 @@
+# Rust / Cargo
+target/
+**/target/
+*.pdb
+
+# Note: Cargo.lock IS committed for binary crates (which this repo is).
+# Do not add Cargo.lock to this ignore list.
+
+# probe-rs / debug artefacts not already under target/
+*.map
+
+# VS Code — ignore per-user state, keep shared workspace config
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains (in case)
+.idea/
+
+# Fusion 360 local backups
+# (committed CAD: *.f3d, *.step, *.stl, *.3mf — per ADR 0006)
+*.f3d.backup-*
+*.bak
+*.backup
+
+# Environment / secrets
+.env
+.env.*
+.envrc
+
+# OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+
+# Editor / temp
+*.swp
+*.swo
+*~
