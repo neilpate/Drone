@@ -3,10 +3,12 @@
 
 //! Drone firmware entry point.
 //!
-//! Boots the Embassy executor on the nRF52833 and idles. All real subsystem
-//! work — IMU sampling, motor mixing, control loops, radio link — lives in
-//! tasks spawned from here. Pure logic for those tasks lives in
-//! `firmware-drone-core` per ADR 0007 / ADR 0009.
+//! Boots the Embassy executor, builds the board-support struct, and spawns
+//! the task set. All real subsystem work — IMU sampling, motor mixing,
+//! control loops, radio link — lives in tasks spawned from here. Pure logic
+//! for those tasks lives in `firmware-drone-core` per ADR 0007 / ADR 0009.
+//! Per-board wiring lives in [`board`] per ADR 0010; tasks accept BSP
+//! wrapper types and never see physical pins.
 //!
 //! ## Milestone 1 (to implement)
 //!
@@ -14,15 +16,14 @@
 //!   flavour (per `doc/dev-environment.md` board-labelling rule).
 //! - Refuse to continue if the FICR-derived logical ID does not match the
 //!   board's physical sticker (`doc/dev-environment.md`).
-//! - Blink one micro:bit LED at a known cadence as a "firmware is alive"
-//!   heartbeat.
+//! - ~~Blink one LED at a known cadence as a "firmware is alive" heartbeat.~~
+//!   Done — see [`heartbeat`].
 
 use defmt_rtt as _;
 use panic_probe as _;
 
 use embassy_executor::Spawner;
 use embassy_nrf::config::Config;
-use embassy_nrf::gpio::{AnyPin, Level, Output, OutputDrive, Pin};
 use embassy_time::Timer;
 
 mod board;
@@ -34,28 +35,23 @@ async fn main(spawner: Spawner) {
 
     defmt::info!("firmware-drone on {}: boot (scaffold)", board::NAME);
 
-    spawner.must_spawn(heartbeat(
-        board.heartbeat_row.degrade(),
-        board.heartbeat_col.degrade(),
-    ));
+    spawner.must_spawn(heartbeat(board.status_led));
 }
 
-/// "Firmware is alive" heartbeat: blinks one LED on the board.
+/// "Firmware is alive" heartbeat: blinks the board's status LED at 1 Hz
+/// with 50% duty.
 ///
-/// Row is held HIGH for the lifetime of the task; the column is toggled,
-/// so column LOW = LED on, column HIGH = LED off. This matches the
-/// charlieplexed LED matrix on the micro:bit v2; a future board with a
-/// dedicated status LED will short one of the two pins to its power rail.
+/// Board-agnostic: the wiring details (single GPIO vs. a corner of the
+/// micro:bit v2's charlieplexed matrix) live behind [`board::StatusLed`]
+/// per ADR 0010.
 #[embassy_executor::task]
-async fn heartbeat(row: AnyPin, col: AnyPin) -> ! {
-    defmt::info!("firmware-drone: hearbeat task started");
-    let _row = Output::new(row, Level::High, OutputDrive::Standard);
-    let mut col = Output::new(col, Level::High, OutputDrive::Standard);
+async fn heartbeat(mut status_led: board::StatusLed) -> ! {
+    defmt::info!("firmware-drone: heartbeat task started");
 
     loop {
-        col.set_low();
+        status_led.on();
         Timer::after_millis(500).await;
-        col.set_high();
+        status_led.off();
         Timer::after_millis(500).await;
     }
 }

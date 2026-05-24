@@ -15,6 +15,10 @@
     // Don't analyse dev-deps / tests / examples; firmware crates have those
     // turned off anyway (see crates/firmware-drone/Cargo.toml).
     "rust-analyzer.cargo.allTargets": false,
+    // Use clippy for on-save checks instead of the default `cargo check`.
+    // Same diagnostics plus the clippy lint set, surfaced in the Problems
+    // panel. Standard embedded-Rust workflow.
+    "rust-analyzer.check.command": "clippy",
     // ---------------------------------------------------------------------
     // Formatting
     // ---------------------------------------------------------------------
