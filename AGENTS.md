@@ -118,6 +118,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - Markdown for all docs.
 - Use ADRs for any non-trivial design choice.
 - Keep the doc index ([doc/README.md](doc/README.md)) in sync when adding new doc files.
+- **Shorthand `#N`** (e.g. `#1`, `#42`) refers to a **GitHub issue or PR** in `neilpate/Drone` unless context makes that obviously wrong. ADRs are always referenced as `ADR NNNN` or `ADR 0011`, never `#11`.
 
 ---
 
