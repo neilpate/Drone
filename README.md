@@ -6,7 +6,7 @@ The drone is the artefact; understanding the whole stack end-to-end is the deliv
 
 ## Status
 
-**Phase 1 in progress.** First flash on real hardware (BBC micro:bit v2) on 2026-05-23: Cargo workspace bootstrapped, Embassy-based firmware booting and logging over RTT (`defmt`), LED heartbeat task running, board-support-package layer in place ([ADR 0010](doc/decisions/0010-board-support-package.md)), source-level debugging working from VS Code via the probe-rs DAP adapter. Ten ADRs in place. Next: FICR.DEVICEID boot banner, board-ID refuse-to-arm, then ICM-42688 SPI bring-up once the breakout arrives.
+**Phase 1 in progress.** First flash on real hardware (BBC micro:bit v2) on 2026-05-23: Cargo workspace bootstrapped, Embassy-based firmware booting and logging over RTT (`defmt`), board-support-package layer in place ([ADR 0010](doc/decisions/0010-board-support-package.md)), source-level debugging working from VS Code via the probe-rs DAP adapter. The fixed LED heartbeat has been replaced with a `SystemState`-driven status indicator: a `Watch`-published state (`Booting` / `Idle` / `Fault`) drives the on-board LED with distinct patterns (fast blink, heartbeat blip, strobe) — first use of the embassy-sync pub/sub primitives from [ADR 0013](doc/decisions/0013-async-communication-primitives.md). Thirteen ADRs in place. Next: FICR.DEVICEID boot banner, board-ID refuse-to-arm, then ICM-42688 SPI bring-up once the breakout arrives.
 
 See [`doc/00-vision.md`](doc/00-vision.md) for the phase plan, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
 
@@ -41,6 +41,9 @@ See [doc/00-vision.md](doc/00-vision.md) for the full vision and the phased mile
 - [ADR 0008](doc/decisions/0008-repository-folder-layout.md) — Repository folder layout: `crates/`, `doc/`, `hardware/{mechanical,electrical}/`, all lowercase.
 - [ADR 0009](doc/decisions/0009-workspace-bootstrap-and-crate-naming.md) — Workspace bootstrap from day one; `firmware-<role>` naming; `core`/`task` split realised as sibling crates.
 - [ADR 0010](doc/decisions/0010-board-support-package.md) — Board Support Package layer: `board` module inside `firmware-drone`, Cargo-feature-selected, tasks take erased types.
+- [ADR 0011](doc/decisions/0011-task-tracking-issues-and-batches.md) — Task tracking: GitHub Issues as canonical backlog, Projects board as view, labels as taxonomy, batched filing.
+- [ADR 0012](doc/decisions/0012-lint-and-format-policy.md) — Lint and format policy: `main` stays `rustfmt`-clean and `clippy`-clean; suppressions require justification.
+- [ADR 0013](doc/decisions/0013-async-communication-primitives.md) — Async inter-task communication: 2×2 rule over `Channel` / `Watch` / `Signal` / `PubSubChannel`.
 
 ## Licence
 
