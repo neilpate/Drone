@@ -23,4 +23,4 @@ Each non-trivial design decision gets its own file here.
 - [0010 — Board Support Package (BSP) layer](0010-board-support-package.md) — Accepted, 2026-05-23
 - [0011 — Task tracking: GitHub Issues as canonical backlog, batched filing](0011-task-tracking-issues-and-batches.md) — Accepted, 2026-05-24
 - [0012 — Lint and format policy: rustfmt + clippy clean before commit](0012-lint-and-format-policy.md) — Accepted, 2026-05-24
-- [0013 — Pub/sub of shared state via `embassy_sync::Watch`](0013-pubsub-shared-state-embassy-watch.md) — Accepted, 2026-05-24
+- [0013 — Async inter-task communication: when to use Channel, Watch, Signal, PubSubChannel](0013-async-communication-primitives.md) — Accepted, 2026-05-24

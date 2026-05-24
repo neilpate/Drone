@@ -137,7 +137,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0010](doc/decisions/0010-board-support-package.md) — Board Support Package (BSP) layer: `board` module inside `firmware-drone`, Cargo-feature-selected, tasks take erased types. (2026-05-23)
 - [0011](doc/decisions/0011-task-tracking-issues-and-batches.md) — Task tracking: GitHub Issues as canonical backlog, Projects board as view, labels as taxonomy, batched filing (no upfront enumeration, no time-boxing). (2026-05-24)
 - [0012](doc/decisions/0012-lint-and-format-policy.md) — Lint and format policy: `main` stays `rustfmt`-clean and `clippy`-clean; suppressions require a justifying comment. (2026-05-24)
-- [0013](doc/decisions/0013-pubsub-shared-state-embassy-watch.md) — Pub/sub of shared state via `embassy_sync::Watch`; `Signal` for single observer, `Channel` for commands (ADR 0004), `PubSubChannel` for event streams. Shared-state types live in `firmware-drone-core`. (2026-05-24)
+- [0013](doc/decisions/0013-async-communication-primitives.md) — Async inter-task communication: `Channel` for commands (per ADR 0004), `Watch` for multi-observer state, `Signal` for single-observer state, `PubSubChannel` for multi-consumer event streams. 2×2 rule: state vs events × one vs many. Shared-state types live in `firmware-drone-core`. (2026-05-24)
 
 ---
 
