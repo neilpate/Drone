@@ -67,7 +67,9 @@ The backlog is **not** populated up-front for the whole project. The discipline 
 - Work them.
 - When the batch is done (board is empty or near-empty), repeat: pick the next chunk, file, work.
 
-This is sprint-shaped without being sprint-timed. The batch size is constrained by "how much can be reasoned about in one sitting", not by a calendar. There is no commitment, no review ceremony, no retrospective. The board being empty is the only signal that triggers the next planning conversation.
+This is sprint-shaped without being sprint-timed. The batch size is constrained by "how much can be reasoned about in one sitting", not by a calendar. There is no commitment, no review ceremony, no retrospective. The board being empty is the usual signal that triggers the next planning conversation.
+
+"Batched" is a floor, not a ceiling. Nothing prevents a deliberate planning session that files a larger run of issues at once — e.g. when starting a new phase, scoping a self-contained subsystem, or after a design discussion that surfaced a clear set of follow-ups. The rule is that the issues filed in such a session are **issues already understood well enough to work**, not speculative captures. A planning session that files ten genuinely-ready issues is fine; one that files ten "we might want to look at this someday" issues is the backlog-inflation antipattern this ADR exists to prevent.
 
 Things to **avoid**:
 
