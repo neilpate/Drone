@@ -22,3 +22,4 @@ Each non-trivial design decision gets its own file here.
 - [0009 — Workspace bootstrap and crate naming](0009-workspace-bootstrap-and-crate-naming.md) — Accepted, 2026-05-23
 - [0010 — Board Support Package (BSP) layer](0010-board-support-package.md) — Accepted, 2026-05-23
 - [0011 — Task tracking: GitHub Issues as canonical backlog, batched filing](0011-task-tracking-issues-and-batches.md) — Accepted, 2026-05-24
+- [0012 — Lint and format policy: rustfmt + clippy clean before commit](0012-lint-and-format-policy.md) — Accepted, 2026-05-24

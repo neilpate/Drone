@@ -31,6 +31,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 - Don't add comments / docstrings / type hints to code you didn't change.
 - Implement rather than just suggest, unless ambiguity requires a question.
 - **Hold the showcase quality bar.** This is a hobby project but also a public showcase. "It's just a hobby project" is not a valid excuse to skip a test, leave a TODO, or take an undocumented shortcut. Engineering choices target current best practice for embedded Rust. See [doc/00-vision.md](doc/00-vision.md) “Quality bar”.
+- **`main` stays `rustfmt`-clean and `clippy`-clean.** Every commit satisfies `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` against the active board feature. Suppressions (`#[allow(...)]`, `#[rustfmt::skip]`) require a justifying comment on the line above. See [ADR 0012](doc/decisions/0012-lint-and-format-policy.md).
 - **Prefer the idiomatic choice.** Where practical, do what someone fluent in the ecosystem would expect — Cargo conventions, Embassy patterns, standard crate / module / file naming, standard layouts. A stranger landing in the repo should not be surprised by *how* anything is done. Surprises are reserved for problem-specific decisions (recorded in an ADR), not for picking a non-standard layout, naming scheme, or pattern when a standard one fits.
 
 ## Writing style (docs, ADRs, commit messages, replies)
@@ -135,6 +136,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0009](doc/decisions/0009-workspace-bootstrap-and-crate-naming.md) — Workspace bootstrap from day one; `firmware-<role>` naming; `core`/`task` split realised as sibling crates. (2026-05-23)
 - [0010](doc/decisions/0010-board-support-package.md) — Board Support Package (BSP) layer: `board` module inside `firmware-drone`, Cargo-feature-selected, tasks take erased types. (2026-05-23)
 - [0011](doc/decisions/0011-task-tracking-issues-and-batches.md) — Task tracking: GitHub Issues as canonical backlog, Projects board as view, labels as taxonomy, batched filing (no upfront enumeration, no time-boxing). (2026-05-24)
+- [0012](doc/decisions/0012-lint-and-format-policy.md) — Lint and format policy: `main` stays `rustfmt`-clean and `clippy`-clean; suppressions require a justifying comment. (2026-05-24)
 
 ---
 
