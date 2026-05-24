@@ -133,6 +133,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0008](doc/decisions/0008-repository-folder-layout.md) — Repository folder layout: `crates/`, `doc/`, `hardware/{mechanical,electrical}/`, all lowercase. (2026-05-23)
 - [0009](doc/decisions/0009-workspace-bootstrap-and-crate-naming.md) — Workspace bootstrap from day one; `firmware-<role>` naming; `core`/`task` split realised as sibling crates. (2026-05-23)
 - [0010](doc/decisions/0010-board-support-package.md) — Board Support Package (BSP) layer: `board` module inside `firmware-drone`, Cargo-feature-selected, tasks take erased types. (2026-05-23)
+- [0011](doc/decisions/0011-task-tracking-issues-and-batches.md) — Task tracking: GitHub Issues as canonical backlog, Projects board as view, labels as taxonomy, batched filing (no upfront enumeration, no time-boxing). (2026-05-24)
 
 ---
 
