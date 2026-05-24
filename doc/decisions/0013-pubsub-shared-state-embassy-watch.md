@@ -132,3 +132,61 @@ directly — no wrapper layer that hides what consumers genuinely need.
 - **Global `Mutex<RefCell<SystemStatus>>` with manual notification.**
   Works but defeats the async model: consumers either poll (wasteful)
   or we need a separate wake mechanism. `Watch` bundles both.
+
+## Reference: choosing among the four `embassy-sync` primitives
+
+The four primitives collapse into a 2×2 along two orthogonal axes:
+
+- **State vs events.** State = "what is the current value?" — if you missed
+  the second-to-last update, you don't care. Events = "what happened?" —
+  every value is meaningful and missing one is a fault.
+- **One observer vs many observers.**
+
+|                          | One observer | Many observers   |
+|--------------------------|--------------|------------------|
+| **Latest-value state**   | `Signal`     | `Watch`          |
+| **Every value matters**  | `Channel`    | `PubSubChannel`  |
+
+Decision rule: ask "is this state or an event?" first, then "one consumer
+or many?". Each cell maps to exactly one primitive.
+
+### Concrete example per cell
+
+**`Signal` — single-observer state.** Often hidden behind driver APIs
+rather than written directly. The canonical case is ISR → one owning task:
+e.g. an IMU `DRDY` GPIO interrupt fires, the ISR calls `signal(())`,
+the IMU driver task awaits `wait()` and reads the new sample over SPI.
+Only the driver cares about `DRDY`; latest-value semantics are fine
+(missing a "ready" pulse doesn't matter — the next SPI read gets whatever
+the sensor currently has). Embassy uses this pattern internally for most
+async peripherals; in this project we expect few direct uses.
+
+**`Watch` — multi-observer state.** `SystemStatus` (this ADR). Future
+likely uses: arming state, link quality, battery voltage, current setpoint.
+Anything where "the current value" is the answer and more than one
+subsystem wants to react.
+
+**`Channel` — single-consumer event queue.** The command pattern from
+[ADR 0004](0004-concurrency-embassy-channels.md). One task owns a subsystem
+(motors, comms, etc.) and drains its inbox in order. Producers fan in;
+each command must be processed exactly once, in FIFO order.
+
+**`PubSubChannel` — multi-consumer event stream.** Streams where every
+event matters and multiple consumers each need to see all of them.
+Plausible future use: an IMU sample bus consumed by the control loop,
+the on-board logger, and a telemetry encoder simultaneously. Slow
+subscribers receive `WaitResult::Lagged(n)` instead of silently dropping
+data — missed events are *visible*, which is the property that
+distinguishes it from `Watch`.
+
+### Anti-temptations
+
+- Don't reach for `PubSubChannel` "to be safe" on state — it's heavier
+  and a fast producer either blocks on or laps a slow consumer. State is
+  `Watch`.
+- Don't use `Signal` for "two-way notification between tasks" if either
+  side could grow a second listener. Promote to `Watch` from day one if
+  multi-observer is plausible.
+- Don't use `Channel` for state. A slow consumer will see stale values
+  long after they've ceased to matter, or the channel fills and blocks
+  the producer.
