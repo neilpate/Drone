@@ -437,6 +437,27 @@ name = "firmware-drone-core"
 version = "0.1.0"
 
 [[package]]
+name = "firmware-remote"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt 0.3.100",
+ "defmt-rtt",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-nrf",
+ "embassy-sync",
+ "embassy-time",
+ "firmware-remote-core",
+ "panic-probe",
+]
+
+[[package]]
+name = "firmware-remote-core"
+version = "0.1.0"
+
+[[package]]
 name = "fixed"
 version = "1.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

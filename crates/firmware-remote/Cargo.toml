@@ -1,0 +1,43 @@
+[package]
+name        = "firmware-remote"
+version     = "0.1.0"
+description = "Remote/ground-station firmware: on-target binary for the BBC micro:bit v2 (nRF52833)."
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+publish              = false
+autotests            = false
+autobenches          = false
+autoexamples         = false
+
+[[bin]]
+name    = "firmware-remote"
+path    = "src/main.rs"
+test    = false
+bench   = false
+doctest = false
+
+[features]
+# Exactly one `board-*` feature must be active per build. The selection is
+# enforced at compile time by `src/board/mod.rs`. See ADR 0010.
+default = ["board-microbit-v2"]
+board-microbit-v2 = []
+
+[dependencies]
+firmware-remote-core = { path = "../firmware-remote-core" }
+
+embassy-executor = { workspace = true }
+embassy-nrf      = { workspace = true }
+embassy-time     = { workspace = true }
+embassy-sync     = { workspace = true }
+embassy-futures  = { workspace = true }
+
+cortex-m    = { workspace = true }
+cortex-m-rt = { workspace = true }
+
+defmt       = { workspace = true }
+defmt-rtt   = { workspace = true }
+panic-probe = { workspace = true }
+
+[lints]
+workspace = true

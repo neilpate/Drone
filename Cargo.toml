@@ -10,6 +10,7 @@ members  = ["crates/*"]
 # `xtask` (when it lands) will own the cross-build recipe.
 default-members = [
     "crates/firmware-drone-core",
+    "crates/firmware-remote-core",
 ]
 
 [workspace.package]

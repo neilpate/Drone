@@ -1,0 +1,24 @@
+# Cargo configuration for the `firmware-remote` crate only.
+#
+# Scoped here (not at the workspace root) so that `cargo test` from the repo
+# root still builds host-native, while `cd crates/firmware-remote && cargo run`
+# cross-compiles and flashes the board.
+
+[build]
+target = "thumbv7em-none-eabihf"
+
+[target.thumbv7em-none-eabihf]
+runner = "probe-rs run --chip nRF52833_xxAA --probe 0d28:0204:9906360200052820ea9aa993878209ec000000006e052820"
+rustflags = [
+  # flip-link: stack-overflow protection by zero-cost stack relocation
+  "-C", "linker=flip-link",
+  # cortex-m-rt linker script
+  "-C", "link-arg=-Tlink.x",
+  # defmt linker script (needed for RTT framing)
+  "-C", "link-arg=-Tdefmt.x",
+]
+
+[env]
+# defmt log level. `info` is a reasonable default; bump to `trace` while
+# debugging a specific subsystem.
+DEFMT_LOG = "info"
