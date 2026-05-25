@@ -1,5 +1,5 @@
 use crate::board;
-use crate::system_state::{STATUS, StatusReceiver, SystemState};
+use crate::tasks::supervisor::{StatusReceiver, SystemState, subscribe};
 use embassy_futures::select::{Either, select};
 use embassy_time::Timer;
 
@@ -55,7 +55,7 @@ async fn play_pattern(
 pub async fn update_status_indicator(mut status_led: board::StatusLed) -> ! {
     defmt::info!("update_status_indicator task: started");
 
-    let mut status_receiver = STATUS.receiver().unwrap();
+    let mut status_receiver = subscribe();
 
     let mut current_state = status_receiver.changed().await;
 
