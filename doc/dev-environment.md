@@ -95,11 +95,26 @@ A mismatch between expected and actual role is a **hard refuse-to-arm** conditio
 
 ## Two-board workflow
 
-Day-to-day, the author has both micro:bits plugged into the dev machine via USB (one for flashing the drone, one for the ground-station role). `probe-rs` distinguishes them by **DAPLink serial number**, which is on the silver shield on the back of each board.
+Day-to-day, the author has both micro:bits plugged into the dev machine via USB (one for the drone role, one for the ground-station / remote role). `probe-rs` distinguishes them by **DAPLink serial number**, which is also on the silver shield on the back of each board.
 
-- Record each board's DAPLink serial in the `board_id` table alongside `FICR.DEVICEID` and `ROLE-NN`.
-- `cargo run` / `cargo flash` invocations specify the probe selector explicitly: `--probe <vid>:<pid>:<serial>` or a shorter alias once `xtask` exists.
+Probe selection is baked into each firmware crate's `.cargo/config.toml`, so `cargo run` is unambiguous regardless of how many probes are connected:
+
+```toml
+# crates/firmware-drone/.cargo/config.toml
+[target.thumbv7em-none-eabihf]
+runner = "probe-rs run --chip nRF52833_xxAA --probe 0d28:0204:<drone-board-serial>"
+```
+
+The remote crate has the same shape with its own serial. The selector format is `<vid>:<pid>:<serial>` — `probe-rs list` prints all three.
+
+Practical notes:
+
+- **Workflow.** `cd crates/firmware-drone && cargo run` always flashes the drone board; `cd crates/firmware-remote && cargo run` always flashes the remote. Use two VS Code integrated terminals (right-click → Rename) so the two `defmt` log streams are obviously distinct in the panel.
+- **Serials are committed.** They identify specific physical boards. If you swap which board plays which role — or move to a different machine with different boards — update the two `.cargo/config.toml` files. One-line edit each.
+- **Why not env vars.** Cargo's `runner` field is passed literally to the spawned process (no shell, no `${VAR}` expansion). Env-var indirection would need a cross-platform shell wrapper. Per-crate runner with the serial baked in is simpler and survives Windows / Unix equally.
 - **Never** rely on "the first probe found" — that's how you flash the wrong board.
+
+Once `xtask` exists ([ADR 0007](decisions/0007-testing-and-ci-strategy.md)), a `cargo xtask flash --role drone` alias may replace the bare `cargo run`, but the per-crate `.cargo/config.toml` will still be the source of truth for which probe is which.
 
 ## Build flavour per phase
 

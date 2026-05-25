@@ -8,7 +8,7 @@
 target = "thumbv7em-none-eabihf"
 
 [target.thumbv7em-none-eabihf]
-runner = "probe-rs run --chip nRF52833_xxAA"
+runner = "probe-rs run --chip nRF52833_xxAA --probe 0d28:0204:99063602000528205f062c4db5d9e547000000006e052820"
 rustflags = [
   # flip-link: stack-overflow protection by zero-cost stack relocation
   "-C", "linker=flip-link",
