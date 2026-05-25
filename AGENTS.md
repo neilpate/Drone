@@ -123,6 +123,15 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 
 ---
 
+## Tooling gotchas
+
+- **Windows PowerShell mangles non-ASCII in pipelines.** Em-dashes (`—`), en-dashes, curly quotes, and anything outside ASCII get corrupted into mojibake (e.g. `├ö├ç├Â`) when piped through commands like `gh issue view ... | Out-File ... | gh issue edit ...`. The console code page (CP437 / CP1252) decodes UTF-8 bytes mid-pipeline.
+  - **Rule:** when round-tripping any text that might contain non-ASCII (issue/PR bodies, commit messages, doc snippets), do **not** pipe through PowerShell. Write the file directly (UTF-8, no BOM) and pass it with `gh ... --body-file <path>` or `git commit -F <path>`.
+  - Pure ASCII (`-`, `--`, plain quotes) survives any pipeline.
+  - Same applies to `git`, `curl`, any tool whose output may be re-fed to another tool on Windows pwsh.
+
+---
+
 ## Decisions log (quick index)
 
 - [0001](doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope. (2026-05-21)
