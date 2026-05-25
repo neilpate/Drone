@@ -9,15 +9,27 @@
 pub const NAME: &str = "BBC micro:bit v2";
 
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
+use embassy_nrf::{bind_interrupts, peripherals, radio};
+
+/// BSP-typed alias for the embassy BLE-mode radio driver bound to this board.
+pub type Radio = radio::ble::Radio<'static, peripherals::RADIO>;
+
+bind_interrupts!(struct Irqs {
+    RADIO => radio::InterruptHandler<peripherals::RADIO>;
+});
 
 pub struct Board {
     pub status_led: StatusLed,
+    // Consumed by the telemetry RX task in a later commit of issue #5.
+    #[allow(dead_code)]
+    pub radio: Radio,
 }
 
 impl Board {
     pub fn new(p: embassy_nrf::Peripherals) -> Self {
         Self {
             status_led: StatusLed::new(p.P0_21, p.P0_28),
+            radio: Radio::new(p.RADIO, Irqs),
         }
     }
 }
