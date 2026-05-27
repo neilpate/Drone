@@ -41,3 +41,5 @@ ehthumbs.db
 *.swp
 *.swo
 *~
+
+.git-commit-msg.tmp

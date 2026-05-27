@@ -15,18 +15,18 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use embassy_executor::Spawner;
-use embassy_nrf::config::Config;
 
 mod board;
+mod radio_link;
 mod tasks;
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    let p = embassy_nrf::init(Config::default());
-    let board = board::Board::new(p);
+    let board = board::Board::new();
 
     defmt::info!("firmware-drone on {}: boot (scaffold)", board::NAME);
 
     spawner.must_spawn(tasks::supervisor::supervise());
     spawner.must_spawn(tasks::status_led::update_status_indicator(board.status_led));
+    spawner.must_spawn(tasks::telemetry_tx::transmit(board.radio));
 }
