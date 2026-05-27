@@ -28,5 +28,5 @@ async fn main(spawner: Spawner) {
 
     spawner.must_spawn(tasks::supervisor::supervise());
     spawner.must_spawn(tasks::status_led::update_status_indicator(board.status_led));
-    spawner.must_spawn(tasks::telemetry_rx::receive(board.radio));
+    spawner.must_spawn(tasks::comm_link::comm_link(board.radio));
 }
