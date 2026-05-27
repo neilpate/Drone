@@ -24,3 +24,4 @@ Each non-trivial design decision gets its own file here.
 - [0011 — Task tracking: GitHub Issues as canonical backlog, batched filing](0011-task-tracking-issues-and-batches.md) — Accepted, 2026-05-24
 - [0012 — Lint and format policy: rustfmt + clippy clean before commit](0012-lint-and-format-policy.md) — Accepted, 2026-05-24
 - [0013 — Async inter-task communication: when to use Channel, Watch, Signal, PubSubChannel](0013-async-communication-primitives.md) — Accepted, 2026-05-24
+- [0014 — Radio link protocol: IEEE 802.15.4 (raw PHY/MAC)](0014-radio-protocol-ieee802154.md) — Accepted, 2026-05-27
