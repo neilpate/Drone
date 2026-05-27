@@ -12,8 +12,9 @@ use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::{bind_interrupts, peripherals, radio};
 
-/// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
-pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
+/// BSP-typed alias for the embassy BLE-mode radio driver bound to this board.
+/// EXPERIMENT BRANCH: see ADR 0014. Main uses IEEE 802.15.4.
+pub type Radio = radio::ble::Radio<'static, peripherals::RADIO>;
 
 bind_interrupts!(struct Irqs {
     RADIO => radio::InterruptHandler<peripherals::RADIO>;
