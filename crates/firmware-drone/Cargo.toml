@@ -39,5 +39,9 @@ defmt       = { workspace = true }
 defmt-rtt   = { workspace = true }
 panic-probe = { workspace = true }
 
+firmware-types = { path = "../firmware-types", features = ["defmt"] }
+
+postcard = { workspace = true }
+
 [lints]
 workspace = true

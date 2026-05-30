@@ -63,6 +63,13 @@ embedded-hal-async = "1.0"
 heapless   = "0.8"
 micromath  = "2.1"
 
+# --- Wire format (no_std) -----------------------------------------------------
+# serde provides the Serialize/Deserialize traits (derived in firmware-types).
+# postcard is the serde backend that does the actual encode/decode on the wire.
+# Both must be default-features-off to stay no_std-clean.
+serde    = { version = "1", default-features = false, features = ["derive"] }
+postcard = { version = "1", default-features = false, features = ["use-defmt"] }
+
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "warn"
 missing_debug_implementations = "warn"

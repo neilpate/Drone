@@ -1,0 +1,23 @@
+[package]
+name        = "firmware-types"
+version     = "0.1.0"
+description = "Remote/ground-station firmware shared types: pure logic, host-testable. No HAL, no async runtime, no defmt."
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+publish              = false
+
+# --- Discipline-by-graph -------------------------------------------------------
+# Per ADR 0009, this crate is FORBIDDEN to depend on:
+#   - any embassy-* crate
+#   - any HAL or PAC (embassy-nrf, nrf52833-hal, nrf52833-pac, ...)
+#   - defmt, defmt-rtt, panic-probe
+# Reviewer reflex: scan this [dependencies] block on every PR that touches it.
+[dependencies]
+# (empty for now — add only pure no_std crates as needed)
+
+serde = { workspace = true }
+defmt = { workspace = true, optional = true }
+
+[lints]
+workspace = true

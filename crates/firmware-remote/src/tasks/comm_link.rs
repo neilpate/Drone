@@ -1,36 +1,50 @@
 use crate::board::Radio;
 use crate::radio_link;
+use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
-use embassy_time::{Duration, Timer, with_timeout};
+use embassy_time::{Duration, Ticker, with_timeout};
 
-pub struct ControlState {
-    pub count: u32,
+use firmware_types::{ControlState, TelemetryState};
+
+const MAX_SEND_BUFFER_SIZE: usize = 32;
+const LOOP_PERIOD: Duration = Duration::from_millis(10);
+const RECEIVE_TIMEOUT: Duration = Duration::from_millis(8); //Needs to be shorter than the LOOP_PERIOD
+
+async fn send(radio: &mut Radio, state: ControlState) -> Result<(), radio::Error> {
+    let mut scratch = [0u8; MAX_SEND_BUFFER_SIZE]; //Working space for serialization
+
+    //bytes_to_send is a subslice of scratch which contains the serialized ControlState
+    let bytes_to_send =
+        postcard::to_slice(&state, &mut scratch).expect("scratch is large enough for ControlState");
+
+    let mut tx_packet = Packet::new();
+
+    tx_packet.copy_from_slice(bytes_to_send);
+
+    radio.try_send(&mut tx_packet).await
 }
 
-impl ControlState {
-    pub fn new(count: u32) -> Self {
-        Self { count }
+async fn receive(radio: &mut Radio) -> Option<TelemetryState> {
+    let mut rx_packet = Packet::new();
+
+    match with_timeout(RECEIVE_TIMEOUT, radio.receive(&mut rx_packet)).await {
+        // Outer match is for the timeout; inner match is for the radio receive result
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => {
+            defmt::warn!("comm_link receive: error: {:?}", e);
+            return None;
+        }
+        Err(_) => {
+            defmt::warn!("comm_link receive: timeout");
+            return None;
+        }
     }
 
-    pub fn to_packet(&self, packet: &mut Packet) {
-        packet.copy_from_slice(&self.count.to_le_bytes());
-    }
-}
-
-#[derive(Clone, Copy, Eq, PartialEq, Debug, defmt::Format)]
-pub struct TelemetryState {
-    pub count: u32,
-}
-
-impl TelemetryState {
-    pub fn from_packet(packet: &Packet) -> Self {
-        let bytes: &[u8] = packet;
-        if bytes.len() == 4 {
-            Self {
-                count: u32::from_le_bytes(bytes.try_into().unwrap()),
-            }
-        } else {
-            Self { count: 0 }
+    match postcard::from_bytes(&rx_packet) {
+        Ok(telemetry) => Some(telemetry),
+        Err(e) => {
+            defmt::warn!("postcard decode error: {:?}", e);
+            None
         }
     }
 }
@@ -39,38 +53,25 @@ impl TelemetryState {
 pub async fn comm_link(mut radio: Radio) -> ! {
     defmt::info!("comm_link task: started");
 
-    radio.set_channel(radio_link::CHANNEL);
+    let mut ticker = Ticker::every(LOOP_PERIOD);
 
-    let mut tx_packet = Packet::new();
-    let mut rx_packet = Packet::new();
+    radio.set_channel(radio_link::CHANNEL);
 
     let mut count = 0_u32;
 
     loop {
-        let state = ControlState::new(count);
-        state.to_packet(&mut tx_packet);
-        let _ = radio.try_send(&mut tx_packet).await;
+        ticker.next().await; // Wait for the next tick before sending the next control state
+        let state = ControlState { count };
+        if let Err(e) = send(&mut radio, state).await {
+            defmt::error!("comm_link transmit: error: {:?}", e);
+            continue;
+        }
 
-        match with_timeout(Duration::from_millis(100), radio.receive(&mut rx_packet)).await {
-            Ok(Ok(())) => {
-                let telemetry_state = TelemetryState::from_packet(&rx_packet);
-
-                defmt::info!(
-                    "telemetry received: {} lqi={}",
-                    telemetry_state,
-                    rx_packet.lqi()
-                );
-            }
-
-            Ok(Err(e)) => {
-                defmt::warn!("comm_link receive: error: {:?}", e);
-            }
-            Err(e) => {
-                defmt::warn!("comm_link receive: timeout    : {:?}", e);
-            }
+        // This will only run if the send succeeded, so now we wait for a response from the drone
+        if let Some(telemetry) = receive(&mut radio).await {
+            defmt::info!("received: {}", telemetry);
         }
 
         count += 1;
-        Timer::after_millis(10).await;
     }
 }
