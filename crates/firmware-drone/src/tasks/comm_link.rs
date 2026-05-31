@@ -61,7 +61,7 @@ pub async fn comm_link(mut radio: Radio) -> ! {
         };
 
         // This will only run if control data was received from the remote
-        defmt::info!("received control state: {}", control_state);
+        defmt::info!("received: {}", control_state);
         telemetry_state.count = control_state.count; //In this scaffold, just echo back the count from the received ControlState
 
         if let Err(e) = send(&mut radio, telemetry_state).await {
