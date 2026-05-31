@@ -10,6 +10,7 @@ pub const NAME: &str = "BBC micro:bit v2";
 
 use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
+use embassy_nrf::pwm::SimplePwm;
 use embassy_nrf::{bind_interrupts, peripherals, radio};
 
 /// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
@@ -21,7 +22,7 @@ bind_interrupts!(struct Irqs {
 
 pub struct Board {
     pub status_led: StatusLed,
-    pub motor: Motor,
+    pub motors: Motors,
     pub radio: Radio,
 }
 
@@ -33,7 +34,7 @@ impl Board {
 
         Self {
             status_led: StatusLed::new(p.P0_21, p.P0_28),
-            motor: Motor::new(p.P0_17, p.P0_01),
+            motors: Motors::new(p.PWM0, p.P0_17),
             radio: Radio::new(p.RADIO, Irqs),
         }
     }
@@ -60,30 +61,41 @@ impl StatusLed {
     }
 }
 
-pub struct Motor {
-    ia: Output<'static>,
-    ib: Output<'static>,
+pub struct Motors {
+    channels: SimplePwm<'static, peripherals::PWM0>,
 }
 
-impl Motor {
-    pub fn new(ia: impl Pin, ib: impl Pin) -> Self {
-        Self {
-            ia: Output::new(ia.degrade(), Level::Low, OutputDrive::Standard),
-            ib: Output::new(ib.degrade(), Level::Low, OutputDrive::Standard),
-        }
+impl Motors {
+    const MAX_DUTY: u16 = 1000;
+
+    pub fn new(peripherals: peripherals::PWM0, ch0: impl Pin) -> Self {
+        let mut channels = SimplePwm::new_1ch(peripherals, ch0);
+        channels.set_prescaler(embassy_nrf::pwm::Prescaler::Div1);
+        channels.set_max_duty(Self::MAX_DUTY);
+        channels.set_duty(0, Self::MAX_DUTY); //Default to off (100% duty means always off, 0% duty means always on)
+
+        Self { channels }
     }
 
-    pub fn forward(&mut self) {
-        self.ia.set_high();
-        self.ib.set_low();
-    }
-    pub fn reverse(&mut self) {
-        self.ia.set_low();
-        self.ib.set_high();
+    pub fn enable(&mut self) {
+        self.channels.enable();
     }
 
-    pub fn coast(&mut self) {
-        self.ia.set_low();
-        self.ib.set_low();
+    // API symmetry with enable(); will be used by the failsafe path.
+    #[expect(dead_code)]
+    pub fn disable(&mut self) {
+        self.channels.disable();
+    }
+
+    pub fn set_throttle(&mut self, channel: usize, percent: u16) {
+        let percent = percent.min(100);
+
+        let on_ticks = (u32::from(percent) * u32::from(Self::MAX_DUTY) / 100) as u16; //Promoting to u32 to avoid overflow during multiplication
+
+        // Note, duty is a bit counterintuitive: 0 is full on, max_duty is full off.
+        // Duty means off ticks per period
+        let duty = Self::MAX_DUTY - on_ticks; //Invert to get duty (off ticks)
+
+        self.channels.set_duty(channel, duty);
     }
 }
