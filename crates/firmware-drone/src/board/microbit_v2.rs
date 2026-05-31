@@ -21,6 +21,7 @@ bind_interrupts!(struct Irqs {
 
 pub struct Board {
     pub status_led: StatusLed,
+    pub motor: Motor,
     pub radio: Radio,
 }
 
@@ -32,6 +33,7 @@ impl Board {
 
         Self {
             status_led: StatusLed::new(p.P0_21, p.P0_28),
+            motor: Motor::new(p.P0_17, p.P0_01),
             radio: Radio::new(p.RADIO, Irqs),
         }
     }
@@ -55,5 +57,33 @@ impl StatusLed {
     }
     pub fn off(&mut self) {
         self.col.set_high();
+    }
+}
+
+pub struct Motor {
+    ia: Output<'static>,
+    ib: Output<'static>,
+}
+
+impl Motor {
+    pub fn new(ia: impl Pin, ib: impl Pin) -> Self {
+        Self {
+            ia: Output::new(ia.degrade(), Level::Low, OutputDrive::Standard),
+            ib: Output::new(ib.degrade(), Level::Low, OutputDrive::Standard),
+        }
+    }
+
+    pub fn forward(&mut self) {
+        self.ia.set_high();
+        self.ib.set_low();
+    }
+    pub fn reverse(&mut self) {
+        self.ia.set_low();
+        self.ib.set_high();
+    }
+
+    pub fn coast(&mut self) {
+        self.ia.set_low();
+        self.ib.set_low();
     }
 }
