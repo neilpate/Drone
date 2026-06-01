@@ -19,6 +19,10 @@
     // Same diagnostics plus the clippy lint set, surfaced in the Problems
     // panel. Standard embedded-Rust workflow.
     "rust-analyzer.check.command": "clippy",
+    // Populate VS Code's native Testing view (beaker icon) with discovered
+    // `#[test]` functions. Experimental in rust-analyzer but stable enough.
+    // CodeLens run arrows work independently of this.
+    "rust-analyzer.testExplorer": true,
     // ---------------------------------------------------------------------
     // Formatting
     // ---------------------------------------------------------------------
