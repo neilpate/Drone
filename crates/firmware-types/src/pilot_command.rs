@@ -1,0 +1,27 @@
+use serde::{Deserialize, Serialize};
+
+use crate::Throttle;
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+pub struct PilotCommand {
+    pub sequence_count: u32,
+    pub throttle: Throttle,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn postcard_round_trip() {
+        let original = PilotCommand {
+            sequence_count: 12_345,
+            throttle: Throttle::from_normalised(0.75),
+        };
+        let mut buf = [0u8; 32];
+        let bytes = postcard::to_slice(&original, &mut buf).unwrap();
+        let decoded: PilotCommand = postcard::from_bytes(bytes).unwrap();
+        assert_eq!(original, decoded);
+    }
+}

@@ -1,14 +1,15 @@
 use crate::board::Radio;
 use crate::radio_link;
+use crate::tasks::pilot_command;
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
-use firmware_types::{ControlState, TelemetryState};
+use firmware_types::{PilotCommand, TelemetryState};
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
-const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //Expect to receive a control packet every 10 ms
+const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up
 
-async fn receive(radio: &mut Radio) -> Option<ControlState> {
+async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
     let mut rx_packet = Packet::new();
 
     match with_timeout(RECEIVE_TIMEOUT, radio.receive(&mut rx_packet)).await {
@@ -56,13 +57,16 @@ pub async fn comm_link(mut radio: Radio) -> ! {
     radio.set_channel(radio_link::CHANNEL);
 
     loop {
-        let Some(control_state) = receive(&mut radio).await else {
+        let Some(command) = receive(&mut radio).await else {
             continue;
         };
 
         // This will only run if control data was received from the remote
-        defmt::info!("received: {}", control_state);
-        telemetry_state.count = control_state.count; //In this scaffold, just echo back the count from the received ControlState
+        defmt::info!("received: {}", command);
+
+        pilot_command::set(command); //Publish the received command to any subscribers
+
+        telemetry_state.count = command.sequence_count; //In this scaffold, just echo back the count from the received PilotCommand
 
         if let Err(e) = send(&mut radio, telemetry_state).await {
             defmt::warn!("failed to send telemetry: {:?}", e);

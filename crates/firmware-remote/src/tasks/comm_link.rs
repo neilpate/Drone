@@ -4,18 +4,18 @@ use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
 
-use firmware_types::{ControlState, TelemetryState};
+use firmware_types::{PilotCommand, TelemetryState, Throttle};
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(8); //Needs to be shorter than the LOOP_PERIOD
 
-async fn send(radio: &mut Radio, state: ControlState) -> Result<(), radio::Error> {
+async fn send(radio: &mut Radio, state: PilotCommand) -> Result<(), radio::Error> {
     let mut scratch = [0u8; MAX_SEND_BUFFER_SIZE]; //Working space for serialization
 
-    //bytes_to_send is a subslice of scratch which contains the serialized ControlState
+    //bytes_to_send is a subslice of scratch which contains the serialized PilotCommand
     let bytes_to_send =
-        postcard::to_slice(&state, &mut scratch).expect("scratch is large enough for ControlState");
+        postcard::to_slice(&state, &mut scratch).expect("scratch is large enough for PilotCommand");
 
     let mut tx_packet = Packet::new();
 
@@ -59,9 +59,17 @@ pub async fn comm_link(mut radio: Radio) -> ! {
 
     let mut count = 0_u32;
 
+    let mut throttle_counter = 0_f32;
+
     loop {
         ticker.next().await; // Wait for the next tick before sending the next control state
-        let state = ControlState { count };
+
+        let throttle = Throttle::from_normalised(throttle_counter);
+
+        let state = PilotCommand {
+            sequence_count: count,
+            throttle,
+        };
         if let Err(e) = send(&mut radio, state).await {
             defmt::error!("comm_link transmit: error: {:?}", e);
             continue;
@@ -73,5 +81,9 @@ pub async fn comm_link(mut radio: Radio) -> ! {
         }
 
         count += 1;
+        throttle_counter += 0.0002;
+        if throttle_counter > 1.0 {
+            throttle_counter = 0.0;
+        }
     }
 }

@@ -1,20 +1,19 @@
 use crate::board;
-use embassy_time::Timer;
+use crate::tasks::pilot_command;
 
 #[embassy_executor::task]
 pub async fn motor_controller(mut motors: board::Motors) -> ! {
     defmt::info!("motor_controller task: started");
 
+    let mut pilot_command_receiver = pilot_command::subscribe();
+
     motors.enable();
 
     loop {
-        motors.set_throttle(0, 100);
-        Timer::after_millis(1000).await;
+        let pilot_command = pilot_command_receiver.changed().await;
 
-        motors.set_throttle(0, 0);
-        Timer::after_millis(3000).await;
+        defmt::debug!("received pilot command: {}", pilot_command.throttle);
 
-        // motors.set_duty(0, 800);
-        // Timer::after_millis(2000).await;
+        motors.set_throttle(0, pilot_command.throttle);
     }
 }

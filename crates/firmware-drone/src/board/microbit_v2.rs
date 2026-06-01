@@ -12,6 +12,7 @@ use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm::SimplePwm;
 use embassy_nrf::{bind_interrupts, peripherals, radio};
+use firmware_types::Throttle;
 
 /// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
 pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
@@ -87,10 +88,8 @@ impl Motors {
         self.channels.disable();
     }
 
-    pub fn set_throttle(&mut self, channel: usize, percent: u16) {
-        let percent = percent.min(100);
-
-        let on_ticks = (u32::from(percent) * u32::from(Self::MAX_DUTY) / 100) as u16; //Promoting to u32 to avoid overflow during multiplication
+    pub fn set_throttle(&mut self, channel: usize, throttle: Throttle) {
+        let on_ticks = (throttle.as_normalised() * f32::from(Self::MAX_DUTY)) as u16;
 
         // Note, duty is a bit counterintuitive: 0 is full on, max_duty is full off.
         // Duty means off ticks per period

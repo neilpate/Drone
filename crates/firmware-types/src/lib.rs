@@ -1,14 +1,9 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
-use serde::{Deserialize, Serialize};
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct ControlState {
-    pub count: u32,
-}
+mod pilot_command;
+mod telemetry_state;
+mod throttle;
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct TelemetryState {
-    pub count: u32,
-}
+pub use pilot_command::PilotCommand;
+pub use telemetry_state::TelemetryState;
+pub use throttle::Throttle;
