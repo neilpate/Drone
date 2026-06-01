@@ -6,7 +6,9 @@ The drone is the artefact; understanding the whole stack end-to-end is the deliv
 
 ## Status
 
-**Phase 1 in progress.** First flash on real hardware (BBC micro:bit v2) on 2026-05-23: Cargo workspace bootstrapped, Embassy-based firmware booting and logging over RTT (`defmt`), board-support-package layer in place ([ADR 0010](doc/decisions/0010-board-support-package.md)), source-level debugging working from VS Code via the probe-rs DAP adapter. The fixed LED heartbeat has been replaced with a `SystemState`-driven status indicator: a `Watch`-published state (`Booting` / `Idle` / `Fault`) drives the on-board LED with distinct patterns (fast blink, heartbeat blip, strobe) — first use of the embassy-sync pub/sub primitives from [ADR 0013](doc/decisions/0013-async-communication-primitives.md). Thirteen ADRs in place. Next: FICR.DEVICEID boot banner, board-ID refuse-to-arm, then ICM-42688 SPI bring-up once the breakout arrives.
+**Phase 1 in progress.** End-to-end throttle control working on hardware (2026-06-01): the remote sweeps a `Throttle` value, ships it inside a `PilotCommand` over the IEEE 802.15.4 link ([ADR 0014](doc/decisions/0014-radio-protocol-ieee802154.md)), the drone's `comm_link` task republishes via `Watch<PilotCommand>` ([ADR 0013](doc/decisions/0013-async-communication-primitives.md)), and the `motor_controller` task drives a brushed motor through the L9110 H-bridge via the nRF PWM peripheral. First shared wire types live in `firmware-types`, which is also the first crate to carry host unit tests — postcard round-trip plus a custom `Deserialize` that enforces the `Throttle` 0..=1 invariant at the wire boundary (the bench surfaced a real garbage-packet hard fault and the test pins the fix in place). Test-wiring pattern recorded in [ADR 0015](doc/decisions/0015-host-testing-no-std-crates.md).
+
+**Earlier in Phase 1:** Cargo workspace bootstrapped, Embassy-based firmware booting and logging over RTT (`defmt`), board-support-package layer in place ([ADR 0010](doc/decisions/0010-board-support-package.md)), source-level debugging working from VS Code via the probe-rs DAP adapter. `SystemState`-driven status LED (`Booting` / `Idle` / `Fault`) — first use of the embassy-sync pub/sub primitives. Fifteen ADRs in place. Next: real pilot inputs (PC-side joystick / ground station app), framing envelope with sequence-monotonicity rejection, then ICM-42688 SPI bring-up once the breakout arrives.
 
 See [`doc/00-vision.md`](doc/00-vision.md) for the phase plan, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
 
@@ -44,6 +46,8 @@ See [doc/00-vision.md](doc/00-vision.md) for the full vision and the phased mile
 - [ADR 0011](doc/decisions/0011-task-tracking-issues-and-batches.md) — Task tracking: GitHub Issues as canonical backlog, Projects board as view, labels as taxonomy, batched filing.
 - [ADR 0012](doc/decisions/0012-lint-and-format-policy.md) — Lint and format policy: `main` stays `rustfmt`-clean and `clippy`-clean; suppressions require justification.
 - [ADR 0013](doc/decisions/0013-async-communication-primitives.md) — Async inter-task communication: 2×2 rule over `Channel` / `Watch` / `Signal` / `PubSubChannel`.
+- [ADR 0014](doc/decisions/0014-radio-protocol-ieee802154.md) — Radio link: IEEE 802.15.4 (raw PHY/MAC), channel 20.
+- [ADR 0015](doc/decisions/0015-host-testing-no-std-crates.md) — Host-testable `no_std` crates: `cfg_attr(not(test), no_std)`, inline `mod tests`, `cargo test` honours `default-members`.
 
 ## Licence
 

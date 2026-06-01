@@ -148,6 +148,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0012](doc/decisions/0012-lint-and-format-policy.md) — Lint and format policy: `main` stays `rustfmt`-clean and `clippy`-clean; suppressions require a justifying comment. (2026-05-24)
 - [0013](doc/decisions/0013-async-communication-primitives.md) — Async inter-task communication: `Channel` for commands (per ADR 0004), `Watch` for multi-observer state, `Signal` for single-observer state, `PubSubChannel` for multi-consumer event streams. 2×2 rule: state vs events × one vs many. Shared-state types live in `firmware-drone-core`. (2026-05-24)
 - [0014](doc/decisions/0014-radio-protocol-ieee802154.md) — Radio link protocol: IEEE 802.15.4 (raw PHY/MAC) via embassy-nrf's `ieee802154::Radio`, channel 20, no higher-layer stack. HFCLK must be external xtal for any 2.4 GHz use. (2026-05-27)
+- [0015](doc/decisions/0015-host-testing-no-std-crates.md) — Host-testable `no_std` crates: `#![cfg_attr(not(test), no_std)]`, inline `#[cfg(test)] mod tests`, dev-deps pinned directly when target/host features diverge, `cargo test` (no `--workspace`) honours `default-members`. (2026-06-01)
 
 ---
 
