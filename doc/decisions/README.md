@@ -26,3 +26,4 @@ Each non-trivial design decision gets its own file here.
 - [0013 — Async inter-task communication: when to use Channel, Watch, Signal, PubSubChannel](0013-async-communication-primitives.md) — Accepted, 2026-05-24
 - [0014 — Radio link protocol: IEEE 802.15.4 (raw PHY/MAC)](0014-radio-protocol-ieee802154.md) — Accepted, 2026-05-27
 - [0015 — Host-testable `no_std` crates: wiring pattern](0015-host-testing-no-std-crates.md) — Accepted, 2026-06-01
+- [0016 — Newtype per physical quantity for shared types](0016-newtype-per-physical-quantity.md) — Accepted, 2026-06-01
