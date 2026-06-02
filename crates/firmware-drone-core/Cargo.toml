@@ -14,7 +14,10 @@ publish              = false
 #   - defmt, defmt-rtt, panic-probe
 # Reviewer reflex: scan this [dependencies] block on every PR that touches it.
 [dependencies]
-# (empty for now — add only pure no_std crates as needed)
+# Optional defmt: gives consumers (firmware-drone) access to `defmt::Format`
+# derives on this crate's public types, without forcing defmt into the host
+# test build. Same pattern as `firmware-types` — see ADR 0015 / 0009.
+defmt = { workspace = true, optional = true }
 
 [lints]
 workspace = true

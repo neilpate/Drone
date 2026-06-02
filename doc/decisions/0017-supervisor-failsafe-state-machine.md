@@ -10,7 +10,7 @@ End-to-end throttle is shipped: `comm_link` receives `PilotCommand` over IEEE 80
 
 A separate concern: a `supervisor` task already exists in `firmware-drone`, but its current body is a timer-driven demo (`Booting -> Idle -> Fault` on 5-second sleeps, names from the placeholder skeleton) wired to `status_led` purely so the LED has something to react to. The skeleton is right — `enum SystemState`, `Watch<SystemState>`, `subscribe()` — but the body is a placeholder.
 
-The state machine itself is small (3 states, simple transitions) and pure (state + event -> next state + output). It is exactly the kind of logic ADR 0007 mandates living in a `*-core` crate so it can be host-tested. No such crate exists yet — `firmware-types` covers shared wire types but not behaviour. The supervisor is the first piece of real firmware logic that warrants its own `*-core` companion.
+The state machine itself is small (4 states, simple transitions) and pure (state + event -> next state + output). It is exactly the kind of logic ADR 0007 mandates living in a `*-core` crate so it can be host-tested. No such crate exists yet — `firmware-types` covers shared wire types but not behaviour. The supervisor is the first piece of real firmware logic that warrants its own `*-core` companion.
 
 This ADR records (a) the failsafe design, (b) the architectural shape that delivers it, and (c) the creation of `firmware-drone-core` as a consequence.
 
@@ -115,7 +115,7 @@ These are **starting values**, expected to be tuned. They are not in an ADR beca
 
 ## Why this shape
 
-- **Roll-our-own enum, not `statig`/`smlang`.** Three flat states with data-carrying variants are exactly what Rust enums + exhaustive `match` express idiomatically. State-machine crates earn their keep on hierarchical state machines with 10+ states; here they would be ceremony around four `match` arms. Standard embedded-Rust judgement call (consistent with AGENTS.md "prefer the idiomatic choice").
+- **Roll-our-own enum, not `statig`/`smlang`.** Four flat states with data-carrying variants are exactly what Rust enums + exhaustive `match` express idiomatically. State-machine crates earn their keep on hierarchical state machines with 10+ states; here they would be ceremony around four `match` arms. Standard embedded-Rust judgement call (consistent with AGENTS.md "prefer the idiomatic choice").
 - **Tick-counter, not `Instant`/`Duration` plumbing.** The state machine is reactive: it sees a stream of events, doesn't ask the world what time it is. This keeps `firmware-drone-core` free of any `embassy-time` dependency and makes host tests trivially deterministic — feed the events, assert the output, no clock mocking needed. If we ever need variable-rate ticking, switching to `Event::Elapsed(Duration)` is a local change.
 - **Two Watches, not one.** Reusing the existing `pilot_command` Watch and inserting a "safe" flag on it would let `motor_controller` accidentally subscribe to the unsafe one. Having a separate `safe_throttle::Watch` makes the boundary structural — there is no path from `comm_link` to motors that does not go through the supervisor.
 - **`firmware-drone-core` as a sibling crate.** Per ADR 0009, `*-core` is realised as a sibling crate, not a module inside the bin crate. This is the first time we need it for behaviour (`firmware-types` doesn't count — it's data). Setting up the crate now establishes the pattern for future behaviour modules (`flight_controller`, attitude estimator).

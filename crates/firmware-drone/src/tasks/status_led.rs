@@ -10,15 +10,21 @@ enum LedPattern {
 fn pattern_for_state(s: SystemState) -> LedPattern {
     match s {
         // Fast symmetric blink: "working hard" during init.
-        SystemState::Booting => LedPattern::Blinking {
+        SystemState::Initialising => LedPattern::Blinking {
             on_ms: 125,
             off_ms: 125,
         },
         // Heartbeat blip: short flash, long pause. Classic "alive but idle".
-        SystemState::Idle => LedPattern::Blinking {
+        SystemState::Armed => LedPattern::Blinking {
             on_ms: 50,
             off_ms: 1950,
         },
+        // Degraded blip: short off period
+        SystemState::Degraded => LedPattern::Blinking {
+            on_ms: 1950,
+            off_ms: 50,
+        },
+
         // Rapid strobe: universally reads as "alarm".
         SystemState::Fault => LedPattern::Blinking {
             on_ms: 50,

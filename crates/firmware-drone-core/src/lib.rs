@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
 
 //! # firmware-drone-core
 //!
@@ -6,7 +6,7 @@
 //!
 //! ## Rules
 //!
-//! - `#![no_std]` — runs on the target.
+//! - `#![no_std]` on target, `std` only enabled for `cargo test` (per ADR 0015).
 //! - Host-runnable — `cargo test -p firmware-drone-core` from the repo root
 //!   must work on the developer's workstation with no extra flags.
 //! - **No HAL, no async runtime, no device logging.** Enforced by the absence
@@ -15,3 +15,5 @@
 //! Submodules land here as the firmware grows: attitude estimation, motor
 //! mixing, control loops, framing, sensor models. Each submodule is a pure
 //! function of its inputs; the matching `firmware-drone` task does the I/O.
+
+pub mod supervisor_core;

@@ -24,7 +24,7 @@ default = ["board-microbit-v2"]
 board-microbit-v2 = []
 
 [dependencies]
-firmware-drone-core = { path = "../firmware-drone-core" }
+firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
 
 embassy-executor = { workspace = true }
 embassy-nrf      = { workspace = true }

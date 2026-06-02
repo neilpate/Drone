@@ -20,7 +20,7 @@ async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
             return None;
         }
         Err(_) => {
-            defmt::warn!("comm_link receive: timeout");
+            // defmt::warn!("comm_link receive: timeout");
             return None;
         }
     }
