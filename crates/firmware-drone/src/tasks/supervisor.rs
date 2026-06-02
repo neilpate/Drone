@@ -26,21 +26,21 @@ fn set(s: SystemState) {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub struct SafeValues {
+pub struct MotorCommand {
     pub throttle: Throttle,
 }
 
-static SAFE_VALUES: Watch<CriticalSectionRawMutex, SafeValues, MAX_SUBSCRIBERS> = Watch::new();
+static MOTOR_COMMAND: Watch<CriticalSectionRawMutex, MotorCommand, MAX_SUBSCRIBERS> = Watch::new();
 
-pub type SafeValuesReceiver =
-    embassy_sync::watch::Receiver<'static, CriticalSectionRawMutex, SafeValues, MAX_SUBSCRIBERS>;
+pub type MotorCommandReceiver =
+    embassy_sync::watch::Receiver<'static, CriticalSectionRawMutex, MotorCommand, MAX_SUBSCRIBERS>;
 
-pub fn subscribe_safe_values() -> SafeValuesReceiver {
-    SAFE_VALUES.receiver().unwrap()
+pub fn subscribe_motor_command() -> MotorCommandReceiver {
+    MOTOR_COMMAND.receiver().unwrap()
 }
 
-pub fn set_safe_values(safe_values: SafeValues) {
-    SAFE_VALUES.sender().send(safe_values);
+pub fn set_motor_command(motor_command: MotorCommand) {
+    MOTOR_COMMAND.sender().send(motor_command);
 }
 
 #[embassy_executor::task]
@@ -52,7 +52,7 @@ pub async fn supervise() -> ! {
 
     let mut pilot_command_receiver = pilot_command::subscribe();
 
-    let mut safe_values = SafeValues {
+    let mut motor_command = MotorCommand {
         throttle: Throttle::ZERO,
     };
 
@@ -65,8 +65,8 @@ pub async fn supervise() -> ! {
 
         match event {
             Either::First(pilot_command) => {
-                safe_values.throttle = pilot_command.throttle;
-                set_safe_values(safe_values);
+                motor_command.throttle = pilot_command.throttle;
+                set_motor_command(motor_command);
                 ticks_without_command = 0;
             }
 
@@ -77,10 +77,9 @@ pub async fn supervise() -> ! {
                     defmt::warn!(
                         "supervisor: no pilot command received for 100ms, entering degraded mode"
                     );
-                    safe_values.throttle = Throttle::ZERO;
-                    set_safe_values(safe_values);
+                    motor_command.throttle = Throttle::ZERO;
+                    set_motor_command(motor_command);
                 }
-                set(SystemState::Degraded);
             }
         }
     }

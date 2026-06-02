@@ -5,15 +5,15 @@ use crate::tasks::supervisor;
 pub async fn motor_controller(mut motors: board::Motors) -> ! {
     defmt::info!("motor_controller task: started");
 
-    let mut safe_values_receiver = supervisor::subscribe_safe_values();
+    let mut motor_command_receiver = supervisor::subscribe_motor_command();
 
     motors.enable();
 
     loop {
-        let safe_values = safe_values_receiver.changed().await;
+        let motor_command = motor_command_receiver.changed().await;
 
-        defmt::debug!("received safe values: {}", safe_values.throttle);
+        defmt::debug!("received motor command: {}", motor_command.throttle);
 
-        motors.set_throttle(0, safe_values.throttle);
+        motors.set_throttle(0, motor_command.throttle);
     }
 }
