@@ -150,6 +150,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0014](doc/decisions/0014-radio-protocol-ieee802154.md) — Radio link protocol: IEEE 802.15.4 (raw PHY/MAC) via embassy-nrf's `ieee802154::Radio`, channel 20, no higher-layer stack. HFCLK must be external xtal for any 2.4 GHz use. (2026-05-27)
 - [0015](doc/decisions/0015-host-testing-no-std-crates.md) — Host-testable `no_std` crates: `#![cfg_attr(not(test), no_std)]`, inline `#[cfg(test)] mod tests`, dev-deps pinned directly when target/host features diverge, `cargo test` (no `--workspace`) honours `default-members`. (2026-06-01)
 - [0016](doc/decisions/0016-newtype-per-physical-quantity.md) — Newtype per physical quantity for shared types: distinct newtypes (not type aliases, not a shared `PercentageValue` base) so the type system catches argument-order bugs; macro acceptable once ≥3 structurally-identical newtypes exist. (2026-06-01)
+- [0017](doc/decisions/0017-supervisor-failsafe-state-machine.md) — Supervisor task as failsafe state machine: 4-state enum (`Initialising`/`Armed`/`Degraded`/`Fault`), tick-driven, pure logic in new `firmware-drone-core` crate, supervisor is the sole publisher of motor commands (republishes a `Watch<Throttle>` that `motor_controller` subscribes to). (2026-06-02)
 
 ---
 
