@@ -4,6 +4,7 @@ use embassy_time::{Duration, Ticker};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
 
 pub use firmware_drone_core::supervisor_core::SystemState;
+use firmware_drone_core::supervisor_core::{Event, Supervisor};
 use firmware_types::Throttle;
 
 use crate::tasks::pilot_command;
@@ -52,35 +53,21 @@ pub async fn supervise() -> ! {
 
     let mut pilot_command_receiver = pilot_command::subscribe();
 
-    let mut motor_command = MotorCommand {
-        throttle: Throttle::ZERO,
-    };
-
-    let mut ticks_without_command = 0;
+    let mut supervisor = Supervisor::new();
 
     loop {
         // Wait either for a new PilotCommand to arrive, or for the timeout to elapse.
 
         let event = select(pilot_command_receiver.changed(), ticker.next()).await;
 
-        match event {
-            Either::First(pilot_command) => {
-                motor_command.throttle = pilot_command.throttle;
-                set_motor_command(motor_command);
-                ticks_without_command = 0;
-            }
+        let output = match event {
+            Either::First(cmd) => supervisor.step(Event::Command(cmd)),
+            Either::Second(_) => supervisor.step(Event::Tick),
+        };
 
-            Either::Second(_) => {
-                ticks_without_command += 1;
-
-                if ticks_without_command > 10 {
-                    defmt::warn!(
-                        "supervisor: no pilot command received for 100ms, entering degraded mode"
-                    );
-                    motor_command.throttle = Throttle::ZERO;
-                    set_motor_command(motor_command);
-                }
-            }
-        }
+        set(output.state);
+        set_motor_command(MotorCommand {
+            throttle: output.throttle,
+        });
     }
 }
