@@ -28,3 +28,4 @@ Each non-trivial design decision gets its own file here.
 - [0015 — Host-testable `no_std` crates: wiring pattern](0015-host-testing-no-std-crates.md) — Accepted, 2026-06-01
 - [0016 — Newtype per physical quantity for shared types](0016-newtype-per-physical-quantity.md) — Accepted, 2026-06-01
 - [0017 — Supervisor task: failsafe state machine driving safe motor commands](0017-supervisor-failsafe-state-machine.md) — Accepted, 2026-06-02
+- [0018 — PC ground-station link: USB-CDC UART, postcard + COBS](0018-pc-link-uart-postcard-cobs.md) — Proposed, 2026-06-05
