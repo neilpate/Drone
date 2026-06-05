@@ -1,3 +1,5 @@
+use core::ops::Mul;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq)]
@@ -20,6 +22,14 @@ impl Throttle {
 
     pub fn as_normalised(self) -> f32 {
         self.0
+    }
+}
+
+impl Mul<f32> for Throttle {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::from_normalised(self.as_normalised() * rhs)
     }
 }
 
@@ -73,5 +83,23 @@ mod tests {
         let bytes = postcard::to_slice(&f32::NAN, &mut buf).unwrap();
         let decoded: Throttle = postcard::from_bytes(bytes).unwrap();
         assert_eq!(decoded.as_normalised(), 0.0);
+    }
+
+    #[test]
+    fn multiply() {
+        let throttle = Throttle::from_normalised(0.5);
+        let result = throttle * 0.5;
+        assert_eq!(result.as_normalised(), 0.25);
+    }
+
+    #[test]
+    fn multiply_clamps_when_overshoot() {
+        // 0.6 * 2.0 = 1.2 -> clamped to MAX
+        assert_eq!((Throttle::from_normalised(0.6) * 2.0).as_normalised(), 1.0);
+    }
+
+    #[test]
+    fn multiply_by_zero_is_zero() {
+        assert_eq!((Throttle::MAX * 0.0).as_normalised(), 0.0);
     }
 }
