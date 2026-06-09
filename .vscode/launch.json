@@ -79,6 +79,64 @@
                 }
             ],
             "consoleLogLevel": "Console"
+        },
+        {
+            // Source-level debug of firmware-remote on a BBC micro:bit v2.
+            // Same setup as the drone configs above — different ELF.
+            "type": "probe-rs-debug",
+            "request": "launch",
+            "name": "firmware-remote (debug, micro:bit v2)",
+            "cwd": "${workspaceFolder}",
+            "chip": "nRF52833_xxAA",
+            "connectUnderReset": false,
+            "preLaunchTask": "build firmware-remote (debug)",
+            "flashingConfig": {
+                "flashingEnabled": true,
+                "haltAfterReset": false
+            },
+            "coreConfigs": [
+                {
+                    "coreIndex": 0,
+                    "programBinary": "${workspaceFolder}/target/thumbv7em-none-eabihf/debug/firmware-remote",
+                    "rttEnabled": true,
+                    "rttChannelFormats": [
+                        {
+                            "channelNumber": 0,
+                            "dataFormat": "Defmt",
+                            "showTimestamp": true
+                        }
+                    ]
+                }
+            ],
+            "consoleLogLevel": "Console"
+        },
+        {
+            "type": "probe-rs-debug",
+            "request": "launch",
+            "name": "firmware-remote (release, micro:bit v2)",
+            "cwd": "${workspaceFolder}",
+            "chip": "nRF52833_xxAA",
+            "connectUnderReset": false,
+            "preLaunchTask": "build firmware-remote (release)",
+            "flashingConfig": {
+                "flashingEnabled": true,
+                "haltAfterReset": true
+            },
+            "coreConfigs": [
+                {
+                    "coreIndex": 0,
+                    "programBinary": "${workspaceFolder}/target/thumbv7em-none-eabihf/release/firmware-remote",
+                    "rttEnabled": true,
+                    "rttChannelFormats": [
+                        {
+                            "channelNumber": 0,
+                            "dataFormat": "Defmt",
+                            "showTimestamp": true
+                        }
+                    ]
+                }
+            ],
+            "consoleLogLevel": "Console"
         }
     ]
 }

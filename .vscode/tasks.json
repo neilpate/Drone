@@ -33,17 +33,38 @@
             }
         },
         {
-            "label": "build firmware-drone (release)",
+            "label": "build firmware-remote (debug)",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build",
+                "--bin",
+                "firmware-remote"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/crates/firmware-remote"
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "presentation": {
+                "clear": true,
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "build firmware-remote (release)",
             "type": "shell",
             "command": "cargo",
             "args": [
                 "build",
                 "--release",
                 "--bin",
-                "firmware-drone"
+                "firmware-remote"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/crates/firmware-drone"
+                "cwd": "${workspaceFolder}/crates/firmware-remote"
             },
             "problemMatcher": [
                 "$rustc"
