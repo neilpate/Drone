@@ -52,7 +52,7 @@ async fn play_pattern(
 }
 
 #[embassy_executor::task]
-pub async fn update_status_indicator(mut status_led: board::StatusLed) -> ! {
+pub async fn status_led(mut status_led: board::StatusLed) -> ! {
     defmt::info!("update_status_indicator task: started");
 
     let mut status_receiver = subscribe();

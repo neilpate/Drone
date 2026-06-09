@@ -26,8 +26,8 @@ async fn main(spawner: Spawner) {
 
     defmt::info!("firmware-drone on {}: boot (scaffold)", board::NAME);
 
-    spawner.must_spawn(tasks::supervisor::supervise());
-    spawner.must_spawn(tasks::status_led::update_status_indicator(board.status_led));
-    spawner.must_spawn(tasks::comm_link::comm_link(board.radio));
+    spawner.must_spawn(tasks::supervisor::supervisor());
+    spawner.must_spawn(tasks::status_led::status_led(board.status_led));
+    spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
     spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
 }

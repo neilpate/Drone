@@ -45,7 +45,7 @@ pub fn set_motor_command(motor_command: MotorCommand) {
 }
 
 #[embassy_executor::task]
-pub async fn supervise() -> ! {
+pub async fn supervisor() -> ! {
     defmt::info!("supervisor task: started");
     set(SystemState::Initialising);
 

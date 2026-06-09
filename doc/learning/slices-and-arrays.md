@@ -1,6 +1,6 @@
 # Slices and arrays
 
-_Captured 2026-05-30 while wrapping up `firmware-remote/src/tasks/comm_link.rs`. The question that prompted it: "do we need both `scratch` and `bytes_to_send`, they seem to do the same thing." Answer: no, they're different — and understanding why is understanding slices._
+_Captured 2026-05-30 while wrapping up `firmware-remote/src/tasks/drone_link.rs` (then named `comm_link.rs`). The question that prompted it: "do we need both `scratch` and `bytes_to_send`, they seem to do the same thing." Answer: no, they're different — and understanding why is understanding slices._
 
 ## The question
 
@@ -116,7 +116,7 @@ hash(&scratch);                  // &[u8; 32] → &[u8] automatic
 
 This is why you can usually pass `&array` where the API wants `&slice` and it just works. The compiler is doing one conversion at the call site, free.
 
-## Mapping to the comm_link code
+## Mapping to the drone_link code
 
 ```rust
 let mut scratch = [0u8; SEND_BUFFER_SIZE];                       // [1]
@@ -236,7 +236,7 @@ Get fluent with slices and you've covered ~80% of the data-passing patterns the 
 | Mut slice ref     | `&mut [T]`   | 2 words (fat ptr)  | No  |
 | String slice      | `&str`       | 2 words (fat ptr)  | No  |
 
-In `comm_link.rs`:
+In `drone_link.rs`:
 
 - `scratch: [u8; 32]` is "the bytes." (Owner.)
 - `bytes_to_send: &mut [u8]` is "the bytes that matter, with the length attached." (View.)

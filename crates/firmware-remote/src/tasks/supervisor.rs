@@ -25,7 +25,7 @@ fn set(s: SystemState) {
 }
 
 #[embassy_executor::task]
-pub async fn supervise() -> ! {
+pub async fn supervisor() -> ! {
     defmt::info!("supervisor task: started");
     set(SystemState::Booting);
 

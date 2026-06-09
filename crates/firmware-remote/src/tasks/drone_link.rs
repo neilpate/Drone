@@ -31,11 +31,11 @@ async fn receive(radio: &mut Radio) -> Option<TelemetryState> {
         // Outer match is for the timeout; inner match is for the radio receive result
         Ok(Ok(())) => {}
         Ok(Err(e)) => {
-            defmt::warn!("comm_link receive: error: {:?}", e);
+            defmt::warn!("drone_link receive: error: {:?}", e);
             return None;
         }
         Err(_) => {
-            defmt::warn!("comm_link receive: timeout");
+            defmt::warn!("drone_link receive: timeout");
             return None;
         }
     }
@@ -50,8 +50,8 @@ async fn receive(radio: &mut Radio) -> Option<TelemetryState> {
 }
 
 #[embassy_executor::task]
-pub async fn comm_link(mut radio: Radio) -> ! {
-    defmt::info!("comm_link task: started");
+pub async fn drone_link(mut radio: Radio) -> ! {
+    defmt::info!("drone_link task: started");
 
     let mut ticker = Ticker::every(LOOP_PERIOD);
 
@@ -71,7 +71,7 @@ pub async fn comm_link(mut radio: Radio) -> ! {
             throttle,
         };
         if let Err(e) = send(&mut radio, state).await {
-            defmt::error!("comm_link transmit: error: {:?}", e);
+            defmt::error!("drone_link transmit: error: {:?}", e);
             continue;
         }
 

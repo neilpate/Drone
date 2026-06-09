@@ -6,7 +6,7 @@
 
 ## Context
 
-[ADR 0005](0005-pc-software-language-rust.md) committed to "PC-side software written in Rust" with `firmware-types` as the shared wire-protocol crate, but no PC-side binary or transport had been built. Until now the `comm_link` task on the remote has been generating its own throttle value — a slowly-incrementing `f32` counter — because there was no other input source. That is enough to prove the radio link works end-to-end but useless for actually controlling the drone or for scripted bench testing.
+[ADR 0005](0005-pc-software-language-rust.md) committed to "PC-side software written in Rust" with `firmware-types` as the shared wire-protocol crate, but no PC-side binary or transport had been built. Until now the `drone_link` task on the remote has been generating its own throttle value — a slowly-incrementing `f32` counter — because there was no other input source. That is enough to prove the radio link works end-to-end but useless for actually controlling the drone or for scripted bench testing.
 
 The supervisor failsafe state machine landed in [ADR 0017](0017-supervisor-failsafe-state-machine.md) and is now ready for hardware verification. The three bench tests that matter (basic arm/disarm, ramp-down on link loss, refuse-recovery-until-zero) all involve precise, repeatable control over the throttle value the remote transmits. In particular, the refuse-recovery test requires the remote to *stop* transmitting for >100 ms and then *resume* with a non-zero throttle — a scenario that is awkward to produce with physical inputs (buttons, accelerometer) because the human in the loop is also the one that has to remember to hold the stick.
 
@@ -56,13 +56,13 @@ These are fixed by the v2 board layout. Any other UART configuration will not ap
 
 ### Initial direction: PC → remote only
 
-The first cut carries `PilotCommand` from PC to remote. The remote's `comm_link` task subscribes to a UART-driven `Watch<Throttle>` instead of generating throttle internally, then forwards the command over the radio as before.
+The first cut carries `PilotCommand` from PC to remote. The remote's `drone_link` task subscribes to a UART-driven `Watch<Throttle>` instead of generating throttle internally, then forwards the command over the radio as before.
 
 The reverse direction (remote → PC) for telemetry is deferred. The transport supports it symmetrically; no architectural change is needed when we wire it up later.
 
 ### `sequence_count` ownership
 
-`PilotCommand.sequence_count: u32` is currently set by the remote's `comm_link`. With PC-driven commands there is a question of whether the PC or the remote should own it. Initial choice: **the remote keeps owning it**. The PC may set any value (including zero); the remote re-stamps with its own counter before transmitting over the radio. This sidesteps the cross-link sequence-tracking question for now. Revisit if/when end-to-end (PC → drone) loss visibility becomes useful.
+`PilotCommand.sequence_count: u32` is currently set by the remote's `drone_link`. With PC-driven commands there is a question of whether the PC or the remote should own it. Initial choice: **the remote keeps owning it**. The PC may set any value (including zero); the remote re-stamps with its own counter before transmitting over the radio. This sidesteps the cross-link sequence-tracking question for now. Revisit if/when end-to-end (PC → drone) loss visibility becomes useful.
 
 ### Repository layout
 
@@ -83,7 +83,7 @@ crates/groundstation/
 - **Standard COM port over USB-CDC** is the most boring, most portable embedded telemetry/control transport that exists. Every operating system has the driver. Every language has a library. PuTTY can sanity-check the link before any code is written. There is no novelty value in choosing something else.
 - **postcard + COBS** is the canonical pairing in the embedded-Rust ecosystem. `postcard::accumulator` is purpose-built for exactly this case; using it costs ~5 lines on the firmware side. Any alternative (length-prefix, SLIP, custom framing) is more code for less robustness.
 - **Same `firmware-types` crate** is the entire point of [ADR 0005](0005-pc-software-language-rust.md). The ground station doesn't get its own protocol crate; it depends on the same one the firmware does. Schemas can never drift.
-- **Dedicated UART task** mirrors the actor-per-task pattern already in use ([ADR 0004](0004-concurrency-embassy-channels.md)). The task owns the UART peripheral, deframes incoming bytes, and publishes parsed `PilotCommand`s on a `Watch`. `comm_link` subscribes. The throttle source is now swappable — UART, buttons, accelerometer, future RC receiver — without touching `comm_link`.
+- **Dedicated UART task** mirrors the actor-per-task pattern already in use ([ADR 0004](0004-concurrency-embassy-channels.md)). The task owns the UART peripheral, deframes incoming bytes, and publishes parsed `PilotCommand`s on a `Watch`. `drone_link` subscribes. The throttle source is now swappable — UART, buttons, accelerometer, future RC receiver — without touching `drone_link`.
 - **115 200 baud** is the floor that "just works" on every system. Faster is available; slower is wasteful; this is the value embedded developers reach for by reflex.
 
 ## Consequences
@@ -91,10 +91,10 @@ crates/groundstation/
 ### What this commits us to
 
 - A new `groundstation` crate in the workspace, host-only.
-- A new `usb_link` task in `firmware-remote`, owning the UARTE peripheral.
+- A new `serial_link` task in `firmware-remote`, owning the UARTE peripheral.
 - BSP changes in `firmware-remote/src/board/microbit_v2.rs` to construct and expose the UARTE on `P0_06` (TXD) / `P1_08` (RXD). Future board variants must provide an equivalent typed UART handle from `Board::new()`.
 - `firmware-types` becomes the shared dependency of `firmware-drone`, `firmware-remote`, `firmware-drone-core`, and `groundstation`. Any wire-format change must compile across all four.
-- The remote's `comm_link` task switches from self-generated throttle to a `Watch<Throttle>` subscription. The throttle source becomes a configuration choice, not a hard-coded counter.
+- The remote's `drone_link` task switches from self-generated throttle to a `Watch<Throttle>` subscription. The throttle source becomes a configuration choice, not a hard-coded counter.
 - COBS is the framing for any stream-oriented transport we use going forward (UART now, future TCP / serial-over-Bluetooth, etc.). Datagram transports (radio) keep their natural framing and stay COBS-free.
 
 ### What this rules out
@@ -120,4 +120,4 @@ crates/groundstation/
 - [embassy-nrf `uarte` module](https://docs.embassy.dev/embassy-nrf/git/nrf52833/uarte/index.html) — async UART driver used on the firmware side.
 - ADR 0005 — the parent decision this ADR finally implements.
 - ADR 0014 — sister ADR for the radio link; same wire format, different transport.
-- Implementation: [`crates/groundstation/`](../../crates/groundstation/) (created by this ADR), [`crates/firmware-remote/src/tasks/usb_link.rs`](../../crates/firmware-remote/src/tasks/usb_link.rs) (created by this ADR), [`crates/firmware-remote/src/board/microbit_v2.rs`](../../crates/firmware-remote/src/board/microbit_v2.rs) (extended).
+- Implementation: [`crates/groundstation/`](../../crates/groundstation/) (created by this ADR), [`crates/firmware-remote/src/tasks/serial_link.rs`](../../crates/firmware-remote/src/tasks/serial_link.rs) (created by this ADR), [`crates/firmware-remote/src/board/microbit_v2.rs`](../../crates/firmware-remote/src/board/microbit_v2.rs) (extended).

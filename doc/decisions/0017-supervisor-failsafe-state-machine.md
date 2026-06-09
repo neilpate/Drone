@@ -6,7 +6,7 @@
 
 ## Context
 
-End-to-end throttle is shipped: `comm_link` receives `PilotCommand` over IEEE 802.15.4, publishes it to a `Watch`, and `motor_controller` subscribes and drives the PWM. There is currently **no failsafe** — if the radio link drops, `motor_controller` simply stops seeing updates and the motor holds its last commanded value indefinitely. A real bench bug already exposed an adjacent failure mode (a corrupt packet decoded into a garbage `Throttle`, fixed at the wire boundary by ADR 0016). Loss-of-link is the next obvious safety hole.
+End-to-end throttle is shipped: `remote_link` receives `PilotCommand` over IEEE 802.15.4, publishes it to a `Watch`, and `motor_controller` subscribes and drives the PWM. There is currently **no failsafe** — if the radio link drops, `motor_controller` simply stops seeing updates and the motor holds its last commanded value indefinitely. A real bench bug already exposed an adjacent failure mode (a corrupt packet decoded into a garbage `Throttle`, fixed at the wire boundary by ADR 0016). Loss-of-link is the next obvious safety hole.
 
 A separate concern: a `supervisor` task already exists in `firmware-drone`, but its current body is a timer-driven demo (`Booting -> Idle -> Fault` on 5-second sleeps, names from the placeholder skeleton) wired to `status_led` purely so the LED has something to react to. The skeleton is right — `enum SystemState`, `Watch<SystemState>`, `subscribe()` — but the body is a placeholder.
 
@@ -27,9 +27,9 @@ The existing `supervisor` task is repurposed from "system status indicator drive
 This makes the data flow:
 
 ```
-comm_link  -->  pilot_command::Watch  -->  supervisor  -->  safe_throttle::Watch  -->  motor_controller
-                                              |
-                                              +-- also publishes SystemState (existing Watch, used by status_led)
+remote_link  -->  pilot_command::Watch  -->  supervisor  -->  safe_throttle::Watch  -->  motor_controller
+                                                |
+                                                +-- also publishes SystemState (existing Watch, used by status_led)
 ```
 
 Nothing downstream of `supervisor` can produce motor output that bypasses failsafe. This is the structural property that the failsafe layer exists to provide — encoded in the wiring, not in a runtime check.
@@ -117,7 +117,7 @@ These are **starting values**, expected to be tuned. They are not in an ADR beca
 
 - **Roll-our-own enum, not `statig`/`smlang`.** Four flat states with data-carrying variants are exactly what Rust enums + exhaustive `match` express idiomatically. State-machine crates earn their keep on hierarchical state machines with 10+ states; here they would be ceremony around four `match` arms. Standard embedded-Rust judgement call (consistent with AGENTS.md "prefer the idiomatic choice").
 - **Tick-counter, not `Instant`/`Duration` plumbing.** The state machine is reactive: it sees a stream of events, doesn't ask the world what time it is. This keeps `firmware-drone-core` free of any `embassy-time` dependency and makes host tests trivially deterministic — feed the events, assert the output, no clock mocking needed. If we ever need variable-rate ticking, switching to `Event::Elapsed(Duration)` is a local change.
-- **Two Watches, not one.** Reusing the existing `pilot_command` Watch and inserting a "safe" flag on it would let `motor_controller` accidentally subscribe to the unsafe one. Having a separate `safe_throttle::Watch` makes the boundary structural — there is no path from `comm_link` to motors that does not go through the supervisor.
+- **Two Watches, not one.** Reusing the existing `pilot_command` Watch and inserting a "safe" flag on it would let `motor_controller` accidentally subscribe to the unsafe one. Having a separate `safe_throttle::Watch` makes the boundary structural — there is no path from `remote_link` to motors that does not go through the supervisor.
 - **`firmware-drone-core` as a sibling crate.** Per ADR 0009, `*-core` is realised as a sibling crate, not a module inside the bin crate. This is the first time we need it for behaviour (`firmware-types` doesn't count — it's data). Setting up the crate now establishes the pattern for future behaviour modules (`flight_controller`, attitude estimator).
 - **Refuse-recovery-until-zero is in the state machine.** It's a four-line `match` arm and the obvious place. Any other location (e.g. in `motor_controller`) duplicates safety logic across actors — exactly what the supervisor exists to centralise.
 
@@ -134,7 +134,7 @@ These are **starting values**, expected to be tuned. They are not in an ADR beca
 
 ### What this rules out
 
-- Failsafe logic in `motor_controller`, `comm_link`, or any other task. Loss-of-link handling lives in exactly one place.
+- Failsafe logic in `motor_controller`, `remote_link`, or any other task. Loss-of-link handling lives in exactly one place.
 - A supervisor that makes *no* output and merely flags a status — the supervisor must actively republish a safe command, otherwise the structural-boundary property in §1 doesn't hold.
 - `Instant::now()` calls inside `firmware-drone-core`. Time is an event from the task, not a global the core can reach for.
 - Pulling in a state-machine crate (`statig`, `smlang`, etc.) until the state space justifies it — i.e. a hierarchical state machine, not a flat 3-state one.

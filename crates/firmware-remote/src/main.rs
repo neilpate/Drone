@@ -26,7 +26,8 @@ async fn main(spawner: Spawner) {
 
     defmt::info!("firmware-remote on {}: boot (scaffold)", board::NAME);
 
-    spawner.must_spawn(tasks::supervisor::supervise());
-    spawner.must_spawn(tasks::status_led::update_status_indicator(board.status_led));
-    spawner.must_spawn(tasks::comm_link::comm_link(board.radio));
+    spawner.must_spawn(tasks::supervisor::supervisor());
+    spawner.must_spawn(tasks::status_led::status_led(board.status_led));
+    spawner.must_spawn(tasks::drone_link::drone_link(board.radio));
+    spawner.must_spawn(tasks::serial_link::serial_link(board.uart));
 }

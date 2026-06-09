@@ -1,6 +1,6 @@
 # Rust value semantics on Cortex-M
 
-_Captured 2026-05-30 while refactoring `firmware-remote/src/tasks/comm_link.rs` into `send` / `receive` helpers._
+_Captured 2026-05-30 while refactoring `firmware-remote/src/tasks/drone_link.rs` (then named `comm_link.rs`) into `send` / `receive` helpers._
 
 ## The question
 
@@ -63,7 +63,7 @@ let p = outer();
 
 C++ has the same optimisation but it's only mandatory since C++17. C has no equivalent — you write the out-pointer manually.
 
-## Worked example from `comm_link.rs`
+## Worked example from `drone_link.rs`
 
 ```rust
 async fn receive(radio: &mut Radio) -> Option<TelemetryState> {

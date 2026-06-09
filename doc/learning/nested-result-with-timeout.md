@@ -1,6 +1,6 @@
 # Nested `Result` from `with_timeout`
 
-_Captured 2026-05-30 while writing `receive()` in `firmware-remote/src/tasks/comm_link.rs`. Easily the most confusing Rust syntax encountered so far._
+_Captured 2026-05-30 while writing `receive()` in `firmware-remote/src/tasks/drone_link.rs` (then named `comm_link.rs`). Easily the most confusing Rust syntax encountered so far._
 
 ## The question
 

@@ -16,11 +16,11 @@ async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
         // Outer match is for the timeout; inner match is for the radio receive result
         Ok(Ok(())) => {} //Received a packet successfully within the timeout
         Ok(Err(e)) => {
-            defmt::warn!("comm_link receive: error: {:?}", e);
+            defmt::warn!("remote_link receive: error: {:?}", e);
             return None;
         }
         Err(_) => {
-            // defmt::warn!("comm_link receive: timeout");
+            // defmt::warn!("remote_link receive: timeout");
             return None;
         }
     }
@@ -49,8 +49,8 @@ async fn send(radio: &mut Radio, telemetry: TelemetryState) -> Result<(), radio:
 }
 
 #[embassy_executor::task]
-pub async fn comm_link(mut radio: Radio) -> ! {
-    defmt::info!("comm_link task: started");
+pub async fn remote_link(mut radio: Radio) -> ! {
+    defmt::info!("remote_link task: started");
 
     let mut telemetry_state = TelemetryState { count: 0 };
 
