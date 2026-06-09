@@ -4,7 +4,9 @@ use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
 
-use firmware_types::{PilotCommand, TelemetryState, Throttle};
+use firmware_types::{PilotCommand, TelemetryState};
+
+use crate::signals;
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
@@ -35,7 +37,7 @@ async fn receive(radio: &mut Radio) -> Option<TelemetryState> {
             return None;
         }
         Err(_) => {
-            defmt::warn!("drone_link receive: timeout");
+            // defmt::warn!("drone_link receive: timeout");
             return None;
         }
     }
@@ -55,19 +57,23 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
     let mut ticker = Ticker::every(LOOP_PERIOD);
 
+    let mut sequence_count: u32 = 0;
+
     radio.set_channel(radio_link::CHANNEL);
 
-    let mut count = 0_u32;
+    let mut throttle_command_receiver = signals::subscribe_throttle_command();
 
-    let mut throttle_counter = 0_f32;
+    // let mut throttle_counter = 0_f32;
 
     loop {
         ticker.next().await; // Wait for the next tick before sending the next control state
 
-        let throttle = Throttle::from_normalised(throttle_counter);
+        let throttle = throttle_command_receiver.get().await;
+
+        defmt::info!("drone_link received: {}", throttle);
 
         let state = PilotCommand {
-            sequence_count: count,
+            sequence_count,
             throttle,
         };
         if let Err(e) = send(&mut radio, state).await {
@@ -80,10 +86,6 @@ pub async fn drone_link(mut radio: Radio) -> ! {
             defmt::info!("received: {}", telemetry);
         }
 
-        count += 1;
-        throttle_counter += 0.0002;
-        if throttle_counter > 1.0 {
-            throttle_counter = 0.0;
-        }
+        sequence_count = sequence_count.wrapping_add(1);
     }
 }

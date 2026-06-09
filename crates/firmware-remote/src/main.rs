@@ -18,6 +18,7 @@ use embassy_executor::Spawner;
 
 mod board;
 mod radio_link;
+mod signals;
 mod tasks;
 
 #[embassy_executor::main]
