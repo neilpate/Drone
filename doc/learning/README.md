@@ -17,3 +17,4 @@ Different from `decisions/` (ADRs are project choices) and `research/` (external
 - [rust-value-semantics.md](rust-value-semantics.md) — returning values, RVO, sret, AAPCS registers, why "return by value" is free. (2026-05-30)
 - [nested-result-with-timeout.md](nested-result-with-timeout.md) — `with_timeout` produces `Result<Result<T, E>, TimeoutError>`; the three-arm flat match, the peel-layer-by-layer alternative, and the `.ok()??` shortcut. (2026-05-30)
 - [slices-and-arrays.md](slices-and-arrays.md) — `[T; N]` vs `[T]` vs `&[T]`; fat pointers; why slices are the answer to C's "pass an array and a length" pattern; relevance for `no_std`. (2026-05-30)
+- [gpio-state-during-reset.md](gpio-state-during-reset.md) — why the motor spun during firmware flashing: GPIO is hi-Z at reset, an active-low driver with a floating input means "on"; pull-up resistors and proper enable pins as the two fixes. (2026-06-10)
