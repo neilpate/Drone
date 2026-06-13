@@ -1,6 +1,12 @@
 [workspace]
 resolver = "3"
 members  = ["crates/*"]
+# `groundstation` is a host-only GUI (eframe/egui) and is intentionally NOT a
+# workspace member. Including it would force rust-analyzer (configured for the
+# ARM firmware target) to also try to analyse eframe/winit/glow/log etc. as
+# `thumbv7em-none-eabihf no_std`, producing thousands of false errors. Build /
+# run it from its own directory: `cd crates/groundstation && cargo run`.
+exclude  = ["crates/groundstation"]
 
 # Crates that are safe to build for the host on `cargo <cmd>` invoked from the
 # repo root (no `-p` flag). On-target firmware crates are deliberately excluded

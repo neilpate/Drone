@@ -1,11 +1,17 @@
+# Note: `groundstation` is intentionally NOT a member of the top-level workspace
+# (see `Cargo.toml` at the repo root). It's a standalone host-only GUI; keeping
+# it out of the workspace stops rust-analyzer (configured for the firmware ARM
+# target) from trying to analyse its desktop deps as no_std and emitting
+# thousands of false errors. Consequently this Cargo.toml inlines the values
+# the firmware crates inherit from `[workspace.package]` / `[workspace.lints]`.
 [package]
-name        = "groundstation"
-version     = "0.1.0"
-edition.workspace      = true
-license.workspace      = true
-repository.workspace   = true
-rust-version.workspace = true
-publish     = false
+name         = "groundstation"
+version      = "0.1.0"
+edition      = "2024"
+license      = "MIT OR Apache-2.0"
+repository   = "https://github.com/neilpate/Drone"
+rust-version = "1.95"
+publish      = false
 
 [[bin]]
 name = "gs"
@@ -15,5 +21,9 @@ path = "src/main.rs"
 eframe     = { version = "0.28", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
 serialport = "4.3"
 
-[lints]
-workspace = true
+[lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

@@ -15,9 +15,11 @@ use defmt_rtt as _;
 use panic_probe as _;
 
 use embassy_executor::Spawner;
+use firmware_types;
 
 mod board;
 mod radio_link;
+mod signals;
 mod tasks;
 
 #[embassy_executor::main]

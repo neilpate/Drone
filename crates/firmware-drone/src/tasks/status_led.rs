@@ -1,5 +1,7 @@
 use crate::board;
-use crate::tasks::supervisor::{StatusReceiver, SystemState, subscribe};
+use crate::signals::status;
+use crate::tasks::supervisor::SystemState;
+
 use embassy_futures::select::{Either, select};
 use embassy_time::Timer;
 
@@ -36,7 +38,7 @@ fn pattern_for_state(s: SystemState) -> LedPattern {
 async fn play_pattern(
     status_led: &mut board::StatusLed,
     pattern: LedPattern,
-    state_change_receiver: &mut StatusReceiver,
+    state_change_receiver: &mut status::StatusReceiver,
 ) -> SystemState {
     match pattern {
         LedPattern::Blinking { on_ms, off_ms } => loop {
@@ -61,7 +63,7 @@ async fn play_pattern(
 pub async fn status_led(mut status_led: board::StatusLed) -> ! {
     defmt::info!("update_status_indicator task: started");
 
-    let mut status_receiver = subscribe();
+    let mut status_receiver = status::subscribe();
 
     let mut current_state = status_receiver.changed().await;
 

@@ -70,7 +70,7 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
         let throttle = throttle_command_receiver.get().await;
 
-        defmt::info!("drone_link received: {}", throttle);
+        defmt::debug!("drone_link received: {}", throttle);
 
         let state = PilotCommand {
             sequence_count,

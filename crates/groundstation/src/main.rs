@@ -78,10 +78,10 @@ impl eframe::App for App {
                     .text("Throttle")
                     .fixed_decimals(3),
             );
-            if response.changed() {
-                if let Some(tx) = &self.tx {
-                    let _ = tx.send(self.throttle);
-                }
+            if response.changed()
+                && let Some(tx) = &self.tx
+            {
+                let _ = tx.send(self.throttle);
             }
         });
     }

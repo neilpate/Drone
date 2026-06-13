@@ -3,15 +3,32 @@
     // rust-analyzer: mixed-target workspace configuration
     // ---------------------------------------------------------------------
     //
-    // The repo is currently embedded-only (firmware-drone, firmware-drone-core,
-    // both no_std targeting nRF52833). rust-analyzer otherwise defaults to the
-    // host triple (x86_64-pc-windows-msvc), which makes cortex-m's ARM inline
-    // assembly (`asm!("bkpt #...", inout("r0") ...)`) appear invalid.
+    // The workspace contains a mix of:
+    //   - on-target firmware (firmware-drone, firmware-remote) cross-compiled
+    //     to thumbv7em-none-eabihf via per-crate .cargo/config.toml,
+    //   - host-testable no_std logic crates (firmware-drone-core, firmware-
+    //     remote-core, firmware-types) that build for the host triple,
+    //   - the host-only ground-station GUI (groundstation, eframe/egui).
     //
-    // Set the analyser's target to match what `cargo build` actually uses for
-    // the firmware crates. When host-only crates (groundstation, xtask) land,
-    // switch to `rust-analyzer.linkedProjects` with per-crate targets.
+    // rust-analyzer runs as a single LSP server per VS Code window with one
+    // global `cargo.target`. There is no per-crate target option (even with
+    // `linkedProjects` or multi-root workspaces). So we have to pick.
+    //
+    // Most editing happens on the firmware side, so we target ARM globally
+    // and drop `groundstation` from `linkedProjects` — RA otherwise tries to
+    // analyse egui / winit / glow as `no_std` ARM and emits thousands of
+    // false errors. Groundstation still builds/runs from its own terminal
+    // (`cd crates/groundstation && cargo run`); it just has no live RA
+    // analysis in this window. Open it in a separate VS Code window for
+    // full IDE support when actively editing it.
     "rust-analyzer.cargo.target": "thumbv7em-none-eabihf",
+    "rust-analyzer.linkedProjects": [
+        "crates/firmware-drone/Cargo.toml",
+        "crates/firmware-remote/Cargo.toml",
+        "crates/firmware-drone-core/Cargo.toml",
+        "crates/firmware-remote-core/Cargo.toml",
+        "crates/firmware-types/Cargo.toml"
+    ],
     // Don't analyse dev-deps / tests / examples; firmware crates have those
     // turned off anyway (see crates/firmware-drone/Cargo.toml).
     "rust-analyzer.cargo.allTargets": false,
