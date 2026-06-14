@@ -31,5 +31,5 @@ async fn main(spawner: Spawner) {
     spawner.must_spawn(tasks::status_led::status_led(board.status_led));
     spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
     spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
-    spawner.must_spawn(tasks::telemetry::telemetry(board.temperature_sensor));
+    spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
 }

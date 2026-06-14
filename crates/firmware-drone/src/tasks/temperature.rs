@@ -5,12 +5,8 @@ use crate::board;
 use crate::signals::telemetry;
 
 #[embassy_executor::task]
-pub async fn telemetry(mut temperature_sensor: board::TemperatureSensor) -> ! {
+pub async fn temperature(mut temperature_sensor: board::TemperatureSensor) -> ! {
     defmt::info!("telemetry task: started");
-
-    // let mut motor_command_receiver = motor_command::subscribe();
-
-    // motors.enable();
 
     let mut sequence_count: u32 = 0;
 
