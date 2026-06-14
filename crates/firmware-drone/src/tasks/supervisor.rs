@@ -4,6 +4,8 @@ use embassy_time::{Duration, Ticker};
 pub use firmware_drone_core::supervisor_core::SystemState;
 use firmware_drone_core::supervisor_core::{Event, Supervisor};
 
+use firmware_types::{MotorCommand, PilotCommand};
+
 use crate::signals::{motor_command, pilot_command};
 
 use crate::signals::status;
@@ -32,7 +34,7 @@ pub async fn supervisor() -> ! {
         };
 
         status::set(output.state);
-        motor_command::set(motor_command::MotorCommand {
+        motor_command::set(MotorCommand {
             throttle: output.throttle,
         });
     }

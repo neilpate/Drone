@@ -13,10 +13,10 @@ pub type Receiver = embassy_sync::watch::Receiver<
     MAX_SUBSCRIBERS,
 >;
 
-pub fn subscribe_telemetry() -> Receiver {
+pub fn subscribe() -> Receiver {
     TELEMETRY.receiver().unwrap()
 }
 
-pub fn set_state(telemetry: TelemetryState) {
+pub fn set(telemetry: TelemetryState) {
     TELEMETRY.sender().send(telemetry);
 }

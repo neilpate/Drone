@@ -1,10 +1,5 @@
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
-use firmware_types::Throttle;
-
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub struct MotorCommand {
-    pub throttle: Throttle,
-}
+use firmware_types::MotorCommand;
 
 const MAX_SUBSCRIBERS: usize = 8;
 

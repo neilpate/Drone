@@ -5,10 +5,10 @@ const MAX_SUBSCRIBERS: usize = 8;
 
 static STATUS: Watch<CriticalSectionRawMutex, SystemState, MAX_SUBSCRIBERS> = Watch::new();
 
-pub type StatusReceiver =
+pub type Receiver =
     embassy_sync::watch::Receiver<'static, CriticalSectionRawMutex, SystemState, MAX_SUBSCRIBERS>;
 
-pub fn subscribe() -> StatusReceiver {
+pub fn subscribe() -> Receiver {
     STATUS.receiver().unwrap()
 }
 

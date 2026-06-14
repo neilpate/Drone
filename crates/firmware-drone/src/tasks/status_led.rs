@@ -38,7 +38,7 @@ fn pattern_for_state(s: SystemState) -> LedPattern {
 async fn play_pattern(
     status_led: &mut board::StatusLed,
     pattern: LedPattern,
-    state_change_receiver: &mut status::StatusReceiver,
+    state_change_receiver: &mut status::Receiver,
 ) -> SystemState {
     match pattern {
         LedPattern::Blinking { on_ms, off_ms } => loop {
