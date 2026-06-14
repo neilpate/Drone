@@ -1,11 +1,11 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
-use firmware_types::{PilotCommand, TelemetryState, Temperature};
+use firmware_types::{PilotCommand, TelemetryState};
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::pilot_command;
+use crate::signals::{pilot_command, telemetry};
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up
@@ -53,12 +53,16 @@ async fn send(radio: &mut Radio, telemetry: TelemetryState) -> Result<(), radio:
 pub async fn remote_link(mut radio: Radio) -> ! {
     defmt::info!("remote_link task: started");
 
-    let mut telemetry_state = TelemetryState {
-        sequence_number: 0,
-        temperature: Temperature::from_celsius(10.0),
-    };
+    // let mut telemetry_state = TelemetryState {
+    //     sequence_number: 0,
+    //     temperature: Temperature::from_celsius(10.0),
+    // };
+
+    let mut telemetry_receiver = telemetry::subscribe();
 
     radio.set_channel(radio_link::CHANNEL);
+
+    // let mut telemetry_state = telemetry_receiver.get().await; //Get the latest telemetry state from the telemetry task
 
     loop {
         let Some(command) = receive(&mut radio).await else {
@@ -70,7 +74,9 @@ pub async fn remote_link(mut radio: Radio) -> ! {
 
         pilot_command::set(command); //Publish the received command to any subscribers
 
-        telemetry_state.sequence_number = command.sequence_count; //In this scaffold, just echo back the count from the received PilotCommand
+        // telemetry_state.sequence_number = command.sequence_count; //In this scaffold, just echo back the count from the received PilotCommand
+
+        let telemetry_state = telemetry_receiver.get().await; //Get the latest telemetry state from the telemetry task
 
         if let Err(e) = send(&mut radio, telemetry_state).await {
             defmt::warn!("failed to send telemetry: {:?}", e);

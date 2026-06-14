@@ -17,7 +17,7 @@ pub const NAME: &str = "BBC micro:bit v2";
 /// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
 pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
 
-pub type Temperature = temp::Temp<'static>;
+pub type TemperatureSensor = temp::Temp<'static>;
 
 bind_interrupts!(struct Irqs {
     RADIO => radio::InterruptHandler<peripherals::RADIO>;
@@ -28,7 +28,7 @@ pub struct Board {
     pub status_led: StatusLed,
     pub motors: Motors,
     pub radio: Radio,
-    pub temperature: Temperature,
+    pub temperature_sensor: TemperatureSensor,
 }
 
 impl Board {
@@ -41,7 +41,7 @@ impl Board {
             status_led: StatusLed::new(p.P0_21, p.P0_28),
             motors: Motors::new(p.PWM0, p.P0_17),
             radio: Radio::new(p.RADIO, Irqs),
-            temperature: Temperature::new(p.TEMP, Irqs),
+            temperature_sensor: TemperatureSensor::new(p.TEMP, Irqs),
         }
     }
 }

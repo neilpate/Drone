@@ -1,8 +1,8 @@
 use embassy_futures::select::{Either, select};
 use embassy_time::{Duration, Ticker};
 use firmware_drone_core::supervisor_core::{Event, Supervisor};
-use firmware_types::MotorCommand;
 use firmware_types::DroneState;
+use firmware_types::MotorCommand;
 
 use crate::signals::{motor_command, pilot_command, status};
 
