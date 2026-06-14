@@ -1,13 +1,17 @@
 #![cfg_attr(not(test), no_std)]
 
+mod drone_state;
 mod motor_command;
 mod pilot_command;
+mod remote_state;
 mod telemetry_state;
 mod temperature;
 mod throttle;
 
+pub use drone_state::DroneState;
 pub use motor_command::MotorCommand;
 pub use pilot_command::PilotCommand;
+pub use remote_state::RemoteState;
 pub use telemetry_state::TelemetryState;
 pub use temperature::Temperature;
 pub use throttle::Throttle;

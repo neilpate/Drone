@@ -1,21 +1,17 @@
 use embassy_futures::select::{Either, select};
 use embassy_time::{Duration, Ticker};
-
-pub use firmware_drone_core::supervisor_core::SystemState;
 use firmware_drone_core::supervisor_core::{Event, Supervisor};
+use firmware_types::MotorCommand;
+use firmware_types::DroneState;
 
-use firmware_types::{MotorCommand, PilotCommand};
-
-use crate::signals::{motor_command, pilot_command};
-
-use crate::signals::status;
+use crate::signals::{motor_command, pilot_command, status};
 
 const TIMEOUT_PERIOD: Duration = Duration::from_millis(10);
 
 #[embassy_executor::task]
 pub async fn supervisor() -> ! {
     defmt::info!("supervisor task: started");
-    status::set(SystemState::Initialising);
+    status::set(DroneState::Initialising);
 
     let mut ticker = Ticker::every(TIMEOUT_PERIOD);
 

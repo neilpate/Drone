@@ -1,13 +1,4 @@
-use firmware_types::{PilotCommand, Throttle};
-
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
-#[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub enum SystemState {
-    Initialising,
-    Armed,
-    Degraded,
-    Fault,
-}
+use firmware_types::{DroneState, PilotCommand, Throttle};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -22,7 +13,7 @@ pub const RAMP_TICKS: u16 = 50;
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Supervisor {
-    state: SystemState,
+    state: DroneState,
     ticks_without_command: u16,
     ramp_ticks: u16,
     previous_throttle: Throttle,
@@ -31,14 +22,14 @@ pub struct Supervisor {
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Output {
-    pub state: SystemState,
+    pub state: DroneState,
     pub throttle: Throttle,
 }
 
 impl Supervisor {
     pub fn new() -> Self {
         Self {
-            state: SystemState::Initialising,
+            state: DroneState::Initialising,
             ticks_without_command: 0,
             ramp_ticks: 0,
             previous_throttle: Throttle::ZERO,
@@ -47,17 +38,17 @@ impl Supervisor {
 
     pub fn step(&mut self, event: Event) -> Output {
         match self.state {
-            SystemState::Initialising => self.step_initialising(event),
-            SystemState::Armed => self.step_armed(event),
-            SystemState::Degraded => self.step_degraded(event),
-            SystemState::Fault => self.step_fault(event),
+            DroneState::Initialising => self.step_initialising(event),
+            DroneState::Armed => self.step_armed(event),
+            DroneState::Degraded => self.step_degraded(event),
+            DroneState::Fault => self.step_fault(event),
         }
     }
 
     fn step_initialising(&mut self, event: Event) -> Output {
         match event {
             Event::Command(cmd) => {
-                self.state = SystemState::Armed;
+                self.state = DroneState::Armed;
                 self.previous_throttle = cmd.throttle;
                 self.ticks_without_command = 0;
                 Output {
@@ -86,7 +77,7 @@ impl Supervisor {
                 self.ticks_without_command = self.ticks_without_command.saturating_add(1);
 
                 if self.ticks_without_command >= LINK_LOSS_TICKS {
-                    self.state = SystemState::Degraded;
+                    self.state = DroneState::Degraded;
                     self.ramp_ticks = 0;
                 }
 
@@ -102,7 +93,7 @@ impl Supervisor {
         match event {
             Event::Command(cmd) => {
                 if cmd.throttle == Throttle::ZERO {
-                    self.state = SystemState::Armed;
+                    self.state = DroneState::Armed;
                     self.ticks_without_command = 0;
                     self.previous_throttle = Throttle::ZERO;
                 }
@@ -157,7 +148,7 @@ mod tests {
     fn initialising_tick_stays_initialising_with_zero_throttle() {
         let mut s = Supervisor::new();
         let out = s.step(Event::Tick);
-        assert_eq!(out.state, SystemState::Initialising);
+        assert_eq!(out.state, DroneState::Initialising);
         assert_eq!(out.throttle, Throttle::ZERO);
     }
 
@@ -165,7 +156,7 @@ mod tests {
     fn initialising_then_command_arms() {
         let mut s = Supervisor::new();
         let out = s.step(cmd(0.5));
-        assert_eq!(out.state, SystemState::Armed);
+        assert_eq!(out.state, DroneState::Armed);
         assert_eq!(out.throttle.as_normalised(), 0.5);
     }
 
@@ -181,7 +172,7 @@ mod tests {
         s.step(cmd(0.7));
         // we should now be able to tick almost the full threshold again
         for _ in 0..LINK_LOSS_TICKS - 1 {
-            assert_eq!(s.step(Event::Tick).state, SystemState::Armed);
+            assert_eq!(s.step(Event::Tick).state, DroneState::Armed);
         }
     }
 
@@ -191,10 +182,10 @@ mod tests {
         s.step(cmd(0.5));
         // up to LINK_LOSS_TICKS - 1 silent ticks: still Armed
         for _ in 0..LINK_LOSS_TICKS - 1 {
-            assert_eq!(s.step(Event::Tick).state, SystemState::Armed);
+            assert_eq!(s.step(Event::Tick).state, DroneState::Armed);
         }
         // the next tick crosses the threshold
-        assert_eq!(s.step(Event::Tick).state, SystemState::Degraded);
+        assert_eq!(s.step(Event::Tick).state, DroneState::Degraded);
     }
 
     #[test]
@@ -205,7 +196,7 @@ mod tests {
         for _ in 0..LINK_LOSS_TICKS {
             s.step(Event::Tick);
         }
-        assert_eq!(s.state, SystemState::Degraded);
+        assert_eq!(s.state, DroneState::Degraded);
 
         // Ramp produces RAMP_TICKS + 1 samples: factor goes 50/50, 49/50, ..., 0/50.
         // Output must be non-increasing and the final sample exactly zero.
@@ -239,11 +230,11 @@ mod tests {
         for _ in 0..LINK_LOSS_TICKS {
             s.step(Event::Tick);
         }
-        assert_eq!(s.state, SystemState::Degraded);
+        assert_eq!(s.state, DroneState::Degraded);
 
         // a fresh non-zero command must NOT re-arm
         let out = s.step(cmd(0.8));
-        assert_eq!(out.state, SystemState::Degraded);
+        assert_eq!(out.state, DroneState::Degraded);
         assert_eq!(out.throttle, Throttle::ZERO);
     }
 
@@ -255,17 +246,17 @@ mod tests {
         for _ in 0..LINK_LOSS_TICKS + RAMP_TICKS {
             s.step(Event::Tick);
         }
-        assert_eq!(s.state, SystemState::Degraded);
+        assert_eq!(s.state, DroneState::Degraded);
 
         // a zero-throttle command re-arms
         let out = s.step(cmd(0.0));
-        assert_eq!(out.state, SystemState::Armed);
+        assert_eq!(out.state, DroneState::Armed);
 
         // crucial: the link-loss counter must have reset, otherwise
         // the very next tick flips us straight back to Degraded
         assert_eq!(
             s.step(Event::Tick).state,
-            SystemState::Armed,
+            DroneState::Armed,
             "counter must reset on recovery"
         );
     }
@@ -274,14 +265,14 @@ mod tests {
     fn fault_absorbs_all_events() {
         let mut s = Supervisor::new();
         // there is currently no public path into Fault; reach in for the test
-        s.state = SystemState::Fault;
+        s.state = DroneState::Fault;
 
         let out = s.step(cmd(1.0));
-        assert_eq!(out.state, SystemState::Fault);
+        assert_eq!(out.state, DroneState::Fault);
         assert_eq!(out.throttle, Throttle::ZERO);
 
         let out = s.step(Event::Tick);
-        assert_eq!(out.state, SystemState::Fault);
+        assert_eq!(out.state, DroneState::Fault);
         assert_eq!(out.throttle, Throttle::ZERO);
     }
 }

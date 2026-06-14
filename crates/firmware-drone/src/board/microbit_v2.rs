@@ -6,13 +6,13 @@
 //! See [ADR 0010](../../../../doc/decisions/0010-board-support-package.md) for
 //! the contract this module satisfies.
 
-pub const NAME: &str = "BBC micro:bit v2";
-
 use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm::SimplePwm;
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
 use firmware_types::Throttle;
+
+pub const NAME: &str = "BBC micro:bit v2";
 
 /// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
 pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;

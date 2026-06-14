@@ -1,5 +1,4 @@
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
-
 use firmware_types::TelemetryState;
 
 const MAX_SUBSCRIBERS: usize = 8;

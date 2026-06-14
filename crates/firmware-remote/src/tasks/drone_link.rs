@@ -1,12 +1,11 @@
-use crate::board::Radio;
-use crate::radio_link;
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
-
 use firmware_types::{PilotCommand, TelemetryState};
 
-use crate::signals;
+use crate::board::Radio;
+use crate::radio_link;
+use crate::signals::throttle_command;
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
@@ -61,9 +60,7 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
     radio.set_channel(radio_link::CHANNEL);
 
-    let mut throttle_command_receiver = signals::subscribe_throttle_command();
-
-    // let mut throttle_counter = 0_f32;
+    let mut throttle_command_receiver = throttle_command::subscribe();
 
     loop {
         ticker.next().await; // Wait for the next tick before sending the next control state

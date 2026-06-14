@@ -1,10 +1,11 @@
-use crate::board::Radio;
-use crate::radio_link;
-use crate::signals::pilot_command;
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
 use firmware_types::{PilotCommand, TelemetryState, Temperature};
+
+use crate::board::Radio;
+use crate::radio_link;
+use crate::signals::pilot_command;
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up

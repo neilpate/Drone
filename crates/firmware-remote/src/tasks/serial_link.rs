@@ -1,6 +1,7 @@
 use firmware_types::Throttle;
 
-use crate::{board::Uart, signals::set_throttle_command};
+use crate::board::Uart;
+use crate::signals::throttle_command;
 
 #[embassy_executor::task]
 pub async fn serial_link(mut uart: Uart) -> ! {
@@ -31,7 +32,7 @@ pub async fn serial_link(mut uart: Uart) -> ! {
 
                 match throttle {
                     Ok(t) => {
-                        set_throttle_command(Throttle::from_normalised(t));
+                        throttle_command::set(Throttle::from_normalised(t));
                     }
                     Err(_) => {
                         defmt::warn!("serial_link: parse error: {=str}", v);
