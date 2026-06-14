@@ -50,6 +50,11 @@
     "[toml]": {
         "editor.formatOnSave": false
     },
+    // The Even Better TOML extension ships a stale Cargo schema that flags
+    // valid `[lints.rust]` / `[lints.clippy]` sub-tables as errors. Cargo
+    // itself validates on build, so the schema is cosmetic — turn it off
+    // workspace-wide rather than play whack-a-mole as Cargo evolves.
+    "evenBetterToml.schema.enabled": false,
     // ---------------------------------------------------------------------
     // Files
     // ---------------------------------------------------------------------
