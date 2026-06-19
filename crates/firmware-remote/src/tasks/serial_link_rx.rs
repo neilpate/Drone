@@ -1,0 +1,25 @@
+use firmware_types::GroundstationCommand;
+use postcard::accumulator::{CobsAccumulator, FeedResult};
+
+use crate::board::UartRx;
+use crate::signals::throttle_command;
+
+#[embassy_executor::task]
+pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
+    defmt::info!("serial_link_rx (from groundstation) task: started");
+
+    let mut byte = [0u8; 1];
+    let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();
+
+    loop {
+        if let Err(e) = uart_rx.read(&mut byte).await {
+            defmt::warn!("serial_link_rx read error: {:?}", e);
+            continue;
+        }
+
+        // one byte in → accumulator buffers until a full frame arrives
+        if let FeedResult::Success { data, .. } = cobs.feed::<GroundstationCommand>(&byte) {
+            throttle_command::set(data.throttle);
+        }
+    }
+}

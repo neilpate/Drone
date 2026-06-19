@@ -10,13 +10,15 @@ pub const NAME: &str = "BBC micro:bit v2";
 
 use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
-use embassy_nrf::uarte::{self, Baudrate, Parity, Uarte};
+use embassy_nrf::uarte::{self, Baudrate, Parity, Uarte, UarteRx, UarteTx};
 use embassy_nrf::{bind_interrupts, peripherals, radio};
 
 /// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
 pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
 
 pub type Uart = Uarte<'static, peripherals::UARTE0>;
+pub type UartRx = UarteRx<'static, peripherals::UARTE0>;
+pub type UartTx = UarteTx<'static, peripherals::UARTE0>;
 
 bind_interrupts!(struct Irqs {
     RADIO => radio::InterruptHandler<peripherals::RADIO>;

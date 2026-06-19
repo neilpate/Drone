@@ -1,14 +1,22 @@
-//! Ground station: single-slider throttle sender.
+//! Ground station: single-slider throttle sender + telemetry receiver.
 //!
-//! Sends the slider value (0.0..=1.0) as a decimal string + LF over a serial
-//! port at 115 200 8N1 whenever the slider changes.
+//! Sends the slider value (0.0..=1.0) as a postcard + COBS framed
+//! `GroundstationCommand` over a serial port at 115 200 8N1, and receives
+//! postcard + COBS framed `TelemetryState` on the same port. A single I/O
+//! thread handles both directions (see `serial_io_thread`).
 
 use std::io::Write;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+use postcard::accumulator::{CobsAccumulator, FeedResult};
+
+use firmware_types::{TelemetryState, Throttle};
+
 use eframe::egui;
+
+const MAX_SEND_BUFFER_SIZE: usize = 32;
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -63,8 +71,20 @@ impl eframe::App for App {
                     .clicked()
                 {
                     let (tx, rx) = mpsc::channel::<f32>();
-                    let port = self.port_name.clone();
-                    thread::spawn(move || serial_thread(port, rx));
+
+                    let port = match serialport::new(&self.port_name, 115_200)
+                        .timeout(Duration::from_millis(50))
+                        .open()
+                    {
+                        Ok(p) => p,
+                        Err(e) => {
+                            eprintln!("failed to open {}: {}", self.port_name, e);
+                            return;
+                        }
+                    };
+
+                    thread::spawn(move || serial_io_thread(port, rx));
+
                     self.tx = Some(tx);
                     self.status = format!("Sending to {}", self.port_name);
                 }
@@ -87,23 +107,52 @@ impl eframe::App for App {
     }
 }
 
-fn serial_thread(port_name: String, rx: mpsc::Receiver<f32>) {
-    let mut port = match serialport::new(&port_name, 115_200)
-        .timeout(Duration::from_millis(100))
-        .open()
-    {
-        Ok(p) => p,
-        Err(e) => {
-            eprintln!("failed to open {port_name}: {e}");
-            return;
-        }
-    };
+/// Single serial I/O thread: full-duplex on one port without `try_clone`.
+///
+/// `try_clone` + concurrent blocking read/write deadlocks on Windows (overlapped
+/// I/O on the shared handle is serialized). Instead one thread alternates:
+/// drain pending throttle commands and write them, then do a short-timeout read
+/// and feed the COBS accumulator.
+fn serial_io_thread(mut port: Box<dyn serialport::SerialPort>, rx: mpsc::Receiver<f32>) {
+    let mut buf = [0u8; MAX_SEND_BUFFER_SIZE]; // serialization scratch
+    let mut raw = [0u8; 256]; // chunk from each read
+    let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();
 
-    while let Ok(value) = rx.recv() {
-        let line = format!("{value:.4}\n");
-        if let Err(e) = port.write_all(line.as_bytes()) {
-            eprintln!("write error: {e}");
-            return;
+    loop {
+        // 1. Send any pending throttle commands (non-blocking drain).
+        while let Ok(value) = rx.try_recv() {
+            let throttle = Throttle::from_normalised(value);
+
+            let groundstation_command = firmware_types::GroundstationCommand { throttle };
+
+            let framed = postcard::to_slice_cobs(&groundstation_command, &mut buf).unwrap();
+            if let Err(e) = port.write_all(framed) {
+                eprintln!("write error: {e}");
+            }
+        }
+
+        // 2. Read whatever telemetry is available, then loop back to writes.
+        match port.read(&mut raw) {
+            Ok(0) => {}
+            Ok(n) => {
+                let mut window = &raw[..n];
+                while !window.is_empty() {
+                    window = match cobs.feed::<TelemetryState>(window) {
+                        FeedResult::Consumed => break,        // buffered, need more bytes
+                        FeedResult::OverFull(rest) => rest,   // frame too big -> resync
+                        FeedResult::DeserError(rest) => rest, // garbage -> resync
+                        FeedResult::Success { data, remaining } => {
+                            println!("telemetry: {data:?}");
+                            remaining
+                        }
+                    };
+                }
+            }
+            Err(ref e) if e.kind() == std::io::ErrorKind::TimedOut => {}
+            Err(e) => {
+                eprintln!("read error: {e}");
+                return;
+            }
         }
     }
 }

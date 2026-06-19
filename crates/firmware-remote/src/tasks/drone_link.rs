@@ -5,6 +5,7 @@ use firmware_types::{PilotCommand, TelemetryState};
 
 use crate::board::Radio;
 use crate::radio_link;
+use crate::signals::telemetry;
 use crate::signals::throttle_command;
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
@@ -80,7 +81,8 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
         // This will only run if the send succeeded, so now we wait for a response from the drone
         if let Some(telemetry) = receive(&mut radio).await {
-            defmt::info!("received: {}", telemetry);
+            // defmt::info!("received: {}", telemetry);
+            telemetry::set(telemetry);
         }
 
         sequence_count = sequence_count.wrapping_add(1);

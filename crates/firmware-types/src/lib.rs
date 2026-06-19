@@ -1,6 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 
 mod drone_state;
+mod groundstation_command;
 mod motor_command;
 mod pilot_command;
 mod remote_state;
@@ -9,6 +10,7 @@ mod temperature;
 mod throttle;
 
 pub use drone_state::DroneState;
+pub use groundstation_command::GroundstationCommand;
 pub use motor_command::MotorCommand;
 pub use pilot_command::PilotCommand;
 pub use remote_state::RemoteState;
