@@ -152,6 +152,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0016](doc/decisions/0016-newtype-per-physical-quantity.md) — Newtype per physical quantity for shared types: distinct newtypes (not type aliases, not a shared `PercentageValue` base) so the type system catches argument-order bugs; macro acceptable once ≥3 structurally-identical newtypes exist. (2026-06-01)
 - [0017](doc/decisions/0017-supervisor-failsafe-state-machine.md) — Supervisor task as failsafe state machine: 4-state enum (`Initialising`/`Armed`/`Degraded`/`Fault`), tick-driven, pure logic in new `firmware-drone-core` crate, supervisor is the sole publisher of motor commands (republishes a `Watch<Throttle>` that `motor_controller` subscribes to). (2026-06-02)
 - [0018](doc/decisions/0018-pc-link-uart-postcard-cobs.md) — PC ground-station link: USB-CDC virtual COM port → UART on nRF52833 (TXD `P0_06`, RXD `P1_08` on micro:bit v2), 115 200 8N1, postcard + COBS framing via `postcard::accumulator`, shared `firmware-types` types, new `crates/groundstation/` (binary `gs`). Initial direction PC → remote only; telemetry deferred. (2026-06-05, Proposed) (2026-06-02)
+- [0019](doc/decisions/0019-airframe-class-3in-4s-printed.md) — Airframe and propulsion class: 3" ducted cinewhoop, 4S LiPo (450–650 mAh, XT30), 1507-class motors @ ~3500–3800 KV, DShot 4-in-1 ESC ~25–35 A, fully 3D-printed modular frame in PETG. Class-level decision; specific part numbers and frame geometry deferred to ordering / CAD time. (2026-06-14, Proposed)
 
 ---
 
