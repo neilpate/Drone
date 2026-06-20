@@ -5,21 +5,29 @@
 # see doc/ci-and-testing.md). Lives in the repo so it survives PC changes,
 # unlike .git/hooks/.
 #
-# Runs two test scopes:
+# Runs two test scopes via cargo-nextest (one aggregated summary per scope):
 #   1. The workspace default-members (firmware-types + the *-core crates) from
 #      the repo root. On-target firmware crates are excluded from
 #      default-members and need a cross target, so they are not tested here.
 #   2. The `groundstation` crate, which is intentionally NOT a workspace member
-#      (host-only egui app), so a root `cargo test` does not reach it.
+#      (host-only egui app), so a root run does not reach it.
 #
+# Requires cargo-nextest: `cargo install cargo-nextest --locked`.
 # To bypass in a genuine emergency: `git push --no-verify` (discouraged).
 
 set -e
 
-echo "pre-push: cargo test (workspace default-members)"
-cargo test --quiet
+if ! cargo nextest --version >/dev/null 2>&1; then
+	echo "pre-push: cargo-nextest not found. Install it with:" >&2
+	echo "  cargo install cargo-nextest --locked" >&2
+	exit 1
+fi
 
-echo "pre-push: cargo test (groundstation)"
-cargo test --quiet --manifest-path crates/groundstation/Cargo.toml
+echo "pre-push: cargo nextest run (workspace default-members)"
+cargo nextest run
+
+echo "pre-push: cargo nextest run (groundstation)"
+# --no-tests=pass: groundstation has no tests yet; an empty run must not fail the push.
+cargo nextest run --no-tests=pass --manifest-path crates/groundstation/Cargo.toml
 
 echo "pre-push: all host tests passed"

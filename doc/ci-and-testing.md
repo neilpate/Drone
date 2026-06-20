@@ -15,14 +15,22 @@ On-target firmware crates (`firmware-drone`, `firmware-remote`) need a cross tar
 
 ## Running the tests
 
+Tests are run with [cargo-nextest](https://nexte.st/), which gives a single aggregated summary (`Summary [..] N tests run: N passed`) instead of one block per test binary. Install it once:
+
+```sh
+cargo install cargo-nextest --locked
+```
+
 From the repo root:
 
 ```sh
-cargo test                                              # workspace default-members
-cargo test --manifest-path crates/groundstation/Cargo.toml   # host-only, excluded from the workspace
+cargo nextest run                                              # workspace default-members
+cargo nextest run --manifest-path crates/groundstation/Cargo.toml   # host-only, excluded from the workspace
 ```
 
-The root `cargo test` honours `default-members` in the top-level `Cargo.toml`, which lists exactly the host-testable workspace crates (per ADR 0015). `groundstation` is intentionally excluded from the workspace, so it needs its own invocation.
+The root run honours `default-members` in the top-level `Cargo.toml`, which lists exactly the host-testable workspace crates (per ADR 0015). `groundstation` is intentionally excluded from the workspace, so it needs its own invocation.
+
+Plain `cargo test` still works and is the fallback if nextest is not installed; it just prints per-binary results and does not aggregate. Note nextest does not run doctests (there are none currently); if any are added, run `cargo test --doc` alongside.
 
 ## Pre-push hook
 
@@ -36,4 +44,4 @@ git config core.hooksPath .githooks
 
 To bypass in a genuine emergency: `git push --no-verify` (discouraged; the next push runs the tests anyway).
 
-The hook runs `cargo test` only. Format and lint enforcement (`cargo fmt --check`, `cargo clippy`) per [ADR 0012](decisions/0012-lint-and-format-policy.md) is run manually for now; folding it into the hook or a future CI runner is a candidate when the test habit is established.
+The hook runs `cargo nextest run` only (and fails with an install hint if nextest is missing). Format and lint enforcement (`cargo fmt --check`, `cargo clippy`) per [ADR 0012](decisions/0012-lint-and-format-policy.md) is run manually for now; folding it into the hook or a future CI runner is a candidate when the test habit is established.
