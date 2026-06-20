@@ -15,6 +15,7 @@ exclude  = ["crates/groundstation"]
 # or explicitly with `cargo build -p firmware-drone --target thumbv7em-none-eabihf`.
 # `xtask` (when it lands) will own the cross-build recipe.
 default-members = [
+    "crates/firmware-types",
     "crates/firmware-drone-core",
     "crates/firmware-remote-core",
 ]

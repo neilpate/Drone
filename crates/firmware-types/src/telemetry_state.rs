@@ -13,14 +13,18 @@ pub struct TelemetryState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Throttle;
 
     #[test]
     fn postcard_round_trip() {
         let original = TelemetryState {
             sequence_number: 999,
             temperature: Temperature::from_celsius(25.0),
-            drone_state: DroneState::Idle,
-            pilot_command: PilotCommand::default(),
+            drone_state: DroneState::Armed,
+            pilot_command: PilotCommand {
+                sequence_count: 7,
+                throttle: Throttle::from_normalised(0.5),
+            },
         };
         let mut buf = [0u8; 16];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
