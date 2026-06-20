@@ -19,6 +19,7 @@ use firmware_types::{DroneState, TelemetryState, Throttle};
 
 use eframe::egui;
 use egui_plot::{Legend, Line, Plot, PlotPoints};
+use gilrs::{Button, EventType, GamepadId, Gilrs};
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 
@@ -72,7 +73,6 @@ const SERIES_THROTTLE: usize = 0;
 const SERIES_TEMPERATURE: usize = 1;
 const SERIES_DRONE_STATE: usize = 2;
 
-#[derive(Debug)]
 struct App {
     port_name: String,
     throttle: f32,
@@ -82,6 +82,9 @@ struct App {
     start: Instant,
     series: Vec<Series>,
     last: Option<TelemetryState>,
+    gilrs: Option<Gilrs>,
+    active_gamepad: Option<GamepadId>,
+    gamepad_name: Option<String>,
 }
 
 impl Default for App {
@@ -102,6 +105,9 @@ impl Default for App {
                 Series::new("Drone state (0..3)", egui::Color32::from_rgb(80, 200, 120)),
             ],
             last: None,
+            gilrs: Gilrs::new().ok(),
+            active_gamepad: None,
+            gamepad_name: None,
         }
     }
 }
@@ -154,11 +160,45 @@ impl App {
         }
         self.status = format!("Connected to {}", self.port_name);
     }
+
+    /// Poll the gamepad and map the right trigger (0.0..=1.0) to throttle,
+    /// forwarding it to the serial thread. Driven each frame; requests a
+    /// repaint so polling continues without other UI events.
+    fn poll_gamepad(&mut self, ctx: &egui::Context) {
+        let Some(gilrs) = self.gilrs.as_mut() else {
+            return;
+        };
+        // Keep ticking at ~60 Hz so trigger movement feels live and a
+        // hot-plugged pad is noticed.
+        ctx.request_repaint_after(Duration::from_millis(16));
+
+        let mut new_throttle = None;
+        while let Some(event) = gilrs.next_event() {
+            self.active_gamepad = Some(event.id);
+            if let EventType::ButtonChanged(Button::RightTrigger2, value, _) = event.event {
+                new_throttle = Some(value.clamp(0.0, 1.0));
+            }
+            gilrs.update(&event);
+        }
+
+        self.gamepad_name = self
+            .active_gamepad
+            .or_else(|| gilrs.gamepads().next().map(|(id, _)| id))
+            .map(|id| gilrs.gamepad(id).name().to_string());
+
+        if let Some(throttle) = new_throttle {
+            self.throttle = throttle;
+            if let Some(tx) = &self.tx {
+                let _ = tx.send(self.throttle);
+            }
+        }
+    }
 }
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.ingest_telemetry();
+        self.poll_gamepad(ctx);
 
         egui::TopBottomPanel::top("controls").show(ctx, |ui| {
             ui.add_space(4.0);
@@ -183,6 +223,14 @@ impl eframe::App for App {
                     self.connect(ui.ctx().clone());
                 }
                 ui.label(&self.status);
+            });
+
+            ui.horizontal(|ui| {
+                ui.label("Gamepad:");
+                match &self.gamepad_name {
+                    Some(name) => ui.label(format!("{name}  (right trigger \u{2192} throttle)")),
+                    None => ui.label("none detected"),
+                };
             });
 
             ui.add_space(4.0);
