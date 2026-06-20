@@ -8,6 +8,7 @@ Domain docs are numbered `0N-topic.md`. Process / tooling docs are unnumbered an
 
 - `README.md` — this file; index and conventions.
 - `00-vision.md` — high-level goals: what we're building, why, and the phase plan.
+- `progress.md` — reverse-chronological log of notable milestones (the dated history the README used to carry).
 - `01-requirements.md` — functional and non-functional requirements. _(not yet written)_
 - `02-architecture.md` — system architecture, components, data flow.
 - `03-hardware.md` — hardware choices, sensors, actuators, wiring. _(not yet written)_

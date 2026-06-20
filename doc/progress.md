@@ -1,0 +1,31 @@
+# Progress log
+
+A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
+
+## 2026-06-20 — Full round trip, live plot, 100 Hz, gamepad input
+
+The loop is closed and visible. Telemetry now flows all the way back to the PC — the remote's `serial_link_tx` task forwards each `TelemetryState` out the UART using postcard + COBS framing ([ADR 0018](decisions/0018-pc-link-uart-postcard-cobs.md), now in real use, not just throttle), and the `groundstation` decodes it and plots throttle, temperature and drone-state as live time series with [`egui_plot`](https://github.com/emilk/egui_plot) (per-signal show/hide, clear, latest-frame readout). A dedicated `telemetry_aggregator` task on the drone is the sole publisher of `TelemetryState`, tick-sampling its sources and stamping the sequence number ([ADR 0020](decisions/0020-telemetry-aggregator-single-publisher.md)). Cadence pushed to **100 Hz** end-to-end — aggregator, radio round-trip and UART all run on a 10 ms tick (UART ~18 % utilised), and the plotted throttle is butter-smooth despite the value crossing UART → IEEE 802.15.4 → drone → aggregator → radio → remote → UART on every frame. Finally, the throttle source can now be a **Bluetooth gamepad**: the groundstation reads it via [`gilrs`](https://gitlab.com/gilrs-project/gilrs) and maps the right trigger (analog 0.0–1.0) onto the throttle the slider used to own.
+
+![Ground station live plot: a smooth throttle trace alongside temperature and drone-state time series.](images/groundstation%201.png)
+
+The smooth blue throttle trace above is doing more work than it looks: every sample on that line left the PC as a gamepad/slider value, crossed USB-CDC → UART → IEEE 802.15.4 to the drone, was sampled by the aggregator, then flew back drone → remote → UART → PC before being plotted — all at 100 Hz.
+
+## 2026-06-14 — Telemetry pipeline drone → remote
+
+First payload flowing the other way. A new `telemetry` task on the drone reads the nRF52833 internal TEMP sensor at 2 Hz, converts the `I30F2` fixed-point reading to `f32` °C, and broadcasts a `TelemetryState` (sequence number + temperature) on a `Watch`. `remote_link` subscribes and ships the latest sample back to the remote in the radio reply to each `PilotCommand`, so the previous hard-coded placeholder telemetry is gone. Half of the round-trip chain is real now; forwarding the value out the remote's UART to the groundstation, then plotting it, is next. Alongside the feature: per-role state enums (`DroneState`, `RemoteState`) promoted into `firmware-types`, and the per-firmware signals layout settled into one-file-per-signal under `crates/firmware-<role>/src/signals/<name>.rs` so signal modules never define wire types inline.
+
+## 2026-06-09 — PC ground-station controlling motor speed
+
+First end-to-end pilot input. A new host-only `groundstation` crate (binary `gs`) opens an [egui](https://github.com/emilk/egui) window with a single throttle slider; dragging it sends the value as ASCII over USB-CDC at 115 200 8N1 to the remote micro:bit. On the remote, `serial_link` parses the line and publishes a `Throttle` to a `Watch`; `drone_link` subscribes and replaces its self-incrementing test counter with the live slider value. Plain ASCII for the first cut — the postcard + COBS framing described in [ADR 0018](decisions/0018-pc-link-uart-postcard-cobs.md) lands when telemetry needs it. egui chosen as a deliberately low-friction GUI: immediate-mode, built-in `Slider`, no Elm-architecture or web-toolchain to learn; we did not go deep on it on purpose.
+
+## 2026-06-02 — Supervisor failsafe wired in
+
+The `supervisor` task now sits between `remote_link` and `motor_controller` and is the sole publisher of motor commands ([ADR 0017](decisions/0017-supervisor-failsafe-state-machine.md)). Loss-of-link is detected when no `PilotCommand` arrives for 100 ms (10 ticks of a 10 ms ticker), at which point the supervisor publishes a zero-throttle `MotorCommand` and flags `SystemState::Degraded`. Verified on the bench: powering off the remote stops the motor within ~100 ms. New host-testable crate `firmware-drone-core` exists for the pure state-machine logic; the actual `Initialising`/`Armed`/`Degraded`/`Fault` machine and ramp-down behaviour are next.
+
+## 2026-06-01 — End-to-end throttle control on hardware
+
+The remote sweeps a `Throttle` value, ships it inside a `PilotCommand` over the IEEE 802.15.4 link ([ADR 0014](decisions/0014-radio-protocol-ieee802154.md)), the drone's `remote_link` task republishes via `Watch<PilotCommand>` ([ADR 0013](decisions/0013-async-communication-primitives.md)), and the `motor_controller` task drives a brushed motor through the L9110 H-bridge via the nRF PWM peripheral. First shared wire types live in `firmware-types`, which is also the first crate to carry host unit tests — postcard round-trip plus a custom `Deserialize` that enforces the `Throttle` 0..=1 invariant at the wire boundary (the bench surfaced a real garbage-packet hard fault and the test pins the fix in place). Test-wiring pattern recorded in [ADR 0015](decisions/0015-host-testing-no-std-crates.md).
+
+## Earlier in Phase 1 — bring-up
+
+Cargo workspace bootstrapped, Embassy-based firmware booting and logging over RTT (`defmt`), board-support-package layer in place ([ADR 0010](decisions/0010-board-support-package.md)), source-level debugging working from VS Code via the probe-rs DAP adapter.
