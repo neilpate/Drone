@@ -16,6 +16,8 @@ See [`doc/00-vision.md`](doc/00-vision.md) for the full vision and the phased mi
 
 ## Status
 
+[![CI](https://github.com/neilpate/Drone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/neilpate/Drone/actions/workflows/ci.yml)
+
 **Phase 1 in progress.** A full pilot-input and telemetry round trip is working on hardware at 100 Hz. A PC ground station (the `groundstation` crate, binary `gs`) sends throttle — from an on-screen slider or a Bluetooth gamepad's right trigger — over USB-CDC to a remote micro:bit, which relays it to the drone micro:bit over an IEEE 802.15.4 link. The drone runs an Embassy task graph (`remote_link` → `supervisor` failsafe → `motor_controller`) that drives a brushed motor and detects loss-of-link within ~100 ms. Telemetry (sequence number, internal temperature, drone state) flows back the same path, framed with postcard + COBS, and the ground station plots all signals as live time series.
 
 ![Ground station live plot: a smooth throttle trace alongside temperature and drone-state time series.](doc/images/groundstation%201.png)
