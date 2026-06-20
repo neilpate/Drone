@@ -13,7 +13,7 @@ pub async fn telemetry_aggregator() -> ! {
     let mut temperature_receiver = temperature::subscribe();
     let mut pilot_command_receiver = pilot_command::subscribe();
 
-    let mut ticker = Ticker::every(Duration::from_millis(100));
+    let mut ticker = Ticker::every(Duration::from_millis(10));
 
     loop {
         ticker.next().await;

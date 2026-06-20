@@ -43,7 +43,7 @@ The `pilot_command` Watch already existed (published by `remote_link`, consumed 
 The aggregator is driven by a fixed `Ticker`. On each tick it reads the *latest* value of each source via `Watch::get()`, assembles the struct, and publishes once:
 
 ```rust
-let mut ticker = Ticker::every(Duration::from_millis(100));
+let mut ticker = Ticker::every(Duration::from_millis(10));
 loop {
     ticker.next().await;
     sequence_count = sequence_count.wrapping_add(1);
@@ -64,9 +64,9 @@ The alternative — `select` across every source's `.changed()` future — was r
 - **Single-publisher mirrors ADR 0017.** One owner per published struct is already the project's rule for motor commands. Applying it to telemetry keeps the codebase consistent: a reader who understands the supervisor understands the aggregator.
 - **Tick-driven fits telemetry's semantics.** Telemetry is inherently a periodic snapshot — you want the latest value of each field *at send time*, not a frame emitted on every intermediate change. Sampling delivers exactly that.
 - **Tick-driven scales without changing the loop shape.** Adding a field is one more `.get()` line. A change-driven `select` grows an arm per source and ends up at `select_array` or nesting once there are more than a handful of sources (the IMU, battery, etc. are coming).
-- **Tick-driven decouples cadence from producer rates.** Temperature updates at 2 Hz, the IMU will update at hundreds of Hz; the telemetry frame should not fire on every IMU tick. A fixed 100 ms (10 Hz) cadence is independent of how fast any source churns.
+- **Tick-driven decouples cadence from producer rates.** Temperature updates at 2 Hz, the IMU will update at hundreds of Hz; the telemetry frame should not fire on every IMU tick. A fixed cadence is independent of how fast any source churns.
 - **`Watch`, not `Signal`, for the sources.** Sampling needs a non-consuming "give me the latest" — that is `Watch::get()`. `Signal::wait()` consumes, which suits a change-driven consumer but not a sampler. Per ADR 0013's state-vs-events split, retained-latest state is `Watch` territory.
-- **100 ms cadence chosen for the echo.** At the original 500 ms the echoed `pilot_command` quantised to 2 Hz and lagged visibly when the slider moved quickly. 100 ms makes the round-trip echo feel live while remaining far below any meaningful CPU cost. Temperature being resampled faster than it changes is harmless — it republishes the same value.
+- **10 ms (100 Hz) cadence.** The cadence is set to match the remote's 10 ms radio round-trip period, so each round-trip carries a fresh frame and the ground-station plot draws a smooth live trace rather than a staircase. At 100 Hz a COBS-framed `TelemetryState` is roughly 15–21 bytes, so the 115 200 baud ground-station link runs at about 18% utilisation — ample headroom. Earlier values stepped visibly: 500 ms (the original) echoed the throttle at 2 Hz, and even 100 ms left a perceptible staircase. Resampling temperature faster than it changes is harmless — it republishes the same value.
 
 ## Consequences
 
