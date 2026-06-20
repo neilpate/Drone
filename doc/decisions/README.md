@@ -30,3 +30,4 @@ Each non-trivial design decision gets its own file here.
 - [0017 — Supervisor task: failsafe state machine driving safe motor commands](0017-supervisor-failsafe-state-machine.md) — Accepted, 2026-06-02
 - [0018 — PC ground-station link: USB-CDC UART, postcard + COBS](0018-pc-link-uart-postcard-cobs.md) — Proposed, 2026-06-05
 - [0019 — Airframe and propulsion class: 3" ducted, 4S, fully 3D-printed frame](0019-airframe-class-3in-4s-printed.md) — Proposed, 2026-06-14
+- [0020 — Telemetry aggregator: single-publisher fan-in for a multi-source struct](0020-telemetry-aggregator-single-publisher.md) — Accepted, 2026-06-20
