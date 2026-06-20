@@ -4,6 +4,16 @@ A learning project: build a quadcopter from scratch — own hardware, own firmwa
 
 The drone is the artefact; understanding the whole stack end-to-end is the deliverable.
 
+## What we're building
+
+- **Platform:** BBC micro:bit v2 (nRF52833) for Phases 1–3; custom nRF5340 PCBA for Phases 4–5.
+- **Language:** Rust (`no_std`, `embassy-nrf`) on the firmware; Rust on the PC-side ground-station application too.
+- **IMU:** ICM-42688-P on SPI (external; micro:bit's onboard sensor has no gyro).
+- **Airframe:** quadcopter.
+- **Flight stack:** rolling our own — no PX4 / ArduPilot.
+
+See [`doc/00-vision.md`](doc/00-vision.md) for the full vision and the phased milestone plan.
+
 ## Status
 
 **Phase 1 in progress.** A full pilot-input and telemetry round trip is working on hardware at 100 Hz. A PC ground station (the `groundstation` crate, binary `gs`) sends throttle — from an on-screen slider or a Bluetooth gamepad's right trigger — over USB-CDC to a remote micro:bit, which relays it to the drone micro:bit over an IEEE 802.15.4 link. The drone runs an Embassy task graph (`remote_link` → `supervisor` failsafe → `motor_controller`) that drives a brushed motor and detects loss-of-link within ~100 ms. Telemetry (sequence number, internal temperature, drone state) flows back the same path, framed with postcard + COBS, and the ground station plots all signals as live time series.
@@ -14,17 +24,7 @@ The smooth blue throttle trace above is the visible end of a busy round trip: ev
 
 **Next:** ICM-42688 SPI bring-up once the breakout arrives.
 
-See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/00-vision.md`](doc/00-vision.md) for the phase plan, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
-
-Headline choices (see ADRs below for the rest):
-
-- **Platform:** BBC micro:bit v2 (nRF52833) for Phases 1–3; custom nRF5340 PCBA for Phases 4–5.
-- **Language:** Rust (`no_std`, `embassy-nrf`) on the firmware; Rust on the PC-side ground-station application too.
-- **IMU:** ICM-42688-P on SPI (external; micro:bit's onboard sensor has no gyro).
-- **Airframe:** quadcopter.
-- **Flight stack:** rolling our own — no PX4 / ArduPilot.
-
-See [doc/00-vision.md](doc/00-vision.md) for the full vision and the phased milestone plan.
+See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
 
 ## Repository layout
 
