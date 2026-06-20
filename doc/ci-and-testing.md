@@ -50,10 +50,9 @@ The hook runs `cargo nextest run` only (and fails with an install hint if nextes
 
 [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and on every pull request. It is the server-side backstop the local hook cannot guarantee (a contributor may not have enabled the hook, or may have used `--no-verify`).
 
-The single `ubuntu-latest` job runs, in order:
+Two `ubuntu-latest` jobs run in parallel, each doing `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` ([ADR 0012](decisions/0012-lint-and-format-policy.md)) and `cargo nextest run`:
 
-1. `cargo fmt --all --check` — formatting ([ADR 0012](decisions/0012-lint-and-format-policy.md)).
-2. `cargo clippy --all-targets -- -D warnings` — lints, warnings are errors.
-3. `cargo nextest run` — the host test suite (workspace `default-members`).
+1. **host-checks** — the workspace host crates (`default-members`: `firmware-types` + the `*-core` crates). No system dependencies.
+2. **groundstation** — the out-of-workspace GUI crate. It first installs the Linux libraries `eframe`, `gilrs` and `serialport` link against (`libudev-dev`, `libxkbcommon-dev`, `libwayland-dev`, the X11/GL dev libs); these are needed only to compile and link — the tests open no window, so no headless display is required.
 
-Scope matches the host crates only. On-target firmware crates need a cross target and hardware, so they are not built in CI (HIL deferred, ADR 0007); the out-of-workspace `groundstation` GUI is excluded until it carries tests (it also needs Linux GUI/udev system packages to build). Rust is the stable toolchain; nextest is installed via [`taiki-e/install-action`](https://github.com/taiki-e/install-action) and the cargo build is cached with [`Swatinem/rust-cache`](https://github.com/Swatinem/rust-cache).
+On-target firmware crates need a cross target and hardware, so they are not built in CI (HIL deferred, ADR 0007). Rust is the stable toolchain; nextest is installed via [`taiki-e/install-action`](https://github.com/taiki-e/install-action) and the cargo build is cached with [`Swatinem/rust-cache`](https://github.com/Swatinem/rust-cache).

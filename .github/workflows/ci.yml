@@ -3,10 +3,14 @@ name: CI
 # Host-side checks that keep `main` green. Mirrors the local pre-push hook
 # (doc/ci-and-testing.md) and folds in the fmt/clippy enforcement from ADR 0012.
 #
-# Scope: the host-testable workspace crates only (Cargo `default-members`:
-# firmware-types + the *-core crates). On-target firmware crates need a cross
-# target and hardware, so they are not built here (ADR 0007 defers HIL). The
-# out-of-workspace `groundstation` GUI is also excluded until it carries tests.
+# Two parallel jobs:
+#   * host-checks  - the host-testable workspace crates (Cargo `default-members`:
+#                    firmware-types + the *-core crates). No system deps.
+#   * groundstation - the out-of-workspace GUI crate, which needs Linux GUI /
+#                    udev system libraries to compile (eframe / gilrs /
+#                    serialport).
+# On-target firmware crates need a cross target and hardware, so they are not
+# built here (ADR 0007 defers HIL).
 
 on:
   push:
@@ -47,3 +51,41 @@ jobs:
 
       - name: Tests
         run: cargo nextest run
+
+  groundstation:
+    name: groundstation fmt + clippy + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # eframe (x11/wayland/glow), gilrs and serialport link against these on
+      # Linux. Only needed to compile/link; the tests open no window.
+      - name: Install system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libudev-dev libxkbcommon-dev libwayland-dev \
+            libxcb1-dev libxcursor-dev libxrandr-dev libxi-dev \
+            libgl1-mesa-dev libegl1-mesa-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/groundstation
+
+      - name: Format check
+        run: cargo fmt --check --manifest-path crates/groundstation/Cargo.toml
+
+      - name: Clippy
+        run: cargo clippy --all-targets --manifest-path crates/groundstation/Cargo.toml -- -D warnings
+
+      - name: Tests
+        run: cargo nextest run --manifest-path crates/groundstation/Cargo.toml

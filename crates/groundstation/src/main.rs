@@ -15,7 +15,9 @@ use std::time::{Duration, Instant};
 
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
-use firmware_types::{DroneState, TelemetryState, Throttle};
+use firmware_types::{TelemetryState, Throttle};
+
+use groundstation::{drone_state_code, encode_command, trigger_to_throttle};
 
 use eframe::egui;
 use egui_plot::{Legend, Line, Plot, PlotPoints};
@@ -176,7 +178,7 @@ impl App {
         while let Some(event) = gilrs.next_event() {
             self.active_gamepad = Some(event.id);
             if let EventType::ButtonChanged(Button::RightTrigger2, value, _) = event.event {
-                new_throttle = Some(value.clamp(0.0, 1.0));
+                new_throttle = Some(trigger_to_throttle(value));
             }
             gilrs.update(&event);
         }
@@ -289,15 +291,6 @@ impl eframe::App for App {
     }
 }
 
-fn drone_state_code(state: DroneState) -> f64 {
-    match state {
-        DroneState::Initialising => 0.0,
-        DroneState::Armed => 1.0,
-        DroneState::Degraded => 2.0,
-        DroneState::Fault => 3.0,
-    }
-}
-
 // Do both directions in a single thread to avoid needing to share the port between threads.
 fn serial_io_thread(
     mut port: Box<dyn serialport::SerialPort>,
@@ -314,9 +307,7 @@ fn serial_io_thread(
         while let Ok(value) = rx.try_recv() {
             let throttle = Throttle::from_normalised(value);
 
-            let groundstation_command = firmware_types::GroundstationCommand { throttle };
-
-            let framed = postcard::to_slice_cobs(&groundstation_command, &mut buf).unwrap();
+            let framed = encode_command(throttle, &mut buf).unwrap();
             if let Err(e) = port.write_all(framed) {
                 eprintln!("write error: {e}");
             }
