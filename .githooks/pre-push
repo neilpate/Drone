@@ -1,0 +1,25 @@
+#!/bin/sh
+# Pre-push hook: run the host-testable suite before any push is allowed.
+#
+# Wired into git via `git config core.hooksPath .githooks` (run once per clone;
+# see doc/ci-and-testing.md). Lives in the repo so it survives PC changes,
+# unlike .git/hooks/.
+#
+# Runs two test scopes:
+#   1. The workspace default-members (firmware-types + the *-core crates) from
+#      the repo root. On-target firmware crates are excluded from
+#      default-members and need a cross target, so they are not tested here.
+#   2. The `groundstation` crate, which is intentionally NOT a workspace member
+#      (host-only egui app), so a root `cargo test` does not reach it.
+#
+# To bypass in a genuine emergency: `git push --no-verify` (discouraged).
+
+set -e
+
+echo "pre-push: cargo test (workspace default-members)"
+cargo test --quiet
+
+echo "pre-push: cargo test (groundstation)"
+cargo test --quiet --manifest-path crates/groundstation/Cargo.toml
+
+echo "pre-push: all host tests passed"

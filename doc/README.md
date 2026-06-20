@@ -16,7 +16,7 @@ Domain docs are numbered `0N-topic.md`. Process / tooling docs are unnumbered an
 - `05-communication.md` — RF link, USB, message formats, framing. _(not yet written)_
 - `06-control.md` — flight control, PID tuning, sensor fusion notes. _(not yet written)_
 - `07-safety.md` — failsafes, arming, battery monitoring, bench discipline. **Prerequisite for Phase 3 free flight.**
-- `ci-and-testing.md` — CI tiers, local-first feedback, hook setup, runner. _(not yet written; will land with the first Cargo workspace)_
+- `ci-and-testing.md` — what is tested where, how to run the suite, and the pre-push hook (enable once per clone with `git config core.hooksPath .githooks`).
 - `dev-environment.md` — toolchain setup, `probe-rs`, board labelling, two-board workflow. Windows-specific notes included.
 - `decisions/` — Architecture Decision Records (ADRs), one file per decision.
 - `learning/` — short notes on things I did not know before starting this project (Rust, Embassy, ARM, embedded conventions). See [learning/README.md](learning/README.md).
