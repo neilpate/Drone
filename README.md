@@ -37,6 +37,17 @@ See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/
 - [`doc/decisions/`](doc/decisions/README.md) — Architecture Decision Records (ADRs).
 - [`hardware/`](hardware/README.md) — mechanical (Fusion 360) and electrical (KiCad, from Phase 4).
 
+## Testing
+
+Host-testable logic (wire types, the supervisor state machine, the ground-station helpers) is unit-tested and run with [cargo-nextest](https://nexte.st/):
+
+```sh
+cargo nextest run                                                 # workspace host crates
+cargo nextest run --manifest-path crates/groundstation/Cargo.toml # the GUI crate
+```
+
+A tracked `pre-push` git hook runs the suite before every push, and [GitHub Actions](.github/workflows/ci.yml) runs `fmt` + `clippy` + tests on every push and pull request (the badge above). On-target firmware is exercised on hardware, not in CI. See [`doc/ci-and-testing.md`](doc/ci-and-testing.md) for the details and the one-time hook setup.
+
 ## Decisions so far
 
 - [ADR 0001](doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope.
