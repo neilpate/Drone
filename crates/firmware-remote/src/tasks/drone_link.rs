@@ -37,7 +37,7 @@ async fn receive(radio: &mut Radio) -> Option<TelemetryState> {
             return None;
         }
         Err(_) => {
-            // defmt::warn!("drone_link receive: timeout");
+            defmt::trace!("drone_link receive: timeout");
             return None;
         }
     }
@@ -81,7 +81,6 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
         // This will only run if the send succeeded, so now we wait for a response from the drone
         if let Some(telemetry) = receive(&mut radio).await {
-            // defmt::info!("received: {}", telemetry);
             telemetry::set(telemetry);
         }
 

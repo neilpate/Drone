@@ -25,11 +25,12 @@ mod tasks;
 async fn main(spawner: Spawner) {
     let board = board::Board::new();
 
-    defmt::info!("firmware-drone on {}: boot (scaffold)", board::NAME);
+    defmt::info!("firmware-drone on {}: boot ", board::NAME);
 
     spawner.must_spawn(tasks::supervisor::supervisor());
     spawner.must_spawn(tasks::status_led::status_led(board.status_led));
     spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
     spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
     spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
+    spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator());
 }

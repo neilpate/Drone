@@ -107,12 +107,7 @@ impl eframe::App for App {
     }
 }
 
-/// Single serial I/O thread: full-duplex on one port without `try_clone`.
-///
-/// `try_clone` + concurrent blocking read/write deadlocks on Windows (overlapped
-/// I/O on the shared handle is serialized). Instead one thread alternates:
-/// drain pending throttle commands and write them, then do a short-timeout read
-/// and feed the COBS accumulator.
+// Do both directions in a single thread to avoid needing to share the port between threads.
 fn serial_io_thread(mut port: Box<dyn serialport::SerialPort>, rx: mpsc::Receiver<f32>) {
     let mut buf = [0u8; MAX_SEND_BUFFER_SIZE]; // serialization scratch
     let mut raw = [0u8; 256]; // chunk from each read

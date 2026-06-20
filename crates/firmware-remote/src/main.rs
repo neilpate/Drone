@@ -25,7 +25,7 @@ mod tasks;
 async fn main(spawner: Spawner) {
     let board = board::Board::new();
 
-    defmt::info!("firmware-remote on {}: boot (scaffold)", board::NAME);
+    defmt::info!("firmware-remote on {}: boot ", board::NAME);
 
     let (uart_tx, uart_rx) = board.uart.split();
 

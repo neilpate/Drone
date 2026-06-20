@@ -21,7 +21,7 @@ async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
             return None;
         }
         Err(_) => {
-            // defmt::warn!("remote_link receive: timeout");
+            defmt::trace!("remote_link receive: timeout");
             return None;
         }
     }
@@ -53,16 +53,9 @@ async fn send(radio: &mut Radio, telemetry: TelemetryState) -> Result<(), radio:
 pub async fn remote_link(mut radio: Radio) -> ! {
     defmt::info!("remote_link task: started");
 
-    // let mut telemetry_state = TelemetryState {
-    //     sequence_number: 0,
-    //     temperature: Temperature::from_celsius(10.0),
-    // };
-
     let mut telemetry_receiver = telemetry::subscribe();
 
     radio.set_channel(radio_link::CHANNEL);
-
-    // let mut telemetry_state = telemetry_receiver.get().await; //Get the latest telemetry state from the telemetry task
 
     loop {
         let Some(command) = receive(&mut radio).await else {
@@ -73,8 +66,6 @@ pub async fn remote_link(mut radio: Radio) -> ! {
         defmt::debug!("received: {}", command);
 
         pilot_command::set(command); //Publish the received command to any subscribers
-
-        // telemetry_state.sequence_number = command.sequence_count; //In this scaffold, just echo back the count from the received PilotCommand
 
         let telemetry_state = telemetry_receiver.get().await; //Get the latest telemetry state from the telemetry task
 
