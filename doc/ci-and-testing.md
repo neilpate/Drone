@@ -44,4 +44,16 @@ git config core.hooksPath .githooks
 
 To bypass in a genuine emergency: `git push --no-verify` (discouraged; the next push runs the tests anyway).
 
-The hook runs `cargo nextest run` only (and fails with an install hint if nextest is missing). Format and lint enforcement (`cargo fmt --check`, `cargo clippy`) per [ADR 0012](decisions/0012-lint-and-format-policy.md) is run manually for now; folding it into the hook or a future CI runner is a candidate when the test habit is established.
+The hook runs `cargo nextest run` only (and fails with an install hint if nextest is missing). Format and lint enforcement (`cargo fmt --check`, `cargo clippy`) per [ADR 0012](decisions/0012-lint-and-format-policy.md) runs in CI rather than the hook, to keep the local push fast.
+
+## GitHub Actions
+
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs on every push to `main` and on every pull request. It is the server-side backstop the local hook cannot guarantee (a contributor may not have enabled the hook, or may have used `--no-verify`).
+
+The single `ubuntu-latest` job runs, in order:
+
+1. `cargo fmt --all --check` — formatting ([ADR 0012](decisions/0012-lint-and-format-policy.md)).
+2. `cargo clippy --all-targets -- -D warnings` — lints, warnings are errors.
+3. `cargo nextest run` — the host test suite (workspace `default-members`).
+
+Scope matches the host crates only. On-target firmware crates need a cross target and hardware, so they are not built in CI (HIL deferred, ADR 0007); the out-of-workspace `groundstation` GUI is excluded until it carries tests (it also needs Linux GUI/udev system packages to build). Rust is the stable toolchain; nextest is installed via [`taiki-e/install-action`](https://github.com/taiki-e/install-action) and the cargo build is cached with [`Swatinem/rust-cache`](https://github.com/Swatinem/rust-cache).

@@ -1,0 +1,49 @@
+name: CI
+
+# Host-side checks that keep `main` green. Mirrors the local pre-push hook
+# (doc/ci-and-testing.md) and folds in the fmt/clippy enforcement from ADR 0012.
+#
+# Scope: the host-testable workspace crates only (Cargo `default-members`:
+# firmware-types + the *-core crates). On-target firmware crates need a cross
+# target and hardware, so they are not built here (ADR 0007 defers HIL). The
+# out-of-workspace `groundstation` GUI is also excluded until it carries tests.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  host-checks:
+    name: fmt + clippy + tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: Cache cargo build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format check
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo nextest run
