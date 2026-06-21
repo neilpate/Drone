@@ -8,6 +8,7 @@
 //! time series and draws them in a live plot. Each signal can be shown or
 //! hidden with a checkbox.
 
+use std::collections::VecDeque;
 use std::io::Write;
 use std::sync::mpsc;
 use std::thread;
@@ -15,7 +16,9 @@ use std::time::{Duration, Instant};
 
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
-use firmware_types::{GroundstationCommand, Pitch, Roll, TelemetryState, Throttle, Yaw};
+use firmware_types::{
+    GroundstationCommand, PilotCommand, Pitch, Roll, TelemetryState, Throttle, Yaw,
+};
 
 use groundstation::{drone_state_code, encode_command, stick_to_deflection, trigger_to_throttle};
 
@@ -27,6 +30,14 @@ const MAX_SEND_BUFFER_SIZE: usize = 32;
 
 /// Maximum number of samples retained per signal (the last N frames).
 const MAX_POINTS: usize = 10_000;
+
+/// Maximum number of in-flight (sent but not yet echoed) commands tracked for
+/// the round-trip latency measurement. Bounds memory if telemetry never
+/// matches (e.g. the drone is holding zero throttle while we keep sending).
+const MAX_PENDING: usize = 512;
+
+/// Smoothing factor for the exponential moving average of the round-trip time.
+const RTT_EMA_ALPHA: f64 = 0.2;
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
@@ -89,6 +100,13 @@ struct App {
     start: Instant,
     series: Vec<Series>,
     last: Option<TelemetryState>,
+    /// Sent commands awaiting their echo in telemetry, with the send instant.
+    /// Used to measure the end-to-end round-trip time.
+    pending: VecDeque<(Instant, GroundstationCommand)>,
+    /// Most recent measured round-trip time, in milliseconds.
+    last_rtt_ms: Option<f64>,
+    /// Smoothed round-trip time (exponential moving average), in milliseconds.
+    avg_rtt_ms: Option<f64>,
     gilrs: Option<Gilrs>,
     active_gamepad: Option<GamepadId>,
     gamepad_name: Option<String>,
@@ -114,6 +132,9 @@ impl Default for App {
                 Series::new("Drone state (0..3)", egui::Color32::from_rgb(80, 200, 120)),
             ],
             last: None,
+            pending: VecDeque::new(),
+            last_rtt_ms: None,
+            avg_rtt_ms: None,
             gilrs: Gilrs::new().ok(),
             active_gamepad: None,
             gamepad_name: None,
@@ -132,10 +153,19 @@ impl App {
         }
     }
 
-    /// Send the current command to the serial thread, if connected.
-    fn send_command(&self) {
+    /// Send the current command to the serial thread, if connected. Records
+    /// the command and the send instant so its echo in telemetry can be timed.
+    fn send_command(&mut self) {
+        if self.tx.is_none() {
+            return;
+        }
+        let command = self.command();
+        self.pending.push_back((Instant::now(), command));
+        if self.pending.len() > MAX_PENDING {
+            self.pending.pop_front();
+        }
         if let Some(tx) = &self.tx {
-            let _ = tx.send(self.command());
+            let _ = tx.send(command);
         }
     }
 
@@ -156,8 +186,30 @@ impl App {
             self.series[SERIES_PITCH].push(t, telemetry.pilot_command.pitch.as_normalised() as f64);
             self.series[SERIES_YAW].push(t, telemetry.pilot_command.yaw.as_normalised() as f64);
             self.series[SERIES_DRONE_STATE].push(t, drone_state_code(telemetry.drone_state));
+            self.match_round_trip(&telemetry.pilot_command);
             self.last = Some(telemetry);
         }
+    }
+
+    /// Match an echoed `PilotCommand` against the oldest in-flight command with
+    /// the same axes and record its round-trip time. Older unmatched commands
+    /// (sends the drone never sampled) are discarded so the queue stays honest.
+    fn match_round_trip(&mut self, echoed: &PilotCommand) {
+        let Some(idx) = self
+            .pending
+            .iter()
+            .position(|(_, sent)| commands_match(sent, echoed))
+        else {
+            return;
+        };
+        let (sent_at, _) = self.pending[idx];
+        let rtt = sent_at.elapsed().as_secs_f64() * 1000.0;
+        self.last_rtt_ms = Some(rtt);
+        self.avg_rtt_ms = Some(match self.avg_rtt_ms {
+            Some(avg) => avg * (1.0 - RTT_EMA_ALPHA) + rtt * RTT_EMA_ALPHA,
+            None => rtt,
+        });
+        self.pending.drain(0..=idx);
     }
 
     /// Open the serial port and start the I/O thread, wiring both the throttle
@@ -183,6 +235,9 @@ impl App {
         self.tx = Some(cmd_tx);
         self.telemetry_rx = Some(telemetry_rx);
         self.start = Instant::now();
+        self.pending.clear();
+        self.last_rtt_ms = None;
+        self.avg_rtt_ms = None;
         for series in &mut self.series {
             series.points.clear();
         }
@@ -339,6 +394,14 @@ impl eframe::App for App {
                     last.pilot_command.yaw.as_normalised(),
                 ));
             }
+            match self.last_rtt_ms {
+                Some(rtt) => ui.label(format!(
+                    "round-trip: {:.1} ms  (avg {:.1} ms)",
+                    rtt,
+                    self.avg_rtt_ms.unwrap_or(rtt),
+                )),
+                None => ui.label("round-trip: — (move a control to measure)"),
+            };
             ui.add_space(4.0);
         });
 
@@ -358,6 +421,16 @@ impl eframe::App for App {
                 });
         });
     }
+}
+
+/// True when a telemetry-echoed `PilotCommand` carries the same four control
+/// axes as a previously sent `GroundstationCommand`. The drone echoes the
+/// command verbatim, so the axis newtypes compare bit-exact.
+fn commands_match(sent: &GroundstationCommand, echoed: &PilotCommand) -> bool {
+    sent.throttle == echoed.throttle
+        && sent.roll == echoed.roll
+        && sent.pitch == echoed.pitch
+        && sent.yaw == echoed.yaw
 }
 
 // Do both directions in a single thread to avoid needing to share the port between threads.
@@ -406,5 +479,53 @@ fn serial_io_thread(
                 return;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sent(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> GroundstationCommand {
+        GroundstationCommand {
+            throttle: Throttle::from_normalised(throttle),
+            roll: Roll::from_normalised(roll),
+            pitch: Pitch::from_normalised(pitch),
+            yaw: Yaw::from_normalised(yaw),
+        }
+    }
+
+    fn echoed(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> PilotCommand {
+        PilotCommand {
+            sequence_count: 1,
+            throttle: Throttle::from_normalised(throttle),
+            roll: Roll::from_normalised(roll),
+            pitch: Pitch::from_normalised(pitch),
+            yaw: Yaw::from_normalised(yaw),
+        }
+    }
+
+    #[test]
+    fn matches_when_all_axes_equal() {
+        assert!(commands_match(
+            &sent(0.5, -0.25, 0.75, -1.0),
+            &echoed(0.5, -0.25, 0.75, -1.0),
+        ));
+    }
+
+    #[test]
+    fn ignores_sequence_count() {
+        let mut e = echoed(0.5, -0.25, 0.75, -1.0);
+        e.sequence_count = 999;
+        assert!(commands_match(&sent(0.5, -0.25, 0.75, -1.0), &e));
+    }
+
+    #[test]
+    fn differs_when_any_axis_differs() {
+        let base = sent(0.5, -0.25, 0.75, -1.0);
+        assert!(!commands_match(&base, &echoed(0.4, -0.25, 0.75, -1.0)));
+        assert!(!commands_match(&base, &echoed(0.5, 0.25, 0.75, -1.0)));
+        assert!(!commands_match(&base, &echoed(0.5, -0.25, 0.74, -1.0)));
+        assert!(!commands_match(&base, &echoed(0.5, -0.25, 0.75, 1.0)));
     }
 }

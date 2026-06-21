@@ -24,6 +24,8 @@ See [`doc/00-vision.md`](doc/00-vision.md) for the full vision and the phased mi
 
 The four traces above are the visible end of a busy round trip: every sample left the PC as a gamepad/slider value, crossed USB-CDC → UART → IEEE 802.15.4 to the drone, was sampled by the telemetry aggregator, then flew back drone → remote → UART → PC before being plotted — all at 100 Hz.
 
+Because the drone echoes each pilot command back in its telemetry, the ground station can time the whole loop: it matches every command it sends against its echo and reports the end-to-end round-trip latency, which measures **~25–30 ms** on hardware — consistent with the 10 ms aggregator/radio/UART tick quantisation.
+
 **Next:** ICM-42688 SPI bring-up once the breakout arrives.
 
 See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
