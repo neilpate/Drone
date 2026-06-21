@@ -1,6 +1,6 @@
-//! Ground station: single-slider throttle sender + telemetry plotter.
+//! Ground station: throttle + roll/pitch/yaw command sender + telemetry plotter.
 //!
-//! Sends the slider value (0.0..=1.0) as a postcard + COBS framed
+//! Sends the control values as a postcard + COBS framed
 //! `GroundstationCommand` over a serial port at 115 200 8N1, and receives
 //! postcard + COBS framed `TelemetryState` on the same port. A single I/O
 //! thread handles both directions (see `serial_io_thread`) and forwards each
@@ -15,13 +15,13 @@ use std::time::{Duration, Instant};
 
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
-use firmware_types::{TelemetryState, Throttle};
+use firmware_types::{GroundstationCommand, Pitch, Roll, TelemetryState, Throttle, Yaw};
 
-use groundstation::{drone_state_code, encode_command, trigger_to_throttle};
+use groundstation::{drone_state_code, encode_command, stick_to_deflection, trigger_to_throttle};
 
 use eframe::egui;
 use egui_plot::{Legend, Line, Plot, PlotPoints};
-use gilrs::{Button, EventType, GamepadId, Gilrs};
+use gilrs::{Axis, Button, EventType, GamepadId, Gilrs};
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 
@@ -72,13 +72,18 @@ impl Series {
 // Indices into `App::series`. Kept as constants so sample-pushing and drawing
 // stay in sync without a map lookup.
 const SERIES_THROTTLE: usize = 0;
-const SERIES_TEMPERATURE: usize = 1;
-const SERIES_DRONE_STATE: usize = 2;
+const SERIES_ROLL: usize = 1;
+const SERIES_PITCH: usize = 2;
+const SERIES_YAW: usize = 3;
+const SERIES_DRONE_STATE: usize = 4;
 
 struct App {
     port_name: String,
     throttle: f32,
-    tx: Option<mpsc::Sender<f32>>,
+    roll: f32,
+    pitch: f32,
+    yaw: f32,
+    tx: Option<mpsc::Sender<GroundstationCommand>>,
     telemetry_rx: Option<mpsc::Receiver<TelemetryState>>,
     status: String,
     start: Instant,
@@ -94,16 +99,18 @@ impl Default for App {
         Self {
             port_name: "COM7".to_string(),
             throttle: 0.0,
+            roll: 0.0,
+            pitch: 0.0,
+            yaw: 0.0,
             tx: None,
             telemetry_rx: None,
             status: "Not connected".to_string(),
             start: Instant::now(),
             series: vec![
                 Series::new("Throttle (0..1)", egui::Color32::from_rgb(100, 170, 255)),
-                Series::new(
-                    "Temperature (\u{b0}C)",
-                    egui::Color32::from_rgb(255, 140, 0),
-                ),
+                Series::new("Roll (-1..1)", egui::Color32::from_rgb(230, 80, 80)),
+                Series::new("Pitch (-1..1)", egui::Color32::from_rgb(200, 120, 255)),
+                Series::new("Yaw (-1..1)", egui::Color32::from_rgb(230, 200, 60)),
                 Series::new("Drone state (0..3)", egui::Color32::from_rgb(80, 200, 120)),
             ],
             last: None,
@@ -115,6 +122,23 @@ impl Default for App {
 }
 
 impl App {
+    /// Build the command from the four current control values.
+    fn command(&self) -> GroundstationCommand {
+        GroundstationCommand {
+            throttle: Throttle::from_normalised(self.throttle),
+            roll: Roll::from_normalised(self.roll),
+            pitch: Pitch::from_normalised(self.pitch),
+            yaw: Yaw::from_normalised(self.yaw),
+        }
+    }
+
+    /// Send the current command to the serial thread, if connected.
+    fn send_command(&self) {
+        if let Some(tx) = &self.tx {
+            let _ = tx.send(self.command());
+        }
+    }
+
     /// Drain any telemetry delivered by the serial thread into the series.
     fn ingest_telemetry(&mut self) {
         let Some(rx) = &self.telemetry_rx else {
@@ -128,7 +152,9 @@ impl App {
             let t = self.start.elapsed().as_secs_f64();
             self.series[SERIES_THROTTLE]
                 .push(t, telemetry.pilot_command.throttle.as_normalised() as f64);
-            self.series[SERIES_TEMPERATURE].push(t, telemetry.temperature.as_celsius() as f64);
+            self.series[SERIES_ROLL].push(t, telemetry.pilot_command.roll.as_normalised() as f64);
+            self.series[SERIES_PITCH].push(t, telemetry.pilot_command.pitch.as_normalised() as f64);
+            self.series[SERIES_YAW].push(t, telemetry.pilot_command.yaw.as_normalised() as f64);
             self.series[SERIES_DRONE_STATE].push(t, drone_state_code(telemetry.drone_state));
             self.last = Some(telemetry);
         }
@@ -137,7 +163,7 @@ impl App {
     /// Open the serial port and start the I/O thread, wiring both the throttle
     /// command channel (UI -> thread) and the telemetry channel (thread -> UI).
     fn connect(&mut self, ctx: egui::Context) {
-        let (cmd_tx, cmd_rx) = mpsc::channel::<f32>();
+        let (cmd_tx, cmd_rx) = mpsc::channel::<GroundstationCommand>();
         let (telemetry_tx, telemetry_rx) = mpsc::channel::<TelemetryState>();
 
         let port = match serialport::new(&self.port_name, 115_200)
@@ -163,9 +189,9 @@ impl App {
         self.status = format!("Connected to {}", self.port_name);
     }
 
-    /// Poll the gamepad and map the right trigger (0.0..=1.0) to throttle,
-    /// forwarding it to the serial thread. Driven each frame; requests a
-    /// repaint so polling continues without other UI events.
+    /// Poll the gamepad and map controls: right trigger to throttle, and the
+    /// Mode 2 sticks to yaw/roll/pitch. Driven each frame; requests a repaint
+    /// so polling continues without other UI events.
     fn poll_gamepad(&mut self, ctx: &egui::Context) {
         let Some(gilrs) = self.gilrs.as_mut() else {
             return;
@@ -174,11 +200,32 @@ impl App {
         // hot-plugged pad is noticed.
         ctx.request_repaint_after(Duration::from_millis(16));
 
-        let mut new_throttle = None;
+        let mut changed = false;
         while let Some(event) = gilrs.next_event() {
             self.active_gamepad = Some(event.id);
-            if let EventType::ButtonChanged(Button::RightTrigger2, value, _) = event.event {
-                new_throttle = Some(trigger_to_throttle(value));
+            match event.event {
+                // Throttle stays on the right trigger (springs to idle), not a
+                // self-centring stick (ADR 0021).
+                EventType::ButtonChanged(Button::RightTrigger2, value, _) => {
+                    self.throttle = trigger_to_throttle(value);
+                    changed = true;
+                }
+                // Mode 2 sticks: left X = yaw, right X = roll, right Y = pitch.
+                EventType::AxisChanged(Axis::LeftStickX, value, _) => {
+                    self.yaw = stick_to_deflection(value);
+                    changed = true;
+                }
+                EventType::AxisChanged(Axis::RightStickX, value, _) => {
+                    self.roll = stick_to_deflection(value);
+                    changed = true;
+                }
+                // gilrs reports stick-up as positive; invert so pushing the
+                // stick forward commands nose-down (forward flight).
+                EventType::AxisChanged(Axis::RightStickY, value, _) => {
+                    self.pitch = stick_to_deflection(-value);
+                    changed = true;
+                }
+                _ => {}
             }
             gilrs.update(&event);
         }
@@ -188,11 +235,8 @@ impl App {
             .or_else(|| gilrs.gamepads().next().map(|(id, _)| id))
             .map(|id| gilrs.gamepad(id).name().to_string());
 
-        if let Some(throttle) = new_throttle {
-            self.throttle = throttle;
-            if let Some(tx) = &self.tx {
-                let _ = tx.send(self.throttle);
-            }
+        if changed {
+            self.send_command();
         }
     }
 }
@@ -230,21 +274,44 @@ impl eframe::App for App {
             ui.horizontal(|ui| {
                 ui.label("Gamepad:");
                 match &self.gamepad_name {
-                    Some(name) => ui.label(format!("{name}  (right trigger \u{2192} throttle)")),
+                    Some(name) => ui.label(format!(
+                        "{name}  (R2 \u{2192} throttle, left stick \u{2192} yaw, right stick \u{2192} roll/pitch)"
+                    )),
                     None => ui.label("none detected"),
                 };
             });
 
             ui.add_space(4.0);
-            let response = ui.add(
-                egui::Slider::new(&mut self.throttle, 0.0..=1.0)
-                    .text("Throttle")
-                    .fixed_decimals(3),
-            );
-            if response.changed()
-                && let Some(tx) = &self.tx
-            {
-                let _ = tx.send(self.throttle);
+            let mut changed = ui
+                .add(
+                    egui::Slider::new(&mut self.throttle, 0.0..=1.0)
+                        .text("Throttle")
+                        .fixed_decimals(3),
+                )
+                .changed();
+            changed |= ui
+                .add(
+                    egui::Slider::new(&mut self.roll, -1.0..=1.0)
+                        .text("Roll")
+                        .fixed_decimals(3),
+                )
+                .changed();
+            changed |= ui
+                .add(
+                    egui::Slider::new(&mut self.pitch, -1.0..=1.0)
+                        .text("Pitch")
+                        .fixed_decimals(3),
+                )
+                .changed();
+            changed |= ui
+                .add(
+                    egui::Slider::new(&mut self.yaw, -1.0..=1.0)
+                        .text("Yaw")
+                        .fixed_decimals(3),
+                )
+                .changed();
+            if changed {
+                self.send_command();
             }
 
             ui.add_space(4.0);
@@ -263,11 +330,13 @@ impl eframe::App for App {
             if let Some(last) = &self.last {
                 ui.add_space(2.0);
                 ui.label(format!(
-                    "seq {}  |  throttle {:.3}  |  temp {:.1} \u{b0}C  |  state {:?}",
+                    "seq {}  |  throttle {:.3}  |  state {:?}  |  rpy {:+.2} {:+.2} {:+.2}",
                     last.sequence_number,
                     last.pilot_command.throttle.as_normalised(),
-                    last.temperature.as_celsius(),
                     last.drone_state,
+                    last.pilot_command.roll.as_normalised(),
+                    last.pilot_command.pitch.as_normalised(),
+                    last.pilot_command.yaw.as_normalised(),
                 ));
             }
             ui.add_space(4.0);
@@ -294,7 +363,7 @@ impl eframe::App for App {
 // Do both directions in a single thread to avoid needing to share the port between threads.
 fn serial_io_thread(
     mut port: Box<dyn serialport::SerialPort>,
-    rx: mpsc::Receiver<f32>,
+    rx: mpsc::Receiver<GroundstationCommand>,
     telemetry_tx: mpsc::Sender<TelemetryState>,
     ctx: egui::Context,
 ) {
@@ -303,11 +372,9 @@ fn serial_io_thread(
     let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();
 
     loop {
-        // 1. Send any pending throttle commands (non-blocking drain).
-        while let Ok(value) = rx.try_recv() {
-            let throttle = Throttle::from_normalised(value);
-
-            let framed = encode_command(throttle, &mut buf).unwrap();
+        // 1. Send any pending commands (non-blocking drain).
+        while let Ok(command) = rx.try_recv() {
+            let framed = encode_command(command, &mut buf).unwrap();
             if let Err(e) = port.write_all(framed) {
                 eprintln!("write error: {e}");
             }

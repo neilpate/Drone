@@ -13,7 +13,7 @@ pub struct TelemetryState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Throttle;
+    use crate::{Pitch, Roll, Throttle, Yaw};
 
     #[test]
     fn postcard_round_trip() {
@@ -24,9 +24,12 @@ mod tests {
             pilot_command: PilotCommand {
                 sequence_count: 7,
                 throttle: Throttle::from_normalised(0.5),
+                roll: Roll::from_normalised(-0.5),
+                pitch: Pitch::from_normalised(0.25),
+                yaw: Yaw::from_normalised(-0.125),
             },
         };
-        let mut buf = [0u8; 16];
+        let mut buf = [0u8; 32];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: TelemetryState = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);

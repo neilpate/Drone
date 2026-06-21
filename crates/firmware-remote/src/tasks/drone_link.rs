@@ -5,8 +5,7 @@ use firmware_types::{PilotCommand, TelemetryState};
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::telemetry;
-use crate::signals::throttle_command;
+use crate::signals::{pitch_command, roll_command, telemetry, throttle_command, yaw_command};
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
@@ -62,17 +61,26 @@ pub async fn drone_link(mut radio: Radio) -> ! {
     radio.set_channel(radio_link::CHANNEL);
 
     let mut throttle_command_receiver = throttle_command::subscribe();
+    let mut roll_command_receiver = roll_command::subscribe();
+    let mut pitch_command_receiver = pitch_command::subscribe();
+    let mut yaw_command_receiver = yaw_command::subscribe();
 
     loop {
         ticker.next().await; // Wait for the next tick before sending the next control state
 
         let throttle = throttle_command_receiver.get().await;
+        let pitch = pitch_command_receiver.get().await;
+        let roll = roll_command_receiver.get().await;
+        let yaw = yaw_command_receiver.get().await;
 
         defmt::debug!("drone_link received: {}", throttle);
 
         let state = PilotCommand {
             sequence_count,
             throttle,
+            roll,
+            pitch,
+            yaw,
         };
         if let Err(e) = send(&mut radio, state).await {
             defmt::error!("drone_link transmit: error: {:?}", e);

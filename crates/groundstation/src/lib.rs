@@ -4,7 +4,7 @@
 //! Anything here is free of egui / serialport / gilrs I/O so it can be unit
 //! tested without a window, a port or a gamepad attached.
 
-use firmware_types::{DroneState, GroundstationCommand, Throttle};
+use firmware_types::{DroneState, GroundstationCommand};
 
 /// Numeric code for a drone state, used as the y-value of the drone-state
 /// time series in the plot. Distinct, ordered values so the trace steps
@@ -26,16 +26,24 @@ pub fn trigger_to_throttle(value: f32) -> f32 {
     value.clamp(0.0, 1.0)
 }
 
-/// Serialise a throttle into a postcard + COBS framed `GroundstationCommand`,
+/// Map a raw gamepad stick-axis reading to a normalised deflection.
+///
+/// gilrs reports a stick axis as roughly `-1.0..=1.0`, but can momentarily
+/// overshoot, so the reading is clamped before use.
+pub fn stick_to_deflection(value: f32) -> f32 {
+    value.clamp(-1.0, 1.0)
+}
+
+/// Serialise a `GroundstationCommand` into a postcard + COBS framed buffer,
 /// returning the framed bytes written into `buf`.
-pub fn encode_command(throttle: Throttle, buf: &mut [u8]) -> postcard::Result<&[u8]> {
-    let command = GroundstationCommand { throttle };
+pub fn encode_command(command: GroundstationCommand, buf: &mut [u8]) -> postcard::Result<&[u8]> {
     postcard::to_slice_cobs(&command, buf).map(|framed| &framed[..])
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use firmware_types::{Pitch, Roll, Throttle, Yaw};
     use postcard::accumulator::{CobsAccumulator, FeedResult};
 
     #[test]
@@ -62,16 +70,37 @@ mod tests {
     }
 
     #[test]
+    fn stick_clamps_below_minus_one() {
+        assert_eq!(stick_to_deflection(-1.4), -1.0);
+    }
+
+    #[test]
+    fn stick_clamps_above_one() {
+        assert_eq!(stick_to_deflection(1.4), 1.0);
+    }
+
+    #[test]
+    fn stick_passes_through_in_range() {
+        assert_eq!(stick_to_deflection(-0.5), -0.5);
+    }
+
+    #[test]
     fn encoded_command_round_trips_through_the_accumulator() {
         let mut buf = [0u8; 32];
-        let framed = encode_command(Throttle::from_normalised(0.5), &mut buf).unwrap();
+        let command = GroundstationCommand {
+            throttle: Throttle::from_normalised(0.5),
+            roll: Roll::from_normalised(-0.5),
+            pitch: Pitch::from_normalised(0.25),
+            yaw: Yaw::from_normalised(-0.125),
+        };
+        let framed = encode_command(command, &mut buf).unwrap();
 
         // Decode the frame the same way the firmware does, to prove the
         // groundstation's framing matches the wire format on the other end.
         let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();
         match cobs.feed::<GroundstationCommand>(framed) {
             FeedResult::Success { data, .. } => {
-                assert_eq!(data.throttle.as_normalised(), 0.5);
+                assert_eq!(data, command);
             }
             _ => panic!("framed command did not decode"),
         }

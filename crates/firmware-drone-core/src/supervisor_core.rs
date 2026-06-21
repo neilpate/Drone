@@ -134,13 +134,16 @@ impl Default for Supervisor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use firmware_types::{PilotCommand, Throttle};
+    use firmware_types::{PilotCommand, Pitch, Roll, Throttle, Yaw};
 
     /// Build a `Command` event at a given normalised throttle.
     fn cmd(throttle: f32) -> Event {
         Event::Command(PilotCommand {
             sequence_count: 0,
             throttle: Throttle::from_normalised(throttle),
+            roll: Roll::ZERO,
+            pitch: Pitch::ZERO,
+            yaw: Yaw::ZERO,
         })
     }
 

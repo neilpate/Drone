@@ -2,7 +2,7 @@ use firmware_types::GroundstationCommand;
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use crate::board::UartRx;
-use crate::signals::throttle_command;
+use crate::signals::{pitch_command, roll_command, throttle_command, yaw_command};
 
 #[embassy_executor::task]
 pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
@@ -20,6 +20,9 @@ pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
         // one byte in → accumulator buffers until a full frame arrives
         if let FeedResult::Success { data, .. } = cobs.feed::<GroundstationCommand>(&byte) {
             throttle_command::set(data.throttle);
+            roll_command::set(data.roll);
+            pitch_command::set(data.pitch);
+            yaw_command::set(data.yaw);
         }
     }
 }

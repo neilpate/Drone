@@ -3,15 +3,15 @@ use firmware_types::Throttle;
 
 const MAX_SUBSCRIBERS: usize = 8;
 
-static THROTTLE_COMMAND: Watch<CriticalSectionRawMutex, Throttle, MAX_SUBSCRIBERS> = Watch::new();
+static COMMAND: Watch<CriticalSectionRawMutex, Throttle, MAX_SUBSCRIBERS> = Watch::new();
 
 pub type Receiver =
     embassy_sync::watch::Receiver<'static, CriticalSectionRawMutex, Throttle, MAX_SUBSCRIBERS>;
 
 pub fn subscribe() -> Receiver {
-    THROTTLE_COMMAND.receiver().unwrap()
+    COMMAND.receiver().unwrap()
 }
 
 pub fn set(throttle: Throttle) {
-    THROTTLE_COMMAND.sender().send(throttle);
+    COMMAND.sender().send(throttle);
 }
