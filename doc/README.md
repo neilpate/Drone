@@ -34,4 +34,4 @@ Mechanical CAD files (`.f3d` + `.step` + print-ready `.stl` / `.3mf`) live under
 
 ## Status
 
-Vision and architecture agreed. Eleven ADRs in place ([decisions/](decisions/README.md)). Phase 1 bring-up in progress: firmware boots, LED heartbeat runs, BSP layer in place. Active backlog lives in [GitHub Issues](https://github.com/neilpate/Drone/issues) with a kanban view at [project #5](https://github.com/users/neilpate/projects/5) — see [ADR 0011](decisions/0011-task-tracking-issues-and-batches.md). Next firmware work: FICR.DEVICEID boot banner, board-ID refuse-to-arm, then ICM-42688 SPI bring-up once the breakout arrives.
+Vision and architecture agreed. Twenty-one ADRs in place ([decisions/](decisions/README.md)). Phase 1 bring-up in progress: firmware boots, LED heartbeat runs, BSP layer in place. Active backlog lives in [GitHub Issues](https://github.com/neilpate/Drone/issues) with a kanban view at [project #5](https://github.com/users/neilpate/projects/5) — see [ADR 0011](decisions/0011-task-tracking-issues-and-batches.md). Next firmware work: FICR.DEVICEID boot banner, board-ID refuse-to-arm, then ICM-42688 SPI bring-up once the breakout arrives.
