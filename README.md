@@ -18,11 +18,11 @@ See [`doc/00-vision.md`](doc/00-vision.md) for the full vision and the phased mi
 
 ## Status
 
-**Phase 1 in progress.** A full pilot-input and telemetry round trip is working on hardware at 100 Hz. A PC ground station (the `groundstation` crate, binary `gs`) sends throttle — from an on-screen slider or a Bluetooth gamepad's right trigger — over USB-CDC to a remote micro:bit, which relays it to the drone micro:bit over an IEEE 802.15.4 link. The drone runs an Embassy task graph (`remote_link` → `supervisor` failsafe → `motor_controller`) that drives a brushed motor and detects loss-of-link within ~100 ms. Telemetry (sequence number, internal temperature, drone state) flows back the same path, framed with postcard + COBS, and the ground station plots all signals as live time series.
+**Phase 1 in progress.** A full pilot-command and telemetry round trip is working on hardware at 100 Hz. A PC ground station (the `groundstation` crate, binary `gs`) sends a four-axis pilot command — throttle plus roll, pitch and yaw — from on-screen sliders or a PlayStation gamepad (Mode 2 sticks, throttle on the right trigger) over USB-CDC to a remote micro:bit, which relays it to the drone micro:bit over an IEEE 802.15.4 link. The drone runs an Embassy task graph (`remote_link` → `supervisor` failsafe → `motor_controller`) that drives a brushed motor and detects loss-of-link within ~100 ms. Telemetry flows back the same path, framed with postcard + COBS, and the ground station plots the commanded axes as live time series. Each axis is a typed, normalised newtype clamped at the wire boundary, with frames and sign conventions fixed in [ADR 0021](doc/decisions/0021-coordinate-frames-and-command-semantics.md).
 
-![Ground station live plot: a smooth throttle trace alongside temperature and drone-state time series.](doc/images/groundstation%201.png)
+![Ground station live plot: throttle, roll, pitch and yaw traces driven by a PlayStation gamepad, alongside the matching on-screen sliders.](doc/images/groundstation%202.png)
 
-The smooth blue throttle trace above is the visible end of a busy round trip: every sample left the PC as a gamepad/slider value, crossed USB-CDC → UART → IEEE 802.15.4 to the drone, was sampled by the telemetry aggregator, then flew back drone → remote → UART → PC before being plotted — all at 100 Hz.
+The four traces above are the visible end of a busy round trip: every sample left the PC as a gamepad/slider value, crossed USB-CDC → UART → IEEE 802.15.4 to the drone, was sampled by the telemetry aggregator, then flew back drone → remote → UART → PC before being plotted — all at 100 Hz.
 
 **Next:** ICM-42688 SPI bring-up once the breakout arrives.
 
