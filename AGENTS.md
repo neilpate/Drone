@@ -55,13 +55,13 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 
 - Commit **often**, like a senior dev — not after every keystroke, but at every logical, reviewable unit of work (a decision recorded, a feature working, a refactor done).
 - Don't sit on a large pile of unrelated changes.
-- Use **[Conventional Commits](https://www.conventionalcommits.org/)**: `type(scope): subject` — e.g. `docs(adr): add 0003 IMU selection`, `feat(imu): read WHO_AM_I over SPI`, `fix(spi): correct CPOL for ICM-42688`.
-  - Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `build`, `ci`, `perf`.
-  - Scope is optional but encouraged (`adr`, `imu`, `spi`, `hal`, `docs`, etc.).
-  - Subject: imperative mood, lowercase, ≤72 chars, no trailing period.
-  - Body (optional) explains the *why* when not obvious. Separate from subject by blank line.
-  - Breaking change: `feat(api)!: ...` or `BREAKING CHANGE:` footer.
-- Don't auto-commit on the user's behalf unless explicitly asked. Suggest a commit (with a Conventional-Commits-formatted message) when a sensible boundary is reached.
+- Use **[scoped commits](https://scopedcommits.com/)** (the Linux / Git / Go style): `scope: subject` — e.g. `adr: add 0003 IMU selection`, `imu: read WHO_AM_I over SPI`, `spi: correct CPOL for ICM-42688`. No `type` prefix (no `feat:`/`fix:`/`chore:`).
+  - The **scope is the area of the codebase touched** — the subsystem, crate, or component — not a change type. It is the most important part of the subject and is **required**, not optional. Natural scopes here: `imu`, `spi`, `supervisor`, `telemetry`, `groundstation`, `firmware-types`, `hal`, `board`, `adr`, `doc`, `readme`, `ci`.
+  - The *type* of change (fix, feature, refactor) should be obvious from the subject's wording, so we don't encode it. If you can't tell which scope a commit belongs to, it's probably doing too much — split it.
+  - Subject: imperative mood, lowercase after the scope, ≤72 chars, no trailing period.
+  - Body explains the *why* (motivation, and why this solution) when not obvious — favour writing one. Separate from subject by a blank line.
+  - For a change spanning two clear areas, pick the dominant scope or use a combined prefix (e.g. `groundstation,readme:`); if it genuinely spans many, that's a sign to split the commit.
+- Don't auto-commit on the user's behalf unless explicitly asked. Suggest a commit (with a scoped-commit message) when a sensible boundary is reached.
 - Never `--force` push, never amend a pushed commit, never `reset --hard` without asking.
 
 ## End-of-session ritual
