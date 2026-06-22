@@ -1,11 +1,11 @@
-use crate::{DroneState, PilotCommand, Temperature};
+use crate::{DroneState, PilotCommand, Sensors};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct TelemetryState {
     pub sequence_number: u32,
-    pub temperature: Temperature,
+    pub sensors: Sensors,
     pub drone_state: DroneState,
     pub pilot_command: PilotCommand,
 }
@@ -13,13 +13,15 @@ pub struct TelemetryState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Pitch, Roll, Throttle, Yaw};
+    use crate::{Pitch, Roll, Temperature, Throttle, Yaw};
 
     #[test]
     fn postcard_round_trip() {
         let original = TelemetryState {
             sequence_number: 999,
-            temperature: Temperature::from_celsius(25.0),
+            sensors: Sensors {
+                temperature: Temperature::from_celsius(25.0),
+            },
             drone_state: DroneState::Armed,
             pilot_command: PilotCommand {
                 sequence_count: 7,

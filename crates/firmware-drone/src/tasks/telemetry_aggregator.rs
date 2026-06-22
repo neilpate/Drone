@@ -1,5 +1,5 @@
 use embassy_time::{Duration, Ticker};
-use firmware_types::TelemetryState;
+use firmware_types::{Sensors, TelemetryState};
 
 use crate::signals::{pilot_command, status, telemetry, temperature};
 
@@ -23,10 +23,13 @@ pub async fn telemetry_aggregator() -> ! {
         let drone_state = status_receiver.get().await;
         let temperature = temperature_receiver.get().await;
         let pilot_command = pilot_command_receiver.get().await;
+
+        let sensors = Sensors { temperature };
+
         let state = TelemetryState {
             drone_state,
             sequence_number: sequence_count,
-            temperature,
+            sensors,
             pilot_command,
         };
 
