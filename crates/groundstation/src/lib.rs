@@ -4,7 +4,7 @@
 //! Anything here is free of egui / serialport / gilrs I/O so it can be unit
 //! tested without a window, a port or a gamepad attached.
 
-use firmware_types::{DroneState, GroundstationCommand};
+use firmware_types::{DroneState, GroundstationCommand, PilotCommand};
 
 /// Numeric code for a drone state, used as the y-value of the drone-state
 /// time series in the plot. Distinct, ordered values so the trace steps
@@ -38,6 +38,17 @@ pub fn stick_to_deflection(value: f32) -> f32 {
 /// returning the framed bytes written into `buf`.
 pub fn encode_command(command: GroundstationCommand, buf: &mut [u8]) -> postcard::Result<&[u8]> {
     postcard::to_slice_cobs(&command, buf).map(|framed| &framed[..])
+}
+
+/// True when a telemetry-echoed `PilotCommand` carries the same four control
+/// axes as a previously sent `GroundstationCommand`. The drone echoes the
+/// command verbatim, so the axis newtypes compare bit-exact. Used to match an
+/// echo back to the send that produced it for the round-trip measurement.
+pub fn commands_match(sent: &GroundstationCommand, echoed: &PilotCommand) -> bool {
+    sent.throttle == echoed.throttle
+        && sent.roll == echoed.roll
+        && sent.pitch == echoed.pitch
+        && sent.yaw == echoed.yaw
 }
 
 #[cfg(test)]
@@ -104,5 +115,48 @@ mod tests {
             }
             _ => panic!("framed command did not decode"),
         }
+    }
+
+    fn sent(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> GroundstationCommand {
+        GroundstationCommand {
+            throttle: Throttle::from_normalised(throttle),
+            roll: Roll::from_normalised(roll),
+            pitch: Pitch::from_normalised(pitch),
+            yaw: Yaw::from_normalised(yaw),
+        }
+    }
+
+    fn echoed(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> PilotCommand {
+        PilotCommand {
+            sequence_count: 1,
+            throttle: Throttle::from_normalised(throttle),
+            roll: Roll::from_normalised(roll),
+            pitch: Pitch::from_normalised(pitch),
+            yaw: Yaw::from_normalised(yaw),
+        }
+    }
+
+    #[test]
+    fn matches_when_all_axes_equal() {
+        assert!(commands_match(
+            &sent(0.5, -0.25, 0.75, -1.0),
+            &echoed(0.5, -0.25, 0.75, -1.0),
+        ));
+    }
+
+    #[test]
+    fn ignores_sequence_count() {
+        let mut e = echoed(0.5, -0.25, 0.75, -1.0);
+        e.sequence_count = 999;
+        assert!(commands_match(&sent(0.5, -0.25, 0.75, -1.0), &e));
+    }
+
+    #[test]
+    fn differs_when_any_axis_differs() {
+        let base = sent(0.5, -0.25, 0.75, -1.0);
+        assert!(!commands_match(&base, &echoed(0.4, -0.25, 0.75, -1.0)));
+        assert!(!commands_match(&base, &echoed(0.5, 0.25, 0.75, -1.0)));
+        assert!(!commands_match(&base, &echoed(0.5, -0.25, 0.74, -1.0)));
+        assert!(!commands_match(&base, &echoed(0.5, -0.25, 0.75, 1.0)));
     }
 }

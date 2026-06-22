@@ -20,7 +20,9 @@ use firmware_types::{
     GroundstationCommand, PilotCommand, Pitch, Roll, TelemetryState, Throttle, Yaw,
 };
 
-use groundstation::{drone_state_code, encode_command, stick_to_deflection, trigger_to_throttle};
+use groundstation::{
+    commands_match, drone_state_code, encode_command, stick_to_deflection, trigger_to_throttle,
+};
 
 use eframe::egui;
 use egui_plot::{Legend, Line, Plot, PlotPoints};
@@ -71,6 +73,14 @@ impl Series {
         }
     }
 
+    /// Builder tweak: start hidden. Used for channels whose magnitude would
+    /// otherwise dominate the plot's auto-scale (temperature, latency, the
+    /// sequence ramp), so the user opts them in.
+    fn hidden(mut self) -> Self {
+        self.visible = false;
+        self
+    }
+
     fn push(&mut self, t: f64, value: f64) {
         self.points.push([t, value]);
         if self.points.len() > MAX_POINTS {
@@ -87,6 +97,14 @@ const SERIES_ROLL: usize = 1;
 const SERIES_PITCH: usize = 2;
 const SERIES_YAW: usize = 3;
 const SERIES_DRONE_STATE: usize = 4;
+const SERIES_SEQUENCE: usize = 5;
+const SERIES_TEMPERATURE: usize = 6;
+const SERIES_RTT: usize = 7;
+const SERIES_AVG_RTT: usize = 8;
+
+/// Maximum number of rows in one telemetry-table column before wrapping into
+/// the next column.
+const MAX_TABLE_ROWS: usize = 10;
 
 struct App {
     port_name: String,
@@ -130,6 +148,18 @@ impl Default for App {
                 Series::new("Pitch (-1..1)", egui::Color32::from_rgb(200, 120, 255)),
                 Series::new("Yaw (-1..1)", egui::Color32::from_rgb(230, 200, 60)),
                 Series::new("Drone state (0..3)", egui::Color32::from_rgb(80, 200, 120)),
+                Series::new("Sequence", egui::Color32::from_rgb(150, 150, 150)).hidden(),
+                Series::new(
+                    "Temperature (\u{00B0}C)",
+                    egui::Color32::from_rgb(255, 140, 60),
+                )
+                .hidden(),
+                Series::new("Round-trip (ms)", egui::Color32::from_rgb(120, 220, 220)).hidden(),
+                Series::new(
+                    "Avg round-trip (ms)",
+                    egui::Color32::from_rgb(180, 120, 200),
+                )
+                .hidden(),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -186,7 +216,16 @@ impl App {
             self.series[SERIES_PITCH].push(t, telemetry.pilot_command.pitch.as_normalised() as f64);
             self.series[SERIES_YAW].push(t, telemetry.pilot_command.yaw.as_normalised() as f64);
             self.series[SERIES_DRONE_STATE].push(t, drone_state_code(telemetry.drone_state));
+            self.series[SERIES_SEQUENCE].push(t, telemetry.sequence_number as f64);
+            self.series[SERIES_TEMPERATURE]
+                .push(t, telemetry.sensors.temperature.as_celsius() as f64);
             self.match_round_trip(&telemetry.pilot_command);
+            if let Some(rtt) = self.last_rtt_ms {
+                self.series[SERIES_RTT].push(t, rtt);
+            }
+            if let Some(avg) = self.avg_rtt_ms {
+                self.series[SERIES_AVG_RTT].push(t, avg);
+            }
             self.last = Some(telemetry);
         }
     }
@@ -294,6 +333,111 @@ impl App {
             self.send_command();
         }
     }
+
+    /// Render the telemetry as a name/value table where every channel carries
+    /// its show/hide checkbox in the name column (so no separate legend toggles
+    /// are needed). Columns hold at most `MAX_TABLE_ROWS` rows and wrap into a
+    /// further column beyond that. Driven from the top panel, to the right of
+    /// the controls.
+    fn telemetry_table(&mut self, ui: &mut egui::Ui) {
+        // `TelemetryState` and the RTT figures are `Copy`, so snapshot them
+        // into locals. That lets the rendering loop mutate `self.series` (the
+        // per-channel checkboxes) without colliding with a borrow of
+        // `self.last`.
+        let last = self.last;
+        let last_rtt_ms = self.last_rtt_ms;
+        let avg_rtt_ms = self.avg_rtt_ms;
+
+        // One row per channel: (label on the checkbox, series index it toggles,
+        // formatted current value). Built up front so the loop below only
+        // borrows `self.series`.
+        let dash = || "\u{2014}".to_string();
+        let rows: [(&str, usize, String); 9] = [
+            (
+                "Sequence",
+                SERIES_SEQUENCE,
+                last.map_or_else(dash, |t| t.sequence_number.to_string()),
+            ),
+            (
+                "Drone state",
+                SERIES_DRONE_STATE,
+                last.map_or_else(dash, |t| format!("{:?}", t.drone_state)),
+            ),
+            (
+                "Throttle",
+                SERIES_THROTTLE,
+                last.map_or_else(dash, |t| {
+                    format!("{:.3}", t.pilot_command.throttle.as_normalised())
+                }),
+            ),
+            (
+                "Roll",
+                SERIES_ROLL,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3}", t.pilot_command.roll.as_normalised())
+                }),
+            ),
+            (
+                "Pitch",
+                SERIES_PITCH,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3}", t.pilot_command.pitch.as_normalised())
+                }),
+            ),
+            (
+                "Yaw",
+                SERIES_YAW,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3}", t.pilot_command.yaw.as_normalised())
+                }),
+            ),
+            (
+                "Temperature",
+                SERIES_TEMPERATURE,
+                last.map_or_else(dash, |t| {
+                    format!("{:.2} \u{00B0}C", t.sensors.temperature.as_celsius())
+                }),
+            ),
+            (
+                "Round-trip",
+                SERIES_RTT,
+                last_rtt_ms.map_or_else(dash, |rtt| format!("{rtt:.1} ms")),
+            ),
+            (
+                "Avg round-trip",
+                SERIES_AVG_RTT,
+                avg_rtt_ms.map_or_else(dash, |avg| format!("{avg:.1} ms")),
+            ),
+        ];
+
+        ui.vertical(|ui| {
+            ui.strong("Telemetry");
+            ui.add_space(2.0);
+            ui.horizontal_top(|ui| {
+                for (col, chunk) in rows.chunks(MAX_TABLE_ROWS).enumerate() {
+                    egui::Grid::new(("telemetry_table", col))
+                        .num_columns(2)
+                        .spacing([16.0, 4.0])
+                        .striped(true)
+                        .show(ui, |ui| {
+                            for (label, idx, value) in chunk {
+                                ui.checkbox(&mut self.series[*idx].visible, *label);
+                                ui.label(value.as_str());
+                                ui.end_row();
+                            }
+                        });
+                    ui.add_space(16.0);
+                }
+            });
+
+            ui.add_space(4.0);
+            if ui.button("Clear plot").clicked() {
+                for series in &mut self.series {
+                    series.points.clear();
+                }
+            }
+        });
+    }
 }
 
 impl eframe::App for App {
@@ -306,102 +450,75 @@ impl eframe::App for App {
             ui.heading("Drone Ground Station");
             ui.add_space(4.0);
 
-            ui.horizontal(|ui| {
-                ui.label("Port:");
-                ui.add_enabled(
-                    self.tx.is_none(),
-                    egui::TextEdit::singleline(&mut self.port_name).desired_width(120.0),
-                );
-                let connect_label = if self.tx.is_some() {
-                    "Connected"
-                } else {
-                    "Connect"
-                };
-                if ui
-                    .add_enabled(self.tx.is_none(), egui::Button::new(connect_label))
-                    .clicked()
-                {
-                    self.connect(ui.ctx().clone());
-                }
-                ui.label(&self.status);
-            });
+            ui.horizontal_top(|ui| {
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Port:");
+                        ui.add_enabled(
+                            self.tx.is_none(),
+                            egui::TextEdit::singleline(&mut self.port_name).desired_width(120.0),
+                        );
+                        let connect_label = if self.tx.is_some() {
+                            "Connected"
+                        } else {
+                            "Connect"
+                        };
+                        if ui
+                            .add_enabled(self.tx.is_none(), egui::Button::new(connect_label))
+                            .clicked()
+                        {
+                            self.connect(ui.ctx().clone());
+                        }
+                        ui.label(&self.status);
+                    });
 
-            ui.horizontal(|ui| {
-                ui.label("Gamepad:");
-                match &self.gamepad_name {
-                    Some(name) => ui.label(format!(
-                        "{name}  (R2 \u{2192} throttle, left stick \u{2192} yaw, right stick \u{2192} roll/pitch)"
-                    )),
-                    None => ui.label("none detected"),
-                };
-            });
+                    ui.horizontal(|ui| {
+                        ui.label("Gamepad:");
+                        match &self.gamepad_name {
+                            Some(name) => ui.label(format!(
+                                "{name}  (R2 \u{2192} throttle, left stick \u{2192} yaw, right stick \u{2192} roll/pitch)"
+                            )),
+                            None => ui.label("none detected"),
+                        };
+                    });
 
-            ui.add_space(4.0);
-            let mut changed = ui
-                .add(
-                    egui::Slider::new(&mut self.throttle, 0.0..=1.0)
-                        .text("Throttle")
-                        .fixed_decimals(3),
-                )
-                .changed();
-            changed |= ui
-                .add(
-                    egui::Slider::new(&mut self.roll, -1.0..=1.0)
-                        .text("Roll")
-                        .fixed_decimals(3),
-                )
-                .changed();
-            changed |= ui
-                .add(
-                    egui::Slider::new(&mut self.pitch, -1.0..=1.0)
-                        .text("Pitch")
-                        .fixed_decimals(3),
-                )
-                .changed();
-            changed |= ui
-                .add(
-                    egui::Slider::new(&mut self.yaw, -1.0..=1.0)
-                        .text("Yaw")
-                        .fixed_decimals(3),
-                )
-                .changed();
-            if changed {
-                self.send_command();
-            }
-
-            ui.add_space(4.0);
-            ui.horizontal(|ui| {
-                ui.label("Show:");
-                for series in &mut self.series {
-                    ui.checkbox(&mut series.visible, series.name);
-                }
-                if ui.button("Clear").clicked() {
-                    for series in &mut self.series {
-                        series.points.clear();
+                    ui.add_space(4.0);
+                    let mut changed = ui
+                        .add(
+                            egui::Slider::new(&mut self.throttle, 0.0..=1.0)
+                                .text("Throttle")
+                                .fixed_decimals(3),
+                        )
+                        .changed();
+                    changed |= ui
+                        .add(
+                            egui::Slider::new(&mut self.roll, -1.0..=1.0)
+                                .text("Roll")
+                                .fixed_decimals(3),
+                        )
+                        .changed();
+                    changed |= ui
+                        .add(
+                            egui::Slider::new(&mut self.pitch, -1.0..=1.0)
+                                .text("Pitch")
+                                .fixed_decimals(3),
+                        )
+                        .changed();
+                    changed |= ui
+                        .add(
+                            egui::Slider::new(&mut self.yaw, -1.0..=1.0)
+                                .text("Yaw")
+                                .fixed_decimals(3),
+                        )
+                        .changed();
+                    if changed {
+                        self.send_command();
                     }
-                }
-            });
+                });
 
-            if let Some(last) = &self.last {
-                ui.add_space(2.0);
-                ui.label(format!(
-                    "seq {}  |  throttle {:.3}  |  state {:?}  |  rpy {:+.2} {:+.2} {:+.2}",
-                    last.sequence_number,
-                    last.pilot_command.throttle.as_normalised(),
-                    last.drone_state,
-                    last.pilot_command.roll.as_normalised(),
-                    last.pilot_command.pitch.as_normalised(),
-                    last.pilot_command.yaw.as_normalised(),
-                ));
-            }
-            match self.last_rtt_ms {
-                Some(rtt) => ui.label(format!(
-                    "round-trip: {:.1} ms  (avg {:.1} ms)",
-                    rtt,
-                    self.avg_rtt_ms.unwrap_or(rtt),
-                )),
-                None => ui.label("round-trip: — (move a control to measure)"),
-            };
+                ui.add_space(16.0);
+                self.telemetry_table(ui);
+            });
             ui.add_space(4.0);
         });
 
@@ -421,16 +538,6 @@ impl eframe::App for App {
                 });
         });
     }
-}
-
-/// True when a telemetry-echoed `PilotCommand` carries the same four control
-/// axes as a previously sent `GroundstationCommand`. The drone echoes the
-/// command verbatim, so the axis newtypes compare bit-exact.
-fn commands_match(sent: &GroundstationCommand, echoed: &PilotCommand) -> bool {
-    sent.throttle == echoed.throttle
-        && sent.roll == echoed.roll
-        && sent.pitch == echoed.pitch
-        && sent.yaw == echoed.yaw
 }
 
 // Do both directions in a single thread to avoid needing to share the port between threads.
@@ -479,53 +586,5 @@ fn serial_io_thread(
                 return;
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn sent(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> GroundstationCommand {
-        GroundstationCommand {
-            throttle: Throttle::from_normalised(throttle),
-            roll: Roll::from_normalised(roll),
-            pitch: Pitch::from_normalised(pitch),
-            yaw: Yaw::from_normalised(yaw),
-        }
-    }
-
-    fn echoed(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> PilotCommand {
-        PilotCommand {
-            sequence_count: 1,
-            throttle: Throttle::from_normalised(throttle),
-            roll: Roll::from_normalised(roll),
-            pitch: Pitch::from_normalised(pitch),
-            yaw: Yaw::from_normalised(yaw),
-        }
-    }
-
-    #[test]
-    fn matches_when_all_axes_equal() {
-        assert!(commands_match(
-            &sent(0.5, -0.25, 0.75, -1.0),
-            &echoed(0.5, -0.25, 0.75, -1.0),
-        ));
-    }
-
-    #[test]
-    fn ignores_sequence_count() {
-        let mut e = echoed(0.5, -0.25, 0.75, -1.0);
-        e.sequence_count = 999;
-        assert!(commands_match(&sent(0.5, -0.25, 0.75, -1.0), &e));
-    }
-
-    #[test]
-    fn differs_when_any_axis_differs() {
-        let base = sent(0.5, -0.25, 0.75, -1.0);
-        assert!(!commands_match(&base, &echoed(0.4, -0.25, 0.75, -1.0)));
-        assert!(!commands_match(&base, &echoed(0.5, 0.25, 0.75, -1.0)));
-        assert!(!commands_match(&base, &echoed(0.5, -0.25, 0.74, -1.0)));
-        assert!(!commands_match(&base, &echoed(0.5, -0.25, 0.75, 1.0)));
     }
 }
