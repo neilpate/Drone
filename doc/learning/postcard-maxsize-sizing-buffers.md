@@ -15,6 +15,14 @@ That `32` was a guess that happened to fit. Then this session's CPU-load profile
 
 The footgun: **the buffer size and the struct definition were in different files, with no compiler link between them.** Nothing made the buffer grow when the struct did. This is exactly the C mistake of `char buf[32]` next to a `sprintf` whose output you have not actually bounded — except here the wire format is the thing being bounded, not a string.
 
+## Why it did not crash immediately — the serialized size grows at runtime
+
+The nastiest part: the panic did not happen at startup. The link ran fine for a while and only hard-faulted **after the drone had been powered up for some time.** That delay is what made it look intermittent.
+
+The cause is varint encoding. postcard LEB128-encodes integers, so a `u32` is *not* a fixed 4 bytes on the wire — it is 1 byte while the value is small and grows to 5 bytes as the value gets large. `Telemetry` carries a `sequence_number: u32` that increments every frame. Early on, the sequence number fit in 1–2 bytes, the whole frame squeezed under 32 bytes, and everything serialized cleanly. As the counter climbed past the varint thresholds (128, 16384, …) the frame grew a byte at a time, until eventually it tipped over the buffer and `to_slice_cobs` returned `SerializeBufferFull`.
+
+So the actual byte that overflowed the buffer was an incrementing counter quietly widening over minutes of flight — a buffer that "worked in testing" and only failed once a runtime value grew large enough. This is exactly why a worst-case bound matters: `MaxSize` sizes for the *largest* the value can ever be (a `u32` at its full 5-byte varint width), not the size it happens to have at boot.
+
 ## The fix: let the compiler compute the worst-case size
 
 postcard ships a `MaxSize` trait that gives the worst-case serialized length of a type as an associated const, computed at compile time:
