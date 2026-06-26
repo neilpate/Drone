@@ -121,6 +121,33 @@ GroundstationCommand { throttle: Throttle(x) }   ==(on the wire)==   Throttle(x)
 
 So sending a bare `Throttle` while the receiver decodes `GroundstationCommand` *works by accident*. The moment a second field is added to `GroundstationCommand`, the two sides silently diverge with no compile error. The safe habit: send and receive the **same named type** on both ends, mirroring how the telemetry direction uses `TelemetryState` both ways.
 
+## 6. A `Watch` consumer that does `get().await` stalls until the *first* publish — seed neutral values at startup
+
+This one bit twice, in two different crates, before the pattern was obvious. The link is a chain of `Watch` signals: each producer task `set()`s its slice, each consumer `get().await`s it. The trap is that `embassy_sync::watch::Receiver::get().await` **blocks until the watch has ever been published** — on a watch that no one has `set()` yet, the consumer parks indefinitely. It is non-blocking for the *CPU* (it yields to the executor), but it absolutely blocks that task's forward progress.
+
+The concrete failure: the drone's `telemetry_aggregator` builds each frame by `get().await`-ing several producer watches in sequence, one of them `pilot_command`. The remote only published a `PilotCommand` *after the PC sent its first stick command* — so until you touched a control, `pilot_command` had never been set, the aggregator parked on that `get().await`, and **no telemetry was ever assembled**. The whole downlink looked dead, intermittently, for a reason that had nothing to do with the serial link itself.
+
+The same shape had already appeared once: telemetry only started flowing once a throttle command was sent. Two instances of one hazard — *a downstream `get().await` is gated on an upstream producer's first publish.*
+
+The fix is to publish a **neutral default at task startup**, before the loop, so the watch always holds a value:
+
+```rust
+// serial_link_rx, first thing in the task — before reading any byte from the PC
+throttle_command::set(Throttle::from_normalised(0.0));
+roll_command::set(Roll::from_normalised(0.0));
+pitch_command::set(Pitch::from_normalised(0.0));
+yaw_command::set(Yaw::from_normalised(0.0));
+```
+
+Now the remote sends a (neutral) `PilotCommand` from the first radio round, the drone publishes `pilot_command` immediately, and `telemetry_aggregator` unblocks at cold start with no operator input. Two properties make this the right layer to fix it:
+
+- **Fix at the producer, not the consumer.** Seeding the source means every downstream `get().await` in the chain resolves early, without each consumer having to defend itself with `try_get` + a local default. One publish, many consumers unblocked.
+- **The default must be the *safe* value, not just any value.** For a flight control input that is zero throttle and centred sticks — the same value you would want if the link dropped. Seeding `0.0` doubles as the fail-safe rest state, so it is correct, not merely convenient.
+
+The systems-programming analogy: `get().await` is a read on a condition variable that is only ever signalled by the first write. If the writer is late, the reader sleeps forever. Seeding at startup is publishing an initial value so the very first read has something to return — like initialising shared state before spawning the threads that read it.
+
+If you genuinely want "latest if present, else carry on" semantics instead, `Receiver::try_get() -> Option<T>` is the non-blocking read — but prefer seeding the producer so the data is real and safe, rather than papering over a missing publish in every consumer.
+
 ## Takeaways
 
 - Packet transport (radio) frames for you; stream transport (UART) does not — re-add framing (COBS) and decode/re-encode through a shared type.
@@ -128,3 +155,4 @@ So sending a bare `Throttle` while the receiver decodes `GroundstationCommand` *
 - `embassy_nrf::uarte::UarteRx::read` fills the *whole* buffer. For unknown-length frames, read one byte at a time, or use `split_with_idle` + `read_until_idle` (costs a TIMER + 2 PPI channels).
 - `serialport::try_clone()` for concurrent read+write deadlocks on Windows. Use a single I/O thread with a short read timeout.
 - A single-field struct is wire-identical to its field in postcard — send the same named type on both ends to avoid a silent future divergence.
+- `Watch::get().await` blocks until the *first* publish, so a downstream consumer stalls forever if its producer is late. Seed a neutral, *safe* default at the producer's startup (zero throttle, centred sticks) so the whole chain unblocks at cold start.
