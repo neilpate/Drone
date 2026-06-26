@@ -27,3 +27,6 @@ pub use telemetry::Telemetry;
 pub use temperature::Temperature;
 pub use throttle::Throttle;
 pub use yaw::Yaw;
+
+pub use groundstation_command::FRAME_MAX_SIZE_BYTES as GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES;
+pub use telemetry::FRAME_MAX_SIZE_BYTES as TELEMETRY_FRAME_MAX_SIZE_BYTES;

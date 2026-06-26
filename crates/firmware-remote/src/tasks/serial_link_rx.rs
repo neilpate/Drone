@@ -1,4 +1,6 @@
-use firmware_types::{GroundstationCommand, Pitch, Roll, Throttle, Yaw};
+use firmware_types::{
+    GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, Pitch, Roll, Throttle, Yaw,
+};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use crate::board::UartRx;
@@ -15,7 +17,8 @@ pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
     yaw_command::set(Yaw::ZERO);
 
     let mut byte = [0u8; 1];
-    let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();
+    let mut cobs: CobsAccumulator<GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES> =
+        CobsAccumulator::new();
 
     loop {
         if let Err(e) = uart_rx.read(&mut byte).await {

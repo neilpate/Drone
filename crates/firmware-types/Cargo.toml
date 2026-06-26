@@ -18,13 +18,7 @@ publish              = false
 
 serde = { workspace = true }
 defmt = { workspace = true, optional = true }
-
-[dev-dependencies]
-# Host-only: exercises the wire format round-trip in `cargo test`.
-# Pinned directly (not via workspace) to avoid the workspace `use-defmt`
-# feature, which would require a global defmt logger that doesn't exist
-# on host.
-postcard = { version = "1", default-features = false }
+postcard = { version = "1", default-features = false, features = ["experimental-derive"] }
 
 [lints]
 workspace = true

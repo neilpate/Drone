@@ -1,7 +1,9 @@
-use crate::{DroneState, PilotCommand, Sensors};
+use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+use crate::{DroneState, PilotCommand, Sensors};
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Telemetry {
     pub sequence_number: u32,
@@ -10,6 +12,10 @@ pub struct Telemetry {
     pub pilot_command: PilotCommand,
     pub cpu_load: crate::CpuLoad,
 }
+
+// The maximum size of a `Telemetry` frame, in bytes, when serialized with `postcard`.
+pub const FRAME_MAX_SIZE_BYTES: usize =
+    Telemetry::POSTCARD_MAX_SIZE + Telemetry::POSTCARD_MAX_SIZE / 254 + 2;
 
 #[cfg(test)]
 mod tests {

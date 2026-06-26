@@ -1,5 +1,5 @@
 use embassy_time::{Duration, Ticker};
-use firmware_types::{CpuLoad, Telemetry};
+use firmware_types::Telemetry;
 
 use crate::signals::{cpu_load, pilot_command, sensors, status, telemetry};
 

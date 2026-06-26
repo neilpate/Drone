@@ -1,5 +1,6 @@
 use core::ops::Mul;
 
+use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
 /// Normalised yaw stick deflection, `-1.0..=1.0` (centre `0.0`), dimensionless.
@@ -12,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// Note the wire value is a dimensionless deflection like roll and pitch; the
 /// drone interprets yaw as a *rate* (deg/s) rather than an angle, but that split
 /// lives in the control law, not here.
-#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Yaw(f32);
 

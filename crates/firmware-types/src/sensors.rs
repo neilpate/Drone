@@ -1,8 +1,9 @@
+use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
 use crate::Temperature;
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Sensors {
     pub temperature: Temperature,

@@ -1,5 +1,6 @@
 use core::ops::Mul;
 
+use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
 /// Normalised roll stick deflection, `-1.0..=1.0` (centre `0.0`), dimensionless.
@@ -8,7 +9,7 @@ use serde::{Deserialize, Serialize};
 /// the three are structurally identical hand-written newtypes (ADR 0016 allows a
 /// macro here, but we keep them separate for grep-ability). Keep all three in
 /// sync — a change to one usually means the same change to the other two.
-#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Roll(f32);
 

@@ -1,13 +1,12 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
-use firmware_types::{PilotCommand, Telemetry};
+use firmware_types::{PilotCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry};
 
 use crate::board::Radio;
 use crate::radio_link;
 use crate::signals::{pilot_command, telemetry};
 
-const MAX_SEND_BUFFER_SIZE: usize = 32;
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up
 
 async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
@@ -36,7 +35,7 @@ async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
 }
 
 async fn send(radio: &mut Radio, telemetry: Telemetry) -> Result<(), radio::Error> {
-    let mut scratch = [0u8; MAX_SEND_BUFFER_SIZE]; //Working space for serialization
+    let mut scratch = [0u8; TELEMETRY_FRAME_MAX_SIZE_BYTES]; //Working space for serialization
 
     //bytes_to_send is a subslice of scratch which contains the serialized TelemetryState
     let bytes_to_send = postcard::to_slice(&telemetry, &mut scratch)

@@ -1,6 +1,7 @@
+use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct CpuLoad(f32);
 
