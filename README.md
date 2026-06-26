@@ -26,6 +26,8 @@ The four traces above are the visible end of a busy round trip: every sample lef
 
 Because the drone echoes each pilot command back in its telemetry, the ground station can time the whole loop: it matches every command it sends against its echo and reports the end-to-end round-trip latency, which measures **~25–30 ms** on hardware — consistent with the 10 ms aggregator/radio/UART tick quantisation.
 
+The drone also runs a lowest-priority idle-spinner CPU-load profiler: a sole thread-mode task busy-spins a fixed amount of work and infers system load from how much that window stretches under preemption (`load = 1 − T0/T1`). The result rides along in each telemetry frame and is surfaced on the ground station. See the learning note [cpu-load-profiling-idle-spinner.md](doc/learning/cpu-load-profiling-idle-spinner.md).
+
 **Next:** ICM-42688 SPI bring-up once the breakout arrives.
 
 See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
