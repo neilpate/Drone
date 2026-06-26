@@ -1,4 +1,4 @@
-use firmware_types::GroundstationCommand;
+use firmware_types::{GroundstationCommand, Pitch, Roll, Throttle, Yaw};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use crate::board::UartRx;
@@ -7,6 +7,12 @@ use crate::signals::{pitch_command, roll_command, throttle_command, yaw_command}
 #[embassy_executor::task]
 pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
     defmt::info!("serial_link_rx (from groundstation) task: started");
+
+    // Set the watch signals so that the link to the drone will be in a known state and not blocking
+    throttle_command::set(Throttle::ZERO);
+    roll_command::set(Roll::ZERO);
+    pitch_command::set(Pitch::ZERO);
+    yaw_command::set(Yaw::ZERO);
 
     let mut byte = [0u8; 1];
     let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();

@@ -1,3 +1,4 @@
+pub mod cpu_load;
 pub mod motor_command;
 pub mod pilot_command;
 pub mod sensors;

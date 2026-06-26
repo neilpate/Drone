@@ -1,7 +1,7 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
-use firmware_types::{PilotCommand, TelemetryState};
+use firmware_types::{PilotCommand, Telemetry};
 
 use crate::board::Radio;
 use crate::radio_link;
@@ -25,7 +25,7 @@ async fn send(radio: &mut Radio, state: PilotCommand) -> Result<(), radio::Error
     radio.try_send(&mut tx_packet).await
 }
 
-async fn receive(radio: &mut Radio) -> Option<TelemetryState> {
+async fn receive(radio: &mut Radio) -> Option<Telemetry> {
     let mut rx_packet = Packet::new();
 
     match with_timeout(RECEIVE_TIMEOUT, radio.receive(&mut rx_packet)).await {

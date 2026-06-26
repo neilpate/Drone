@@ -12,6 +12,22 @@ pub struct PilotCommand {
     pub yaw: Yaw,
 }
 
+impl Default for PilotCommand {
+    /// Neutral, fail-safe command: zero throttle, centred sticks. This is the
+    /// value to publish at startup and to fall back to if no command has been
+    /// received, so a missing or dropped command holds the craft safe rather
+    /// than acting on garbage.
+    fn default() -> Self {
+        Self {
+            sequence_count: 0,
+            throttle: Throttle::from_normalised(0.0),
+            roll: Roll::from_normalised(0.0),
+            pitch: Pitch::from_normalised(0.0),
+            yaw: Yaw::from_normalised(0.0),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

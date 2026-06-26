@@ -1,7 +1,7 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
-use firmware_types::{PilotCommand, TelemetryState};
+use firmware_types::{PilotCommand, Telemetry};
 
 use crate::board::Radio;
 use crate::radio_link;
@@ -35,7 +35,7 @@ async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
     }
 }
 
-async fn send(radio: &mut Radio, telemetry: TelemetryState) -> Result<(), radio::Error> {
+async fn send(radio: &mut Radio, telemetry: Telemetry) -> Result<(), radio::Error> {
     let mut scratch = [0u8; MAX_SEND_BUFFER_SIZE]; //Working space for serialization
 
     //bytes_to_send is a subslice of scratch which contains the serialized TelemetryState
@@ -53,6 +53,8 @@ async fn send(radio: &mut Radio, telemetry: TelemetryState) -> Result<(), radio:
 pub async fn remote_link(mut radio: Radio) -> ! {
     defmt::info!("remote_link task: started");
 
+    pilot_command::set(PilotCommand::default()); //Set the watch signal so that the link to the drone will be in a known state and not blocking
+
     let mut telemetry_receiver = telemetry::subscribe();
 
     radio.set_channel(radio_link::CHANNEL);
@@ -61,9 +63,6 @@ pub async fn remote_link(mut radio: Radio) -> ! {
         let Some(command) = receive(&mut radio).await else {
             continue;
         };
-
-        // This will only run if control data was received from the remote
-        defmt::debug!("received: {}", command);
 
         pilot_command::set(command); //Publish the received command to any subscribers
 

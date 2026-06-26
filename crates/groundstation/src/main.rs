@@ -16,9 +16,7 @@ use std::time::{Duration, Instant};
 
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
-use firmware_types::{
-    GroundstationCommand, PilotCommand, Pitch, Roll, TelemetryState, Throttle, Yaw,
-};
+use firmware_types::{GroundstationCommand, PilotCommand, Pitch, Roll, Telemetry, Throttle, Yaw};
 
 use groundstation::{
     commands_match, drone_state_code, encode_command, stick_to_deflection, trigger_to_throttle,
@@ -101,6 +99,7 @@ const SERIES_SEQUENCE: usize = 5;
 const SERIES_TEMPERATURE: usize = 6;
 const SERIES_RTT: usize = 7;
 const SERIES_AVG_RTT: usize = 8;
+const SERIES_CPU_LOAD: usize = 9;
 
 /// Maximum number of rows in one telemetry-table column before wrapping into
 /// the next column.
@@ -113,11 +112,11 @@ struct App {
     pitch: f32,
     yaw: f32,
     tx: Option<mpsc::Sender<GroundstationCommand>>,
-    telemetry_rx: Option<mpsc::Receiver<TelemetryState>>,
+    telemetry_rx: Option<mpsc::Receiver<Telemetry>>,
     status: String,
     start: Instant,
     series: Vec<Series>,
-    last: Option<TelemetryState>,
+    last: Option<Telemetry>,
     /// Sent commands awaiting their echo in telemetry, with the send instant.
     /// Used to measure the end-to-end round-trip time.
     pending: VecDeque<(Instant, GroundstationCommand)>,
@@ -160,6 +159,7 @@ impl Default for App {
                     egui::Color32::from_rgb(180, 120, 200),
                 )
                 .hidden(),
+                Series::new("CPU load (%)", egui::Color32::from_rgb(255, 100, 180)).hidden(),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -219,6 +219,7 @@ impl App {
             self.series[SERIES_SEQUENCE].push(t, telemetry.sequence_number as f64);
             self.series[SERIES_TEMPERATURE]
                 .push(t, telemetry.sensors.temperature.as_celsius() as f64);
+            self.series[SERIES_CPU_LOAD].push(t, telemetry.cpu_load.as_percentage() as f64);
             self.match_round_trip(&telemetry.pilot_command);
             if let Some(rtt) = self.last_rtt_ms {
                 self.series[SERIES_RTT].push(t, rtt);
@@ -255,7 +256,7 @@ impl App {
     /// command channel (UI -> thread) and the telemetry channel (thread -> UI).
     fn connect(&mut self, ctx: egui::Context) {
         let (cmd_tx, cmd_rx) = mpsc::channel::<GroundstationCommand>();
-        let (telemetry_tx, telemetry_rx) = mpsc::channel::<TelemetryState>();
+        let (telemetry_tx, telemetry_rx) = mpsc::channel::<Telemetry>();
 
         let port = match serialport::new(&self.port_name, 115_200)
             .timeout(Duration::from_millis(50))
@@ -352,7 +353,7 @@ impl App {
         // formatted current value). Built up front so the loop below only
         // borrows `self.series`.
         let dash = || "\u{2014}".to_string();
-        let rows: [(&str, usize, String); 9] = [
+        let rows: [(&str, usize, String); 10] = [
             (
                 "Sequence",
                 SERIES_SEQUENCE,
@@ -397,6 +398,11 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!("{:.2} \u{00B0}C", t.sensors.temperature.as_celsius())
                 }),
+            ),
+            (
+                "CPU load",
+                SERIES_CPU_LOAD,
+                last.map_or_else(dash, |t| format!("{:.2} %", t.cpu_load.as_percentage())),
             ),
             (
                 "Round-trip",
@@ -544,7 +550,7 @@ impl eframe::App for App {
 fn serial_io_thread(
     mut port: Box<dyn serialport::SerialPort>,
     rx: mpsc::Receiver<GroundstationCommand>,
-    telemetry_tx: mpsc::Sender<TelemetryState>,
+    telemetry_tx: mpsc::Sender<Telemetry>,
     ctx: egui::Context,
 ) {
     let mut buf = [0u8; MAX_SEND_BUFFER_SIZE]; // serialization scratch
@@ -566,7 +572,7 @@ fn serial_io_thread(
             Ok(n) => {
                 let mut window = &raw[..n];
                 while !window.is_empty() {
-                    window = match cobs.feed::<TelemetryState>(window) {
+                    window = match cobs.feed::<Telemetry>(window) {
                         FeedResult::Consumed => break,        // buffered, need more bytes
                         FeedResult::OverFull(rest) => rest,   // frame too big -> resync
                         FeedResult::DeserError(rest) => rest, // garbage -> resync
