@@ -45,7 +45,7 @@ embassy-nrf = { version = "0.2", features = [
     "gpiote",
     "defmt",
     "unstable-pac",
-     "nfc-pins-as-gpio",
+    "nfc-pins-as-gpio",
 ] }
 embassy-time = { version = "0.3", features = [
     "defmt",
