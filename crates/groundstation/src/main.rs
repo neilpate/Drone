@@ -100,6 +100,12 @@ const SERIES_TEMPERATURE: usize = 6;
 const SERIES_RTT: usize = 7;
 const SERIES_AVG_RTT: usize = 8;
 const SERIES_CPU_LOAD: usize = 9;
+const SERIES_ACCEL_X: usize = 10;
+const SERIES_ACCEL_Y: usize = 11;
+const SERIES_ACCEL_Z: usize = 12;
+const SERIES_GYRO_X: usize = 13;
+const SERIES_GYRO_Y: usize = 14;
+const SERIES_GYRO_Z: usize = 15;
 
 /// Maximum number of rows in one telemetry-table column before wrapping into
 /// the next column.
@@ -160,6 +166,12 @@ impl Default for App {
                 )
                 .hidden(),
                 Series::new("CPU load (%)", egui::Color32::from_rgb(255, 100, 180)).hidden(),
+                Series::new("Accel X (g)", egui::Color32::from_rgb(240, 100, 100)),
+                Series::new("Accel Y (g)", egui::Color32::from_rgb(100, 220, 120)),
+                Series::new("Accel Z (g)", egui::Color32::from_rgb(100, 150, 240)),
+                Series::new("Gyro X (dps)", egui::Color32::from_rgb(240, 170, 90)).hidden(),
+                Series::new("Gyro Y (dps)", egui::Color32::from_rgb(170, 240, 170)).hidden(),
+                Series::new("Gyro Z (dps)", egui::Color32::from_rgb(170, 170, 240)).hidden(),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -220,6 +232,21 @@ impl App {
             self.series[SERIES_TEMPERATURE]
                 .push(t, telemetry.sensors.temperature.as_celsius() as f64);
             self.series[SERIES_CPU_LOAD].push(t, telemetry.cpu_load.as_percentage() as f64);
+            self.series[SERIES_ACCEL_X].push(t, telemetry.imu.acceleration_x.as_g() as f64);
+            self.series[SERIES_ACCEL_Y].push(t, telemetry.imu.acceleration_y.as_g() as f64);
+            self.series[SERIES_ACCEL_Z].push(t, telemetry.imu.acceleration_z.as_g() as f64);
+            self.series[SERIES_GYRO_X].push(
+                t,
+                telemetry.imu.angular_rate_x.as_degrees_per_second() as f64,
+            );
+            self.series[SERIES_GYRO_Y].push(
+                t,
+                telemetry.imu.angular_rate_y.as_degrees_per_second() as f64,
+            );
+            self.series[SERIES_GYRO_Z].push(
+                t,
+                telemetry.imu.angular_rate_z.as_degrees_per_second() as f64,
+            );
             self.match_round_trip(&telemetry.pilot_command);
             if let Some(rtt) = self.last_rtt_ms {
                 self.series[SERIES_RTT].push(t, rtt);
@@ -353,7 +380,7 @@ impl App {
         // formatted current value). Built up front so the loop below only
         // borrows `self.series`.
         let dash = || "\u{2014}".to_string();
-        let rows: [(&str, usize, String); 10] = [
+        let rows: [(&str, usize, String); 16] = [
             (
                 "Sequence",
                 SERIES_SEQUENCE,
@@ -413,6 +440,42 @@ impl App {
                 "Avg round-trip",
                 SERIES_AVG_RTT,
                 avg_rtt_ms.map_or_else(dash, |avg| format!("{avg:.1} ms")),
+            ),
+            (
+                "Accel X",
+                SERIES_ACCEL_X,
+                last.map_or_else(dash, |t| format!("{:+.3} g", t.imu.acceleration_x.as_g())),
+            ),
+            (
+                "Accel Y",
+                SERIES_ACCEL_Y,
+                last.map_or_else(dash, |t| format!("{:+.3} g", t.imu.acceleration_y.as_g())),
+            ),
+            (
+                "Accel Z",
+                SERIES_ACCEL_Z,
+                last.map_or_else(dash, |t| format!("{:+.3} g", t.imu.acceleration_z.as_g())),
+            ),
+            (
+                "Gyro X",
+                SERIES_GYRO_X,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.1} dps", t.imu.angular_rate_x.as_degrees_per_second())
+                }),
+            ),
+            (
+                "Gyro Y",
+                SERIES_GYRO_Y,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.1} dps", t.imu.angular_rate_y.as_degrees_per_second())
+                }),
+            ),
+            (
+                "Gyro Z",
+                SERIES_GYRO_Z,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.1} dps", t.imu.angular_rate_z.as_degrees_per_second())
+                }),
             ),
         ];
 
