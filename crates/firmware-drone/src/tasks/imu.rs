@@ -43,7 +43,6 @@ pub async fn imu(mut imu: board::Imu) -> ! {
         match imu_data {
             Ok(data) => {
                 imu_data::set(data); // Update the shared signal with the latest IMU data
-                defmt::info!("imu data: {:?}", data); // Log the IMU data for debugging purposes
             }
             Err(e) => {
                 defmt::error!("imu read failed: {:?}", e); // Log any errors encountered during IMU reading
