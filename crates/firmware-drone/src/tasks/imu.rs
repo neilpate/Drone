@@ -36,8 +36,7 @@ pub async fn imu(mut imu: board::Imu) -> ! {
     Timer::after(Duration::from_millis(100)).await; // Give the IMU some time to stabilize after configuration
 
     loop {
-        // Placeholder for future IMU reading and processing logic
-        Timer::after(Duration::from_millis(100)).await; // Adjust the delay as needed
+        Timer::after(Duration::from_millis(1)).await; // Adjust the delay as needed
         let imu_data = imu.read_all().await; // Read all IMU data (accelerometer, gyroscope, etc.)
 
         match imu_data {
