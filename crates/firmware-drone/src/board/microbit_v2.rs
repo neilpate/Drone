@@ -15,8 +15,6 @@ use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
 use firmware_types::Throttle;
 
-use crate::board::Motor::Motor0;
-
 pub const NAME: &str = "BBC micro:bit v2";
 
 /// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
@@ -170,7 +168,99 @@ impl Motors {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, defmt::Format)]
+pub enum ImuError {
+    Spi(spim::Error),
+    UnexpectedIdentity { found: u8 },
+}
+
 pub struct Imu {
     spi: Spim3,
     cs: Output<'static>,
+}
+
+impl Imu {
+    pub async fn check_identity(&mut self) -> Result<(), ImuError> {
+        self.cs.set_low(); // Drop CS low to select the IMU
+
+        let who_am_i_register = 0x75; // WHO_AM_I register address for ICM-42688-P
+
+        let mut buf = [who_am_i_register | 0x80, 0x00]; // Read command for WHO_AM_I register
+        // The first byte is the register address with the read bit set (0x80).
+        // The second byte is a dummy byte to clock out the response.
+
+        let result = self.spi.transfer_in_place(&mut buf).await;
+
+        self.cs.set_high();
+
+        match result {
+            Ok(_) => {
+                match buf[1] {
+                    0x47 => Ok(()), // Expect 0x47 for the ICM-42688-P IMU
+                    found => Err(ImuError::UnexpectedIdentity { found }), // Unexpected identity value
+                }
+            }
+            Err(e) => Err(ImuError::Spi(e)),
+        }
+    }
+
+    pub async fn configure(&mut self) -> Result<(), ImuError> {
+        self.cs.set_low(); // Drop CS low to select the IMU
+
+        let config = 0x0f; // Enables both sensors in the low noise mode
+
+        let pwm_mgmt0_register = 0x4E; // PWM_MGMT0 register address for ICM-42688-P
+        let mut buf = [pwm_mgmt0_register, config]; // Write command for setting the PWM_MGMT0 register
+        // The first byte is the register address with the read bit cleared
+        // The second byte is the data we will write
+
+        let result = self.spi.transfer_in_place(&mut buf).await;
+
+        self.cs.set_high();
+
+        match result {
+            Ok(_) => Ok(()),
+            Err(e) => Err(ImuError::Spi(e)),
+        }
+    }
+
+    fn convert_bytes(data: &[u8]) -> (i16, i16, i16) {
+        let x = i16::from_be_bytes([data[0], data[1]]);
+        let y = i16::from_be_bytes([data[2], data[3]]);
+        let z = i16::from_be_bytes([data[4], data[5]]);
+        (x, y, z)
+    }
+
+    pub async fn read_all(&mut self) -> Result<(), ImuError> {
+        self.cs.set_low(); // Drop CS low to select the IMU
+
+        let accel_data_x1_register = 0x1F; // ACCEL_DATA_X1 register address for ICM-42688-P
+
+        let mut buf = [0u8; 13]; // Buffer to hold the read command and the 12 bytes of response
+        //If we do a continuous read starting from ACCEL_DATA_X1, we will get 12 bytes of data: 6 bytes for accelerometer (X, Y, Z) and 6 bytes for gyroscope (X, Y, Z)
+
+        buf[0] = accel_data_x1_register | 0x80; // Read command for ACCEL_DATA_X1 register
+
+        let result = self.spi.transfer_in_place(&mut buf).await;
+
+        self.cs.set_high();
+
+        match result {
+            Ok(_) => {
+                let (accel_x, accel_y, accel_z) = Self::convert_bytes(&buf[1..7]);
+                let (gyro_x, gyro_y, gyro_z) = Self::convert_bytes(&buf[7..13]);
+                defmt::info!(
+                    "IMU data read: accel=({}, {}, {}), gyro=({}, {}, {})",
+                    accel_x,
+                    accel_y,
+                    accel_z,
+                    gyro_x,
+                    gyro_y,
+                    gyro_z
+                );
+                Ok(())
+            }
+            Err(e) => Err(ImuError::Spi(e)),
+        }
+    }
 }

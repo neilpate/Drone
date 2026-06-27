@@ -1,3 +1,4 @@
+pub mod imu;
 pub mod load_profiler;
 pub mod motor_controller;
 pub mod remote_link;
