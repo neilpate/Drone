@@ -23,7 +23,7 @@ use groundstation::{
 };
 
 use eframe::egui;
-use egui_plot::{Legend, Line, Plot, PlotPoints};
+use egui_plot::{Corner, Legend, Line, Plot, PlotPoints};
 use gilrs::{Axis, Button, EventType, GamepadId, Gilrs};
 
 const MAX_SEND_BUFFER_SIZE: usize = 32;
@@ -39,6 +39,10 @@ const MAX_PENDING: usize = 512;
 /// Smoothing factor for the exponential moving average of the round-trip time.
 const RTT_EMA_ALPHA: f64 = 0.2;
 
+/// Storage key under which the configured serial port name is persisted
+/// between runs.
+const PORT_STORAGE_KEY: &str = "port_name";
+
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([900.0, 600.0]),
@@ -47,7 +51,7 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "Drone Ground Station",
         options,
-        Box::new(|_cc| Ok(Box::new(App::default()))),
+        Box::new(|cc| Ok(Box::new(App::new(cc)))),
     )
 }
 
@@ -185,6 +189,21 @@ impl Default for App {
 }
 
 impl App {
+    /// Build the app, restoring the saved port name from persistent storage
+    /// (falling back to the default) and immediately attempting to connect.
+    fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let mut app = Self::default();
+        if let Some(storage) = cc.storage
+            && let Some(port) = storage
+                .get_string(PORT_STORAGE_KEY)
+                .filter(|p| !p.is_empty())
+        {
+            app.port_name = port;
+        }
+        app.connect(cc.egui_ctx.clone());
+        app
+    }
+
     /// Build the command from the four current control values.
     fn command(&self) -> GroundstationCommand {
         GroundstationCommand {
@@ -510,13 +529,16 @@ impl App {
 }
 
 impl eframe::App for App {
+    /// Persist the configured serial port so the next launch reconnects to it.
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        storage.set_string(PORT_STORAGE_KEY, self.port_name.clone());
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.ingest_telemetry();
         self.poll_gamepad(ctx);
 
         egui::TopBottomPanel::top("controls").show(ctx, |ui| {
-            ui.add_space(4.0);
-            ui.heading("Drone Ground Station");
             ui.add_space(4.0);
 
             ui.horizontal_top(|ui| {
@@ -545,7 +567,7 @@ impl eframe::App for App {
                         ui.label("Gamepad:");
                         match &self.gamepad_name {
                             Some(name) => ui.label(format!(
-                                "{name}  (R2 \u{2192} throttle, left stick \u{2192} yaw, right stick \u{2192} roll/pitch)"
+                                "{name}  (R2 -> throttle, left stick -> yaw, right stick -> roll/pitch)"
                             )),
                             None => ui.label("none detected"),
                         };
@@ -593,7 +615,7 @@ impl eframe::App for App {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             Plot::new("telemetry_plot")
-                .legend(Legend::default())
+                .legend(Legend::default().position(Corner::LeftTop))
                 .x_axis_label("time (s)")
                 .show(ui, |plot_ui| {
                     for series in &self.series {
