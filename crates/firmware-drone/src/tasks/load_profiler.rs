@@ -62,7 +62,7 @@ pub async fn load_profiler(baseline: Duration) -> ! {
         let load_bp = 10_000u64.saturating_sub(baseline_us * 10_000 / elapsed_us);
         let load = CpuLoad::from_percentage((load_bp as f32) / 100.0);
 
-        defmt::info!("system load: {}.{:02} %", load_bp / 100, load_bp % 100);
+        // defmt::info!("system load: {}.{:02} %", load_bp / 100, load_bp % 100);
 
         cpu_load::set(load);
     }

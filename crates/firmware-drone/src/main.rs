@@ -35,10 +35,6 @@ async fn main(thread_mode_spawner: Spawner) {
     defmt::info!("firmware-drone on {}: boot ", board::NAME);
 
     let calibration_baseline = tasks::load_profiler::calibrate();
-    defmt::info!(
-        "load profiler: zero-load baseline {} us",
-        calibration_baseline.as_micros()
-    );
 
     interrupt::SWI0_EGU0.set_priority(Priority::P6);
     let high_priority_spawner = EXEC.start(interrupt::SWI0_EGU0);
