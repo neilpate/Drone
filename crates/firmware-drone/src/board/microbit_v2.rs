@@ -5,12 +5,17 @@
 //!
 //! See [ADR 0010](../../../../doc/decisions/0010-board-support-package.md) for
 //! the contract this module satisfies.
+//!
+//!
 
 use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm::SimplePwm;
+use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
 use firmware_types::Throttle;
+
+use crate::board::Motor::Motor0;
 
 pub const NAME: &str = "BBC micro:bit v2";
 
@@ -18,10 +23,12 @@ pub const NAME: &str = "BBC micro:bit v2";
 pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
 
 pub type TemperatureSensor = temp::Temp<'static>;
+pub type Spim3 = spim::Spim<'static, peripherals::SPI3>;
 
 bind_interrupts!(struct Irqs {
     RADIO => radio::InterruptHandler<peripherals::RADIO>;
     TEMP => temp::InterruptHandler;
+    SPIM3 => spim::InterruptHandler<peripherals::SPI3>;
 });
 
 pub struct Board {
@@ -29,7 +36,28 @@ pub struct Board {
     pub motors: Motors,
     pub radio: Radio,
     pub temperature_sensor: TemperatureSensor,
+    pub imu: Imu,
 }
+
+// Pin map — BBC micro:bit v2 / nRF52833
+//
+// | Function       | nRF pin | Edge | Peripheral | Notes               |
+// |----------------|---------|------|------------|---------------------|
+// | Motor M0       | P0.10   | 8    | PWM0 ch0   | NFC2 -> GPIO        |
+// | Motor M1       | P0.09   | 9    | PWM0 ch1   | NFC1 -> GPIO        |
+// | Motor M2       | P0.12   | 12   | PWM0 ch2   | plain GPIO          |
+// | Motor M3       | P0.02   | 0    | PWM0 ch3   | large pad / ADC     |
+// | IMU SCK        | P0.17   | 13   | SPIM3      | SPI_EXT block       |
+// | IMU MISO       | P0.01   | 14   | SPIM3      |                     |
+// | IMU MOSI       | P0.13   | 15   | SPIM3      |                     |
+// | IMU CS         | P1.02   | 16   | GPIO out   | manual, idle high   |
+// | Status LED row | P0.21   | -    | GPIO out   | onboard 5x5 matrix  |
+// | Status LED col | P0.28   | -    | GPIO out   | onboard 5x5 matrix  |
+// | Radio          | -       | -    | RADIO      | internal, 802.15.4  |
+// | Temp sensor    | -       | -    | TEMP       | internal            |
+//
+// Motors share PWM0 (one frequency, independent duty). The NFC pins
+// (P0.09 / P0.10) require the `nfc-pins-as-gpio` embassy-nrf feature.
 
 impl Board {
     pub fn new() -> Self {
@@ -37,11 +65,22 @@ impl Board {
         config.hfclk_source = HfclkSource::ExternalXtal;
         let p = embassy_nrf::init(config);
 
+        let mut spi_config = spim::Config::default();
+        spi_config.frequency = spim::Frequency::M1;
+        spi_config.mode = spim::MODE_0;
+
+        let imu_spi = Spim::new(p.SPI3, Irqs, p.P0_17, p.P0_01, p.P0_13, spi_config);
+        let imu_cs = Output::new(p.P1_02.degrade(), Level::High, OutputDrive::Standard);
+
         Self {
             status_led: StatusLed::new(p.P0_21, p.P0_28),
-            motors: Motors::new(p.PWM0, p.P0_17),
+            motors: Motors::new(p.PWM0, p.P0_10, p.P0_09, p.P0_12, p.P0_02),
             radio: Radio::new(p.RADIO, Irqs),
             temperature_sensor: TemperatureSensor::new(p.TEMP, Irqs),
+            imu: Imu {
+                spi: imu_spi,
+                cs: imu_cs,
+            },
         }
     }
 }
@@ -68,38 +107,70 @@ impl StatusLed {
 }
 
 pub struct Motors {
-    channels: SimplePwm<'static, peripherals::PWM0>,
+    motors: SimplePwm<'static, peripherals::PWM0>,
+}
+
+pub enum Motor {
+    Motor0,
+    Motor1,
+    Motor2,
+    Motor3,
 }
 
 impl Motors {
     const MAX_DUTY: u16 = 1000;
 
-    pub fn new(peripherals: peripherals::PWM0, ch0: impl Pin) -> Self {
-        let mut channels = SimplePwm::new_1ch(peripherals, ch0);
-        channels.set_prescaler(embassy_nrf::pwm::Prescaler::Div1);
-        channels.set_max_duty(Self::MAX_DUTY);
-        channels.set_duty(0, Self::MAX_DUTY); //Default to off (100% duty means always off, 0% duty means always on)
+    pub fn new(
+        peripherals: peripherals::PWM0,
+        motor0: impl Pin,
+        motor1: impl Pin,
+        motor2: impl Pin,
+        motor3: impl Pin,
+    ) -> Self {
+        let mut motors = SimplePwm::new_4ch(peripherals, motor0, motor1, motor2, motor3);
+        motors.set_prescaler(embassy_nrf::pwm::Prescaler::Div1);
+        motors.set_max_duty(Self::MAX_DUTY);
 
-        Self { channels }
+        for motor in [Motor::Motor0, Motor::Motor1, Motor::Motor2, Motor::Motor3] {
+            let channel = Self::motor_to_channel(motor);
+            motors.set_duty(channel, Self::MAX_DUTY); //Default to off (100% duty means always off, 0% duty means always on)
+        }
+
+        Self { motors }
     }
 
     pub fn enable(&mut self) {
-        self.channels.enable();
+        self.motors.enable();
     }
 
     // API symmetry with enable(); will be used by the failsafe path.
     #[expect(dead_code)]
     pub fn disable(&mut self) {
-        self.channels.disable();
+        self.motors.disable();
     }
 
-    pub fn set_throttle(&mut self, channel: usize, throttle: Throttle) {
+    fn motor_to_channel(motor: Motor) -> usize {
+        match motor {
+            Motor::Motor0 => 0,
+            Motor::Motor1 => 1,
+            Motor::Motor2 => 2,
+            Motor::Motor3 => 3,
+        }
+    }
+
+    pub fn set_throttle(&mut self, motor: Motor, throttle: Throttle) {
         let on_ticks = (throttle.as_normalised() * f32::from(Self::MAX_DUTY)) as u16;
 
         // Note, duty is a bit counterintuitive: 0 is full on, max_duty is full off.
         // Duty means off ticks per period
         let duty = Self::MAX_DUTY - on_ticks; //Invert to get duty (off ticks)
 
-        self.channels.set_duty(channel, duty);
+        let channel = Self::motor_to_channel(motor);
+        self.motors.set_duty(channel, duty);
     }
+}
+
+pub struct Imu {
+    spi: Spim3,
+    cs: Output<'static>,
 }
