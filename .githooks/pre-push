@@ -1,18 +1,21 @@
 #!/bin/sh
-# Pre-push hook: run the host-testable suite before any push is allowed.
+# Pre-push hook: run the same checks CI does before any push is allowed.
 #
 # Wired into git via `git config core.hooksPath .githooks` (run once per clone;
 # see doc/ci-and-testing.md). Lives in the repo so it survives PC changes,
 # unlike .git/hooks/.
 #
-# Runs two test scopes via cargo-nextest (one aggregated summary per scope):
-#   1. The workspace default-members (firmware-types + the *-core crates) from
-#      the repo root. On-target firmware crates are excluded from
-#      default-members and need a cross target, so they are not tested here.
+# Mirrors .github/workflows/ci.yml so a clean local push cannot red CI. Two
+# scopes, each running fmt -> clippy -> tests:
+#   1. The workspace root. `cargo fmt --all` covers every member (including the
+#      on-target firmware crates); clippy and nextest honour `default-members`
+#      (firmware-types + the *-core crates), so the cross-compiled firmware
+#      binaries are not built here.
 #   2. The `groundstation` crate, which is intentionally NOT a workspace member
 #      (host-only egui app), so a root run does not reach it.
 #
-# Requires cargo-nextest: `cargo install cargo-nextest --locked`.
+# Requires: cargo-nextest (`cargo install cargo-nextest --locked`) and the
+# rustfmt + clippy components (`rustup component add rustfmt clippy`).
 # To bypass in a genuine emergency: `git push --no-verify` (discouraged).
 
 set -e
@@ -23,11 +26,25 @@ if ! cargo nextest --version >/dev/null 2>&1; then
 	exit 1
 fi
 
+GS_MANIFEST="crates/groundstation/Cargo.toml"
+
+echo "pre-push: cargo fmt --all --check (workspace)"
+cargo fmt --all --check
+
+echo "pre-push: cargo clippy --all-targets (workspace default-members)"
+cargo clippy --all-targets -- -D warnings
+
 echo "pre-push: cargo nextest run (workspace default-members)"
 cargo nextest run
 
-echo "pre-push: cargo nextest run (groundstation)"
-# --no-tests=pass: groundstation has no tests yet; an empty run must not fail the push.
-cargo nextest run --no-tests=pass --manifest-path crates/groundstation/Cargo.toml
+echo "pre-push: cargo fmt --check (groundstation)"
+cargo fmt --check --manifest-path "$GS_MANIFEST"
 
-echo "pre-push: all host tests passed"
+echo "pre-push: cargo clippy --all-targets (groundstation)"
+cargo clippy --all-targets --manifest-path "$GS_MANIFEST" -- -D warnings
+
+echo "pre-push: cargo nextest run (groundstation)"
+# --no-tests=pass: an empty run must not fail the push.
+cargo nextest run --no-tests=pass --manifest-path "$GS_MANIFEST"
+
+echo "pre-push: all CI checks passed"
