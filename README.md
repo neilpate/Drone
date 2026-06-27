@@ -28,7 +28,9 @@ Because the drone echoes each pilot command back in its telemetry, the ground st
 
 The drone also runs a lowest-priority idle-spinner CPU-load profiler: a sole thread-mode task busy-spins a fixed amount of work and infers system load from how much that window stretches under preemption (`load = 1 − T0/T1`). The result rides along in each telemetry frame and is surfaced on the ground station. See the learning note [cpu-load-profiling-idle-spinner.md](doc/learning/cpu-load-profiling-idle-spinner.md). All wire buffers are sized at compile time from the shared types via postcard's `MaxSize`, so a frame can never silently outgrow its buffer ([postcard-maxsize-sizing-buffers.md](doc/learning/postcard-maxsize-sizing-buffers.md)).
 
-**Next:** ICM-42688 SPI bring-up — the breakout has arrived and the headers are soldered on.
+The ICM-42688-P IMU is now brought up over SPI: the drone reads scaled 6-axis data (accelerometer in g, gyroscope in deg/s) and telemeters it through the same path, where the ground station plots and tabulates all six axes. All four motor outputs (PWM0 channels, `Motor0`–`Motor3` on `P0.10 / P0.09 / P0.12 / P0.02`) are wired and validated on hardware, defaulting to off at boot via the inverted-duty convention.
+
+**Next:** closing the loop — fusing the IMU into an attitude estimate and mixing it with the pilot command to drive the four motors.
 
 See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
 
