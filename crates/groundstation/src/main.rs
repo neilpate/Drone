@@ -9,10 +9,11 @@
 //! hidden with a checkbox.
 
 use std::collections::VecDeque;
-use std::io::Write;
+use std::fs::File;
+use std::io::{BufWriter, Write};
 use std::sync::mpsc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
@@ -137,6 +138,12 @@ struct App {
     gilrs: Option<Gilrs>,
     active_gamepad: Option<GamepadId>,
     gamepad_name: Option<String>,
+    /// Open TSV log sink while data logging is active; `None` when stopped.
+    log_file: Option<BufWriter<File>>,
+    /// Absolute path of the active (or most recent) log file, for the status line.
+    log_path: Option<String>,
+    /// Number of telemetry rows written to the current log file.
+    log_rows: u64,
 }
 
 impl Default for App {
@@ -184,6 +191,9 @@ impl Default for App {
             gilrs: Gilrs::new().ok(),
             active_gamepad: None,
             gamepad_name: None,
+            log_file: None,
+            log_path: None,
+            log_rows: 0,
         }
     }
 }
@@ -273,7 +283,84 @@ impl App {
             if let Some(avg) = self.avg_rtt_ms {
                 self.series[SERIES_AVG_RTT].push(t, avg);
             }
+            self.log_row(t, &telemetry);
             self.last = Some(telemetry);
+        }
+    }
+
+    /// Start writing every incoming telemetry frame to a fresh timestamped TSV
+    /// file in the working directory. A no-op if logging is already running.
+    fn start_logging(&mut self) {
+        let secs = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let name = format!("telemetry-{secs}.tsv");
+        match File::create(&name) {
+            Ok(file) => {
+                let mut writer = BufWriter::new(file);
+                let header = "t_s\tsequence\tdrone_state\tthrottle\troll\tpitch\tyaw\t\
+                     temperature_c\tcpu_load_pct\trtt_ms\tavg_rtt_ms\t\
+                     accel_x_g\taccel_y_g\taccel_z_g\tgyro_x_dps\tgyro_y_dps\tgyro_z_dps";
+                if let Err(e) = writeln!(writer, "{header}") {
+                    self.status = format!("failed to write log header: {e}");
+                    return;
+                }
+                self.log_path = std::env::current_dir()
+                    .map(|dir| dir.join(&name).display().to_string())
+                    .ok();
+                self.log_rows = 0;
+                self.log_file = Some(writer);
+                self.status = format!("Logging to {}", self.log_path.as_deref().unwrap_or(&name));
+            }
+            Err(e) => {
+                self.status = format!("failed to open log file: {e}");
+            }
+        }
+    }
+
+    /// Flush and close the active log file, reporting the row count.
+    fn stop_logging(&mut self) {
+        if let Some(mut writer) = self.log_file.take() {
+            let _ = writer.flush();
+        }
+        if let Some(path) = self.log_path.clone() {
+            self.status = format!("Logged {} rows to {path}", self.log_rows);
+        }
+    }
+
+    /// Append one TSV row for `telemetry` if logging is active.
+    fn log_row(&mut self, t: f64, telemetry: &Telemetry) {
+        let rtt = self.last_rtt_ms;
+        let avg = self.avg_rtt_ms;
+        let Some(writer) = self.log_file.as_mut() else {
+            return;
+        };
+        let opt = |v: Option<f64>| v.map_or_else(String::new, |x| format!("{x:.3}"));
+        let wrote = writeln!(
+            writer,
+            "{t:.3}\t{seq}\t{state:?}\t{thr:.6}\t{roll:.6}\t{pitch:.6}\t{yaw:.6}\t\
+             {temp:.4}\t{cpu:.4}\t{rtt}\t{avg}\t\
+             {ax:.6}\t{ay:.6}\t{az:.6}\t{gx:.4}\t{gy:.4}\t{gz:.4}",
+            seq = telemetry.sequence_number,
+            state = telemetry.drone_state,
+            thr = telemetry.pilot_command.throttle.as_normalised(),
+            roll = telemetry.pilot_command.roll.as_normalised(),
+            pitch = telemetry.pilot_command.pitch.as_normalised(),
+            yaw = telemetry.pilot_command.yaw.as_normalised(),
+            temp = telemetry.sensors.temperature.as_celsius(),
+            cpu = telemetry.cpu_load.as_percentage(),
+            rtt = opt(rtt),
+            avg = opt(avg),
+            ax = telemetry.imu.acceleration_x.as_g(),
+            ay = telemetry.imu.acceleration_y.as_g(),
+            az = telemetry.imu.acceleration_z.as_g(),
+            gx = telemetry.imu.angular_rate_x.as_degrees_per_second(),
+            gy = telemetry.imu.angular_rate_y.as_degrees_per_second(),
+            gz = telemetry.imu.angular_rate_z.as_degrees_per_second(),
+        );
+        if wrote.is_ok() {
+            self.log_rows += 1;
         }
     }
 
@@ -519,11 +606,25 @@ impl App {
             });
 
             ui.add_space(4.0);
-            if ui.button("Clear plot").clicked() {
-                for series in &mut self.series {
-                    series.points.clear();
+            ui.horizontal(|ui| {
+                if ui.button("Clear plot").clicked() {
+                    for series in &mut self.series {
+                        series.points.clear();
+                    }
                 }
-            }
+
+                let mut logging = self.log_file.is_some();
+                if ui.toggle_value(&mut logging, "Log to TSV").changed() {
+                    if logging {
+                        self.start_logging();
+                    } else {
+                        self.stop_logging();
+                    }
+                }
+                if self.log_file.is_some() {
+                    ui.label(format!("{} rows", self.log_rows));
+                }
+            });
         });
     }
 }

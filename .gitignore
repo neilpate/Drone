@@ -9,6 +9,9 @@ target/
 # probe-rs / debug artefacts not already under target/
 *.map
 
+# Groundstation telemetry captures (data artefacts, not source)
+telemetry-*.tsv
+
 # VS Code — ignore per-user state, keep shared workspace config
 .vscode/*
 !.vscode/settings.json
