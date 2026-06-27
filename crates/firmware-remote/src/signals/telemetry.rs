@@ -3,15 +3,10 @@ use firmware_types::Telemetry;
 
 const MAX_SUBSCRIBERS: usize = 8;
 
-static THROTTLE_COMMAND: Watch<CriticalSectionRawMutex, Telemetry, MAX_SUBSCRIBERS> =
-    Watch::new();
+static THROTTLE_COMMAND: Watch<CriticalSectionRawMutex, Telemetry, MAX_SUBSCRIBERS> = Watch::new();
 
-pub type Receiver = embassy_sync::watch::Receiver<
-    'static,
-    CriticalSectionRawMutex,
-    Telemetry,
-    MAX_SUBSCRIBERS,
->;
+pub type Receiver =
+    embassy_sync::watch::Receiver<'static, CriticalSectionRawMutex, Telemetry, MAX_SUBSCRIBERS>;
 
 pub fn subscribe() -> Receiver {
     THROTTLE_COMMAND.receiver().unwrap()
