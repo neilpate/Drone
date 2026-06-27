@@ -180,6 +180,9 @@ pub struct Imu {
 }
 
 impl Imu {
+    const ACCEL_LSB_PER_G: f32 = 2048.0; // ±16g  range
+    const GYRO_LSB_PER_DPS: f32 = 16.4; // ±2000 degrees per second range
+
     pub async fn check_identity(&mut self) -> Result<(), ImuError> {
         self.cs.set_low(); // Drop CS low to select the IMU
 
@@ -228,16 +231,24 @@ impl Imu {
         let acceleration_x = i16::from_be_bytes([data[0], data[1]]);
         let acceleration_y = i16::from_be_bytes([data[2], data[3]]);
         let acceleration_z = i16::from_be_bytes([data[4], data[5]]);
+
         let gyro_x = i16::from_be_bytes([data[6], data[7]]);
         let gyro_y = i16::from_be_bytes([data[8], data[9]]);
         let gyro_z = i16::from_be_bytes([data[10], data[11]]);
+
         ImuData {
-            acceleration_x: Acceleration::from_g(acceleration_x as f32 / 2048.0), // Assuming ±2g range, scale factor is 16384 LSB/g
-            acceleration_y: Acceleration::from_g(acceleration_y as f32 / 2048.0),
-            acceleration_z: Acceleration::from_g(acceleration_z as f32 / 2048.0),
-            angular_rate_x: AngularRate::from_degrees_per_second(gyro_x as f32 / 16.4), // Assuming ±2000 dps range, scale factor is 16.4 LSB/dps
-            angular_rate_y: AngularRate::from_degrees_per_second(gyro_y as f32 / 16.4),
-            angular_rate_z: AngularRate::from_degrees_per_second(gyro_z as f32 / 16.4),
+            acceleration_x: Acceleration::from_g(acceleration_x as f32 / Self::ACCEL_LSB_PER_G),
+            acceleration_y: Acceleration::from_g(acceleration_y as f32 / Self::ACCEL_LSB_PER_G),
+            acceleration_z: Acceleration::from_g(acceleration_z as f32 / Self::ACCEL_LSB_PER_G),
+            angular_rate_x: AngularRate::from_degrees_per_second(
+                gyro_x as f32 / Self::GYRO_LSB_PER_DPS,
+            ),
+            angular_rate_y: AngularRate::from_degrees_per_second(
+                gyro_y as f32 / Self::GYRO_LSB_PER_DPS,
+            ),
+            angular_rate_z: AngularRate::from_degrees_per_second(
+                gyro_z as f32 / Self::GYRO_LSB_PER_DPS,
+            ),
         }
     }
 
