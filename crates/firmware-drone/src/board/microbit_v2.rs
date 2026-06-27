@@ -13,7 +13,7 @@ use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm::SimplePwm;
 use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
-use firmware_types::Throttle;
+use firmware_types::{Acceleration, AngularRate, ImuData, Throttle};
 
 pub const NAME: &str = "BBC micro:bit v2";
 
@@ -224,14 +224,24 @@ impl Imu {
         }
     }
 
-    fn convert_bytes(data: &[u8]) -> (i16, i16, i16) {
-        let x = i16::from_be_bytes([data[0], data[1]]);
-        let y = i16::from_be_bytes([data[2], data[3]]);
-        let z = i16::from_be_bytes([data[4], data[5]]);
-        (x, y, z)
+    fn convert_bytes(data: &[u8]) -> ImuData {
+        let acceleration_x = i16::from_be_bytes([data[0], data[1]]);
+        let acceleration_y = i16::from_be_bytes([data[2], data[3]]);
+        let acceleration_z = i16::from_be_bytes([data[4], data[5]]);
+        let gyro_x = i16::from_be_bytes([data[6], data[7]]);
+        let gyro_y = i16::from_be_bytes([data[8], data[9]]);
+        let gyro_z = i16::from_be_bytes([data[10], data[11]]);
+        ImuData {
+            acceleration_x: Acceleration::from_g(acceleration_x as f32 / 2048.0), // Assuming ±2g range, scale factor is 16384 LSB/g
+            acceleration_y: Acceleration::from_g(acceleration_y as f32 / 2048.0),
+            acceleration_z: Acceleration::from_g(acceleration_z as f32 / 2048.0),
+            angular_rate_x: AngularRate::from_degrees_per_second(gyro_x as f32 / 16.4), // Assuming ±2000 dps range, scale factor is 16.4 LSB/dps
+            angular_rate_y: AngularRate::from_degrees_per_second(gyro_y as f32 / 16.4),
+            angular_rate_z: AngularRate::from_degrees_per_second(gyro_z as f32 / 16.4),
+        }
     }
 
-    pub async fn read_all(&mut self) -> Result<(), ImuError> {
+    pub async fn read_all(&mut self) -> Result<ImuData, ImuError> {
         self.cs.set_low(); // Drop CS low to select the IMU
 
         let accel_data_x1_register = 0x1F; // ACCEL_DATA_X1 register address for ICM-42688-P
@@ -246,20 +256,7 @@ impl Imu {
         self.cs.set_high();
 
         match result {
-            Ok(_) => {
-                let (accel_x, accel_y, accel_z) = Self::convert_bytes(&buf[1..7]);
-                let (gyro_x, gyro_y, gyro_z) = Self::convert_bytes(&buf[7..13]);
-                defmt::info!(
-                    "IMU data read: accel=({}, {}, {}), gyro=({}, {}, {})",
-                    accel_x,
-                    accel_y,
-                    accel_z,
-                    gyro_x,
-                    gyro_y,
-                    gyro_z
-                );
-                Ok(())
-            }
+            Ok(_) => Ok(Self::convert_bytes(&buf[1..13])),
             Err(e) => Err(ImuError::Spi(e)),
         }
     }

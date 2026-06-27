@@ -1,8 +1,11 @@
 #![cfg_attr(not(test), no_std)]
 
+mod acceleration;
+mod angular_rate;
 mod cpu_load;
 mod drone_state;
 mod groundstation_command;
+mod imu_data;
 mod motor_command;
 mod pilot_command;
 mod pitch;
@@ -14,9 +17,12 @@ mod temperature;
 mod throttle;
 mod yaw;
 
+pub use acceleration::Acceleration;
+pub use angular_rate::AngularRate;
 pub use cpu_load::CpuLoad;
 pub use drone_state::DroneState;
 pub use groundstation_command::GroundstationCommand;
+pub use imu_data::ImuData;
 pub use motor_command::MotorCommand;
 pub use pilot_command::PilotCommand;
 pub use pitch::Pitch;
