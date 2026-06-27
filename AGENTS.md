@@ -67,6 +67,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 ## End-of-session ritual
 
 - When the user signals end of session ("done for today", "good stopping point", etc.), update the **Status** section of [README.md](README.md) to reflect the latest progress: current phase, what's working on hardware, what's next. Then commit + push along with any other end-of-session work.
+- Whenever the README **Status** gains a new milestone, also append a dated entry for it to [doc/progress.md](doc/progress.md) (reverse-chronological, newest first). The README holds only the current snapshot; `progress.md` is the append-only dated history. Any screenshot the README retires should be preserved in its `progress.md` entry.
 - This keeps the front door of the repo honest for any stranger landing in cold — and for future-you on another PC.
 
 ---

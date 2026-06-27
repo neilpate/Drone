@@ -2,6 +2,14 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-06-27 — IMU bring-up, six-axis telemetry, four motors validated
+
+The drone gained its primary sense of orientation. The ICM-42688-P ([ADR 0003](decisions/0003-imu-icm42688-spi.md)) is now driven over SPI from the BSP: a manual chip-select with `transfer_in_place` register access, a WHO_AM_I identity check, power-up via `PWR_MGMT0` (accelerometer and gyroscope in low-noise mode), then a 12-byte burst read from `ACCEL_DATA_X1` that yields all six axes in one transaction. The raw `i16`s are scaled to physical units — g and deg/s — and carried as `Acceleration` / `AngularRate` newtypes inside a new `ImuData`, telemetered through the existing aggregator and surfaced on the ground station, which now plots the three accelerometer traces live alongside the command axes (gyro opt-in) and tabulates all six. On the bench the accelerometer reads ~1 g on whichever axis faces down and the gyro tracks rotation, confirming both scaling and sign.
+
+The four-motor output path was also validated end-to-end: all of `Motor0`–`Motor3` on PWM0 (`P0.10 / P0.09 / P0.12 / P0.02`) spin on the correct corner, defaulting to off at boot through the inverted-duty convention. The ground station picked up some quality-of-life polish too — it now persists the configured serial port and auto-connects on launch (eframe storage).
+
+![Ground station live plot: throttle, roll, pitch and yaw command traces driven by a PlayStation gamepad alongside the matching on-screen sliders, plus the drone's live IMU accelerometer traces.](images/groundstation%203.png)
+
 ## 2026-06-26 — CPU-load profiler, and a postcard buffer-overflow fix it exposed
 
 The drone gained a CPU-load measurement with no OS to ask. A sole lowest-priority, thread-mode `load_profiler` task busy-spins a fixed, calibrated chunk of work and infers system load from how much that window stretches under preemption (`load = 1 − T0/T1`); the result rides in each telemetry frame and is plotted by the ground station. The method, its sharp edges (the spinner must be alone and never `.await`, `black_box`/`inline(never)` to stop the optimiser, defmt's missing float precision and the basis-point trick, the cooperative-starvation cliff) are written up in [cpu-load-profiling-idle-spinner.md](learning/cpu-load-profiling-idle-spinner.md).
