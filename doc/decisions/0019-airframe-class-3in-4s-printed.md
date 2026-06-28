@@ -4,6 +4,19 @@
 - **Date:** 2026-06-14
 - **Related:** [ADR 0001](0001-platform-airframe-stack.md) (quadcopter, real hardware, learning-first), [ADR 0006](0006-mechanical-cad-fusion360.md) (Fusion 360 for mechanical CAD), [00-vision.md](../00-vision.md) "Definition of success" (Phase 3 commits flight hardware)
 
+## Amendments
+
+- **2026-06-28 — motors ordered are 1404, not 1507-class.** The first propulsion order
+  ([hardware/electrical/parts-list.md](../../hardware/electrical/parts-list.md)) selects iFlight
+  XING2 **1404** 3800 KV motors, a smaller stator than the **1507-class** named in the Decision
+  below. Accepted without superseding this ADR: the KV (3800) is within the stated band, the lighter
+  motor only improves the AUW headroom this ADR sets (~280 g / T:W 1.8 ceiling), and thrust at
+  3"/4S/1404/3800 KV stays comfortably above the ~2:1 T:W target for the ~200 g build. The 1507-class
+  figure remains the nominal reference; treat 1404 as the as-built value. If the actual AUW or thrust
+  measurements fall short of the ADR's budget, that triggers a superseding ADR, not a stretch of this
+  one. The ESC ordered (Sequre Blueson A1, 65 A) likewise exceeds the 25–35 A class figure — harmless
+  headroom, not a deviation, since that figure was a minimum.
+
 ## Context
 
 [ADR 0001](0001-platform-airframe-stack.md) committed to a real-hardware quadcopter with rolled-from-scratch firmware, but explicitly left frame class, motors, ESCs, battery, and radio link open. The Phase 3 milestone in [00-vision.md](../00-vision.md) requires those choices to be *committed* before flight hardware is bought, because every part downstream of the frame depends on the prop class and cell count.
