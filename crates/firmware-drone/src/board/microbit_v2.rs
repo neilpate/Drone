@@ -116,7 +116,7 @@ pub enum Motor {
 }
 
 impl Motors {
-    const MAX_DUTY: u16 = 1000;
+    const PERIOD_TICKS: u16 = 20000; // 20ms period at 1MHz PWM clock (16MHz / 16 prescaler)
 
     pub fn new(
         peripherals: peripherals::PWM0,
@@ -126,12 +126,12 @@ impl Motors {
         motor3: impl Pin,
     ) -> Self {
         let mut motors = SimplePwm::new_4ch(peripherals, motor0, motor1, motor2, motor3);
-        motors.set_prescaler(embassy_nrf::pwm::Prescaler::Div1);
-        motors.set_max_duty(Self::MAX_DUTY);
+        motors.set_prescaler(embassy_nrf::pwm::Prescaler::Div16); // 16MHz / 16 = 1MHz
+        motors.set_max_duty(Self::PERIOD_TICKS);
 
         for motor in [Motor::Motor0, Motor::Motor1, Motor::Motor2, Motor::Motor3] {
             let channel = Self::motor_to_channel(motor);
-            motors.set_duty(channel, Self::MAX_DUTY); //Default to off (100% duty means always off, 0% duty means always on)
+            motors.set_duty(channel, Self::PERIOD_TICKS); //Default to off (100% duty means always off, 0% duty means always on)
         }
 
         Self { motors }
@@ -157,11 +157,13 @@ impl Motors {
     }
 
     pub fn set_throttle(&mut self, motor: Motor, throttle: Throttle) {
-        let on_ticks = (throttle.as_normalised() * f32::from(Self::MAX_DUTY)) as u16;
+        // let on_ticks = (throttle.as_normalised() * f32::from(Self::PERIOD_TICKS)) as u16;
+
+        let on_ticks = 1000.0 + throttle.as_normalised() * 1000.0; // Scale to 1000-2000us for typical ESCs
 
         // Note, duty is a bit counterintuitive: 0 is full on, max_duty is full off.
         // Duty means off ticks per period
-        let duty = Self::MAX_DUTY - on_ticks; //Invert to get duty (off ticks)
+        let duty = Self::PERIOD_TICKS - on_ticks as u16; //Invert to get duty (off ticks)
 
         let channel = Self::motor_to_channel(motor);
         self.motors.set_duty(channel, duty);
