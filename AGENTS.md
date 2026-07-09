@@ -140,7 +140,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 - [0003](doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)
 - [0004](doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP. (2026-05-22)
 - [0005](doc/decisions/0005-pc-software-language-rust.md) — PC-side software written in Rust; shared `proto` crate for the wire protocol. (2026-05-23)
-- [0006](doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability. (2026-05-23)
+- [0006](doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` source + `.stl` mesh. (2026-05-23, amended 2026-07-09 — STEP export dropped)
 - [0007](doc/decisions/0007-testing-and-ci-strategy.md) — Testing and CI: unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred. (2026-05-23)
 - [0008](doc/decisions/0008-repository-folder-layout.md) — Repository folder layout: `crates/`, `doc/`, `hardware/{mechanical,electrical}/`, all lowercase. (2026-05-23)
 - [0009](doc/decisions/0009-workspace-bootstrap-and-crate-naming.md) — Workspace bootstrap from day one; `firmware-<role>` naming; `core`/`task` split realised as sibling crates. (2026-05-23)

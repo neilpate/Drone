@@ -1,8 +1,17 @@
 # ADR 0006 — Mechanical CAD: Fusion 360
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-07-09 — STEP export requirement dropped; see Amendment below)
 - **Date:** 2026-05-23
 - **Related:** [00-vision.md](../00-vision.md), [ADR 0001](0001-platform-airframe-stack.md)
+
+## Amendment (2026-07-09) — STL-only in repo, STEP export dropped
+
+**This amendment supersedes every requirement below to export or commit a `.step` file.** The confirmed workflow is: model in Fusion 360, export `.stl` to print.
+
+- **Committed per part:** the `.f3d` Fusion source plus the print-ready `.stl` (or `.3mf`). No `.step`.
+- **What we give up:** the `.f3d` keeps an editable parametric source in the repo, so geometry is never lost — but re-editing now requires Fusion (or a tool that imports `.f3d`), whereas STEP would open in any CAD package. STEP was this ADR's original escape hatch against Autodesk lock-in, so dropping it is a deliberate weakening, not an oversight.
+- **Why it's acceptable:** a solo hobby build, a single modeller staying on Fusion, and the committed `.stl` still lets anyone re-print the part as-is.
+- **Reversible:** if broad CAD portability matters later (handing the design off, or a FreeCAD migration), re-introduce STEP exports at that point. Nothing here blocks it.
 
 ## Context
 

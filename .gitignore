@@ -23,7 +23,7 @@ telemetry-*.tsv
 .idea/
 
 # Fusion 360 local backups
-# (committed CAD: *.f3d, *.step, *.stl, *.3mf — per ADR 0006)
+# (committed CAD: *.f3d, *.stl, *.3mf — per ADR 0006)
 *.f3d.backup-*
 *.bak
 *.backup

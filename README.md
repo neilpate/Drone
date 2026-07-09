@@ -34,6 +34,10 @@ The motor output path now drives a real brushless ESC. The four PWM0 outputs (`M
 
 ![Bench bring-up: the Sequre Blueson A1 4-in-1 ESC wired to an iFlight XING2 brushless motor, driven by the drone micro:bit's 400 Hz servo-PWM output.](doc/images/ESC%20+%20motor.jpg)
 
+The airframe has also begun to take physical shape. The first 3D-printed part — a simple motor-mount plate carrying the iFlight XING2 1404 (M2) bolt pattern — is modelled in Fusion 360 and committed as `.f3d` source plus `.stl` print mesh under [hardware/mechanical/](hardware/mechanical/README.md), per [ADR 0006](doc/decisions/0006-mechanical-cad-fusion360.md) (amended to an STL-only in-repo workflow).
+
+![Fusion 360 model of the first printed part: a motor-mount plate with the four countersunk M2 holes for the motor bolt pattern.](doc/images/simple%20mounting%20plate.png)
+
 **Next:** closing the loop — fusing the IMU into an attitude estimate and mixing it with the pilot command to drive the four ESC channels.
 
 See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
@@ -65,7 +69,7 @@ A tracked `pre-push` git hook runs the suite before every push, and [GitHub Acti
 - [ADR 0003](doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI.
 - [ADR 0004](doc/decisions/0004-concurrency-embassy-channels.md) — Concurrency model: Embassy + channel-based actor pattern, no BSP.
 - [ADR 0005](doc/decisions/0005-pc-software-language-rust.md) — PC-side software in Rust; shared `proto` crate for the wire protocol.
-- [ADR 0006](doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` + `.step` for portability.
+- [ADR 0006](doc/decisions/0006-mechanical-cad-fusion360.md) — Mechanical CAD: Fusion 360; commit `.f3d` source + `.stl` mesh (STEP dropped, amended 2026-07-09).
 - [ADR 0007](doc/decisions/0007-testing-and-ci-strategy.md) — Testing and CI: unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred.
 - [ADR 0008](doc/decisions/0008-repository-folder-layout.md) — Repository folder layout: `crates/`, `doc/`, `hardware/{mechanical,electrical}/`, all lowercase.
 - [ADR 0009](doc/decisions/0009-workspace-bootstrap-and-crate-naming.md) — Workspace bootstrap from day one; `firmware-<role>` naming; `core`/`task` split realised as sibling crates.

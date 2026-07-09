@@ -111,7 +111,7 @@ Resolved (see `doc/decisions/`):
 - IMU part number — ICM-42688-P on SPI. ADR 0003.
 - Concurrency / HAL — Embassy + channel-based actor pattern, no BSP. ADR 0004.
 - PC-side software language — Rust, with a shared `proto` crate for the wire protocol. ADR 0005.
-- Mechanical CAD — Fusion 360, with `.step` exports committed alongside `.f3d`. ADR 0006.
+- Mechanical CAD — Fusion 360, with `.stl` print meshes committed alongside the `.f3d` source. ADR 0006 (STEP dropped, amended 2026-07-09).
 - Testing and CI strategy — unit-test everything possible, local-first feedback, `core`/`task` split, HIL deferred. ADR 0007.
 
 Still open (each will get its own ADR when resolved):

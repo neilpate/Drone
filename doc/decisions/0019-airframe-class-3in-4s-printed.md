@@ -123,7 +123,7 @@ The remaining cost is iteration time when the frame breaks: ~1–2 hours of prin
 
 - [00-vision.md](../00-vision.md) — Phase 3 commits flight hardware; 3" / 4S meets that bar.
 - [ADR 0001](0001-platform-airframe-stack.md) — quadcopter, real hardware, learning-first scope (parent).
-- [ADR 0006](0006-mechanical-cad-fusion360.md) — frame `.f3d` + `.step` lives in Fusion 360.
+- [ADR 0006](0006-mechanical-cad-fusion360.md) — frame `.f3d` + `.stl` lives in Fusion 360.
 - [Printables — 3" cinewhoop frames](https://www.printables.com/search/models?q=3%20inch%20cinewhoop) — reference designs to study before designing one.
 - [Oscar Liang's drone build guides](https://oscarliang.com/) — community reference for motor / ESC / battery pairings at common classes.
 - BetaFPV / T-Motor / EMAX / iFlight — vendors with reliable spec sheets at the 1507 / 4S / 3" class.

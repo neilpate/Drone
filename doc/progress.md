@@ -2,6 +2,12 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-07-09 — First printed part: motor mount plate
+
+The airframe starts to exist in CAD. `Simple Motor Mount` is a flat plate carrying the iFlight XING2 1404 (M2) motor bolt pattern, modelled in Fusion 360 ([ADR 0006](decisions/0006-mechanical-cad-fusion360.md)). Both the `.f3d` Fusion source and the `.stl` print mesh are committed under [hardware/mechanical/](../hardware/mechanical/README.md), so the design is editable from the repo rather than stranded in the Fusion cloud — the durability point ADR 0006 exists to protect. We commit the `.f3d` source and `.stl` mesh only; the STEP export requirement was dropped in an [ADR 0006 amendment](decisions/0006-mechanical-cad-fusion360.md) (Fusion is the single CAD tool, so STL-to-print is the whole workflow).
+
+![Fusion 360 model of the Simple Motor Mount: a square plate with four countersunk M2 holes for the motor bolt pattern.](images/simple%20mounting%20plate.png)
+
 ## 2026-07-09 — Brushless ESC bring-up: non-blocking 400 Hz servo PWM
 
 The motor output moved from a brushed motor on an H-bridge to a real brushless ESC. The four PWM0 channels now emit standard RC servo-PWM — a 1–2 ms pulse encoding 0–100 % throttle — at a 400 Hz frame, feeding a Sequre Blueson A1 (AM32) 4-in-1 ESC and an iFlight XING2 1404 brushless motor ([parts list](../hardware/electrical/parts-list.md)). 400 Hz is the practical ceiling for 1–2 ms servo PWM: the frame has to clear the 2 ms maximum pulse plus a low gap, so ~490 Hz is the hard edge and 500 Hz would leave no gap at full throttle.
