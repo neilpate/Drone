@@ -80,6 +80,8 @@ A tracked `pre-push` git hook runs the suite before every push, and [GitHub Acti
 - [ADR 0018](doc/decisions/0018-pc-link-uart-postcard-cobs.md) — PC ground-station link: USB-CDC virtual COM port to nRF52833 UART, 115 200 8N1, postcard + COBS framing (Proposed; first cut shipped with plain ASCII).
 - [ADR 0019](doc/decisions/0019-airframe-class-3in-4s-printed.md) — Airframe and propulsion class: 3" ducted cinewhoop, 4S LiPo, 1507-class motors, DShot 4-in-1 ESC, fully 3D-printed PETG frame (Proposed).
 - [ADR 0020](doc/decisions/0020-telemetry-aggregator-single-publisher.md) — Telemetry aggregator: a dedicated task is the sole publisher of `TelemetryState`, tick-sampling per-source `Watch`es at 100 Hz and owning frame-level fields.
+- [ADR 0021](doc/decisions/0021-coordinate-frames-and-command-semantics.md) — Coordinate frames and command semantics: world NED + body FRD, right-hand sign conventions, angle (self-levelling) mode first, remote sends raw normalised stick deflections (Proposed).
+- [ADR 0022](doc/decisions/0022-attitude-estimation-complementary-filter.md) — Attitude estimation: complementary filter for roll and pitch (fixed-gain accel/gyro blend); yaw stays rate-only; pure filter in `firmware-drone-core` (Proposed).
 
 ## Licence
 
