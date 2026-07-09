@@ -7,8 +7,6 @@ pub async fn motor_controller(mut motors: board::Motors) -> ! {
 
     let mut motor_command_receiver = motor_command::subscribe();
 
-    motors.enable();
-
     loop {
         let motor_command = motor_command_receiver.changed().await;
 

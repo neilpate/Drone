@@ -8,9 +8,11 @@
 //!
 //!
 
+use core::sync::atomic::{AtomicU16, Ordering};
+
 use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
-use embassy_nrf::pwm::SimplePwm;
+use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
 use firmware_types::{Acceleration, AngularRate, ImuData, Throttle};
@@ -105,9 +107,17 @@ impl StatusLed {
 }
 
 pub struct Motors {
-    motors: SimplePwm<'static, peripherals::PWM0>,
+    // Kept alive so its `Drop` (which resets the output pins) never runs. The
+    // waveform is generated entirely by EasyDMA looping over `MOTOR_DUTIES`;
+    // nothing in this struct is touched per period. Same kept-alive convention
+    // as `StatusLed::_row`.
+    _pwm: pwm::SequencePwm<'static, peripherals::PWM0>,
 }
 
+// Only `Motor0` is currently driven by a control loop; the remaining variants
+// exist so the channel mapping and failsafe path already cover all four
+// outputs. They start being constructed once the mixer lands.
+#[expect(dead_code)]
 pub enum Motor {
     Motor0,
     Motor1,
@@ -115,8 +125,32 @@ pub enum Motor {
     Motor3,
 }
 
+/// Per-channel PWM compare values in "off-ticks" (0 = full on, `PERIOD_TICKS` =
+/// full off), read continuously by EasyDMA. Written by [`Motors::set_throttle`]
+/// and picked up on the next PWM period. Interior mutability is required because
+/// the DMA loops over this buffer forever while the CPU updates it in place; see
+/// [`Motors::new`].
+static MOTOR_DUTIES: [AtomicU16; 4] = [
+    AtomicU16::new(Motors::PERIOD_TICKS),
+    AtomicU16::new(Motors::PERIOD_TICKS),
+    AtomicU16::new(Motors::PERIOD_TICKS),
+    AtomicU16::new(Motors::PERIOD_TICKS),
+];
+
 impl Motors {
-    const PERIOD_TICKS: u16 = 20000; // 20ms period at 1MHz PWM clock (16MHz / 16 prescaler)
+    /// ESC frame rate. 400 Hz is the practical ceiling for standard 1-2 ms
+    /// servo PWM (2 ms pulse plus a low gap); see the Blueson A1 / AM32 notes.
+    const REFRESH_HZ: u32 = 400;
+
+    /// PWM tick rate. `Div16` -> 16 MHz / 16 = 1 MHz, so 1 tick = 1 us.
+    const TICK_HZ: u32 = 1_000_000;
+
+    /// PWM period (COUNTERTOP) in ticks: one frame at [`Self::REFRESH_HZ`].
+    const PERIOD_TICKS: u16 = (Self::TICK_HZ / Self::REFRESH_HZ) as u16;
+
+    /// ESC pulse endpoints, in ticks == microseconds (holds while 1 tick = 1 us).
+    const MIN_PULSE_TICKS: u16 = 1000; // 1 ms - idle / min throttle
+    const MAX_PULSE_TICKS: u16 = 2000; // 2 ms - full throttle
 
     pub fn new(
         peripherals: peripherals::PWM0,
@@ -125,26 +159,46 @@ impl Motors {
         motor2: impl Pin,
         motor3: impl Pin,
     ) -> Self {
-        let mut motors = SimplePwm::new_4ch(peripherals, motor0, motor1, motor2, motor3);
-        motors.set_prescaler(embassy_nrf::pwm::Prescaler::Div16); // 16MHz / 16 = 1MHz
-        motors.set_max_duty(Self::PERIOD_TICKS);
+        let mut config = pwm::Config::default();
+        config.prescaler = pwm::Prescaler::Div16; // 16 MHz / 16 = 1 MHz (1 tick = 1 us)
+        config.max_duty = Self::PERIOD_TICKS; // COUNTERTOP: one frame at REFRESH_HZ
+        config.sequence_load = pwm::SequenceLoad::Individual; // 4 words/period, one compare per channel
+        config.counter_mode = pwm::CounterMode::Up;
 
-        for motor in [Motor::Motor0, Motor::Motor1, Motor::Motor2, Motor::Motor3] {
-            let channel = Self::motor_to_channel(motor);
-            motors.set_duty(channel, Self::PERIOD_TICKS); //Default to off (100% duty means always off, 0% duty means always on)
-        }
+        let mut pwm =
+            pwm::SequencePwm::new_4ch(peripherals, motor0, motor1, motor2, motor3, config).unwrap();
 
-        Self { motors }
+        // EasyDMA reads the compare values straight out of `MOTOR_DUTIES`. The
+        // driver wants a `&[u16]`; `AtomicU16` is layout-compatible with `u16`,
+        // so expose the buffer as a raw slice for the DMA pointer while we keep
+        // writing through the atomics. This `&[u16]` is only live until the
+        // sequencer is forgotten below; afterwards the only accessors are the
+        // hardware DMA pointer and the atomic stores in `set_throttle`, so no
+        // live `&[u16]` aliases the memory we mutate.
+        // SAFETY: the pointer is valid, aligned and spans exactly `len()` u16s.
+        let words: &[u16] = unsafe {
+            core::slice::from_raw_parts(MOTOR_DUTIES.as_ptr().cast(), MOTOR_DUTIES.len())
+        };
+
+        // Start the sequence looping forever. From here the hardware
+        // `loopsdone -> seqstart0` short re-triggers it every period with no CPU
+        // involvement, so `set_throttle` never has to wait on the peripheral.
+        let sequencer = pwm::SingleSequencer::new(&mut pwm, words, pwm::SequenceConfig::default());
+        sequencer.start(pwm::SingleSequenceMode::Infinite).unwrap();
+
+        // The sequencer only borrows `pwm`; drop it without stopping the running
+        // sequence so we can move `pwm` into the returned struct.
+        core::mem::forget(sequencer);
+
+        Self { _pwm: pwm }
     }
 
-    pub fn enable(&mut self) {
-        self.motors.enable();
-    }
-
-    // API symmetry with enable(); will be used by the failsafe path.
+    // API symmetry / failsafe path: drive every channel to idle (full off).
     #[expect(dead_code)]
     pub fn disable(&mut self) {
-        self.motors.disable();
+        for duty in &MOTOR_DUTIES {
+            duty.store(Self::PERIOD_TICKS, Ordering::Relaxed);
+        }
     }
 
     fn motor_to_channel(motor: Motor) -> usize {
@@ -157,16 +211,21 @@ impl Motors {
     }
 
     pub fn set_throttle(&mut self, motor: Motor, throttle: Throttle) {
-        // let on_ticks = (throttle.as_normalised() * f32::from(Self::PERIOD_TICKS)) as u16;
+        // ESCs inherit the classic RC servo protocol: throttle is encoded in the
+        // *width* of the high pulse.
+        // 1 ms (MIN_PULSE_TICKS) = idle / min throttle
+        // 2 ms (MAX_PULSE_TICKS) = full throttle, and the
+        // 1-2 ms band in between maps linearly to 0..1. The pulse width is
+        // independent of the frame period (REFRESH_HZ); the rest of each frame is
+        // just low dead time the ESC ignores.
+        let span = f32::from(Self::MAX_PULSE_TICKS - Self::MIN_PULSE_TICKS);
+        let on_ticks = f32::from(Self::MIN_PULSE_TICKS) + throttle.as_normalised() * span;
 
-        let on_ticks = 1000.0 + throttle.as_normalised() * 1000.0; // Scale to 1000-2000us for typical ESCs
-
-        // Note, duty is a bit counterintuitive: 0 is full on, max_duty is full off.
-        // Duty means off ticks per period
-        let duty = Self::PERIOD_TICKS - on_ticks as u16; //Invert to get duty (off ticks)
+        // The compare value is "off-ticks": 0 = full on, PERIOD_TICKS = full off.
+        let off_ticks = Self::PERIOD_TICKS - on_ticks as u16;
 
         let channel = Self::motor_to_channel(motor);
-        self.motors.set_duty(channel, duty);
+        MOTOR_DUTIES[channel].store(off_ticks, Ordering::Relaxed);
     }
 }
 
