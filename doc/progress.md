@@ -2,6 +2,16 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-07-09 — Brushless ESC bring-up: non-blocking 400 Hz servo PWM
+
+The motor output moved from a brushed motor on an H-bridge to a real brushless ESC. The four PWM0 channels now emit standard RC servo-PWM — a 1–2 ms pulse encoding 0–100 % throttle — at a 400 Hz frame, feeding a Sequre Blueson A1 (AM32) 4-in-1 ESC and an iFlight XING2 1404 brushless motor ([parts list](../hardware/electrical/parts-list.md)). 400 Hz is the practical ceiling for 1–2 ms servo PWM: the frame has to clear the 2 ms maximum pulse plus a low gap, so ~490 Hz is the hard edge and 500 Hz would leave no gap at full throttle.
+
+Getting there meant replacing the motor driver wholesale. The first cut used embassy-nrf's `SimplePwm`, whose `set_duty` busy-waits a full PWM period whenever the peripheral is enabled — and `SimplePwm` enables at construction. At a 20 ms (50 Hz) frame those waits, running in the four `set_duty` calls inside `Board::new`, blocked for ~80 ms before a single task was spawned, so every task appeared not to start. The fix was `SequencePwm` in infinite-loop mode: EasyDMA loops over a `static [AtomicU16; 4]` duty buffer forever, and `set_throttle` does one non-blocking atomic store that the DMA reads at the next period boundary, so the CPU is never parked mid-frame. The single `unsafe` — handing the atomic buffer to the driver as a `&[u16]` — is contained and documented; the embassy examples only cover one-shot or PPI-toggled sequences, not continuous in-place duty updates, so this is a small extension of the sanctioned patterns.
+
+On the scope the signal is clean: ~1 ms idle pulse, ~2 ms at full throttle, steady 400 Hz frames, with the pulse width correctly independent of the frame period. At boot every channel holds a zero-width (motors-off) pulse until commanded.
+
+![Bench bring-up: the Sequre Blueson A1 4-in-1 ESC wired to an iFlight XING2 brushless motor, driven by the drone micro:bit's 400 Hz servo-PWM output.](images/ESC%20+%20motor.jpg)
+
 ## 2026-06-27 — IMU bring-up, six-axis telemetry, four motors validated
 
 The drone gained its primary sense of orientation. The ICM-42688-P ([ADR 0003](decisions/0003-imu-icm42688-spi.md)) is now driven over SPI from the BSP: a manual chip-select with `transfer_in_place` register access, a WHO_AM_I identity check, power-up via `PWR_MGMT0` (accelerometer and gyroscope in low-noise mode), then a 12-byte burst read from `ACCEL_DATA_X1` that yields all six axes in one transaction. The raw `i16`s are scaled to physical units — g and deg/s — and carried as `Acceleration` / `AngularRate` newtypes inside a new `ImuData`, telemetered through the existing aggregator and surfaced on the ground station, which now plots the three accelerometer traces live alongside the command axes (gyro opt-in) and tabulates all six. On the bench the accelerometer reads ~1 g on whichever axis faces down and the gyro tracks rotation, confirming both scaling and sign.
