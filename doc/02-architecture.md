@@ -1,7 +1,7 @@
 # 02 — Architecture
 
-_Date: 2026-05-23_
-_Status: Draft — captures the agreed shape; sub-decisions (RF link, ground-station split, failsafe) are deferred to ADRs._
+_Date: 2026-05-23 (open questions refreshed 2026-07-09)_
+_Status: Draft — captures the agreed shape. Many sub-decisions it deferred (RF link, wire framing, failsafe, ground-station split, PC visualisation) are now settled in ADRs 0013–0022; the [Open questions](#open-questions--future-adrs) section marks which and links each._
 
 This doc is the **map of the system**, not a specification. It describes the pieces, how they connect, and the design principles that hold the pieces together. Detailed choices (which RF protocol, which USB framing, etc.) live in [ADRs](decisions/README.md).
 
@@ -9,7 +9,7 @@ This doc is the **map of the system**, not a specification. It describes the pie
 
 - **Two BBC micro:bit v2 boards.** One on the drone (flight controller), one on the ground (link bridge + later, standalone ground station).
 - **Symmetric hardware.** Same MCU, same radio peripheral, same Rust toolchain on both ends. Drivers and link-layer code are literally the same crate on both sides.
-- **2.4 GHz RF link** between the two micro:bits. Specific protocol TBD (see open questions).
+- **2.4 GHz RF link** between the two micro:bits — IEEE 802.15.4 raw PHY/MAC, channel 20 ([ADR 0014](decisions/0014-radio-protocol-ieee802154.md)).
 - **Two pilot-side iterations** planned:
   - **v1 — PC-in-the-loop.** Ground micro:bit is plugged into a PC over USB. The PC also has a PlayStation-style controller plugged in. The PC handles UI, telemetry plotting, and reading the controller; the ground micro:bit is mostly a USB↔RF bridge.
   - **v2 — Standalone ground station.** No PC. The ground micro:bit (or its successor) drives an LCD and reads the controller directly.
@@ -69,7 +69,7 @@ The air side is **unchanged** between v1 and v2. Only the pilot-side composition
 
 The thing that flies. Responsible for:
 
-- Sampling the IMU (INT1-driven, see [ADR 0003](decisions/0003-imu-icm42688-spi.md)).
+- Sampling the IMU (INT1-driven per [ADR 0003](decisions/0003-imu-icm42688-spi.md); a fixed crystal-paced `dt` is polled for now, see [ADR 0022](decisions/0022-attitude-estimation-complementary-filter.md)).
 - Sensor fusion → attitude estimate.
 - Control loop (rate → angle, eventually cascaded).
 - Motor mixer → 4 motor outputs.
@@ -132,7 +132,7 @@ In v1, the PC effectively *is* the ground-side App layer, reached via a USB tran
 
 ### Telemetry path (drone → pilot)
 
-1. IMU INT1 fires; IMU task reads the sample over SPI.
+1. The IMU task reads a sample over SPI on a fixed `dt` tick. (INT1-driven sampling per [ADR 0003](decisions/0003-imu-icm42688-spi.md) is still the intended endpoint; a nominal crystal-paced `dt` is used for now — see [ADR 0022](decisions/0022-attitude-estimation-complementary-filter.md).)
 2. Fusion task consumes samples; updates the attitude estimate.
 3. Telemetry task periodically (rate TBD) builds a `Telemetry { attitude, battery, rssi, mode, … }` message.
 4. Link layer frames and transmits over RF.
@@ -156,16 +156,16 @@ These are **not** symmetric and the link layer / protocol should not pretend the
 
 ## Open questions (→ future ADRs)
 
-These are the sub-decisions this architecture *invites* but does not make:
+These were the sub-decisions this architecture *invited* but did not make. Many are now settled; each is marked with its ADR. Refreshed 2026-07-09.
 
-- **PC-side visualisation framework** — strong candidate is [`rerun.io`](https://rerun.io) (Rust-native, robotics-shaped, embeds in a few lines). `egui` + `egui_plot` is the DIY fallback. → future ADR when Phase 1 needs live plots.
-- **RF link protocol** — Nordic ESB vs bare proprietary GFSK vs BLE. Strong default is ESB. → future ADR.
-- **Wire framing** — should USB (PC ↔ ground µbit) and RF (ground µbit ↔ drone) use the **same** framing/message format so the ground µbit is almost a dumb bridge? Strong lean: yes. → future ADR.
-- **Ground-station division of labour** — how much of the protocol lives on the ground µbit vs the PC in v1. The recommendation in this doc (ground µbit owns the Link layer, PC owns the App layer) is the candidate; needs an ADR to lock it in.
-- **Failsafe behaviour** — what the drone does when commands stop arriving. Phased (bench phase vs flight phase). → **ADR before Phase 3** (first free flight).
-- **Latency budget** — informal target: 5–15 ms pilot stick → motor response. Worth measuring once Phase 3 hardware exists.
-- **Controller interface in v2** — USB HID is hard on nRF52833 (no USB host). Bluetooth controller? Different controller? Successor MCU? → v2-era decision.
-- **LCD choice** — deferred until v2.
+- **PC-side visualisation framework** — _Resolved:_ **`egui` + `egui_plot`** (the DIY option), shipped in the `groundstation` crate and plotting live. Chosen for its low-friction immediate-mode UI; [`rerun.io`](https://rerun.io) stays a future option if richer robotics-shaped visualisation is wanted, but was not needed.
+- **RF link protocol** — _Resolved:_ **IEEE 802.15.4** raw PHY/MAC, channel 20 ([ADR 0014](decisions/0014-radio-protocol-ieee802154.md)). ESB was the original default; 802.15.4 won — see the ADR.
+- **Wire framing** — _Partly resolved:_ shared `firmware-types` message types with **postcard** encoding, **COBS-framed over the USB↔ground UART** ([ADR 0018](decisions/0018-pc-link-uart-postcard-cobs.md)) and carried in 802.15.4 frames on air. The message types are shared, but transport framing differs per hop and the ground µbit decodes/re-encodes rather than being a fully "dumb" bridge.
+- **Ground-station division of labour** — _Largely settled:_ the ground/remote µbit owns the link and relays commands/telemetry; the PC owns the App layer ([ADR 0018](decisions/0018-pc-link-uart-postcard-cobs.md)). Not yet formalised as its own ADR.
+- **Failsafe behaviour** — _Resolved (bench phase):_ supervisor state machine, zero-throttle on ~100 ms loss-of-link ([ADR 0017](decisions/0017-supervisor-failsafe-state-machine.md)). Flight-phase ramp/land behaviour is still open before Phase 3.
+- **Latency budget** — informal target: 5–15 ms pilot stick → motor response. The **round-trip telemetry** loop already measures **~25–30 ms** on hardware; the stick→motor control-path latency is still to be measured once the control loop exists.
+- **Controller interface in v2** — _Still open._ USB HID is hard on nRF52833 (no USB host). Bluetooth controller? Different controller? Successor MCU? → v2-era decision.
+- **LCD choice** — _Still open._ Deferred until v2.
 
 ## What this doc does *not* decide
 
