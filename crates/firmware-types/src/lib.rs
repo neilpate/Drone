@@ -2,6 +2,7 @@
 
 mod acceleration;
 mod angular_rate;
+mod controller_demand;
 mod cpu_load;
 mod drone_state;
 mod groundstation_command;
@@ -19,6 +20,7 @@ mod yaw;
 
 pub use acceleration::Acceleration;
 pub use angular_rate::AngularRate;
+pub use controller_demand::ControllerDemand;
 pub use cpu_load::CpuLoad;
 pub use drone_state::DroneState;
 pub use groundstation_command::GroundstationCommand;

@@ -1,4 +1,6 @@
+use core::ops::Add;
 use core::ops::Mul;
+use core::ops::Sub;
 
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
@@ -31,6 +33,22 @@ impl Mul<f32> for Throttle {
 
     fn mul(self, rhs: f32) -> Self::Output {
         Self::from_normalised(self.as_normalised() * rhs)
+    }
+}
+
+impl Add<f32> for Throttle {
+    type Output = Self;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        Self::from_normalised(self.as_normalised() + rhs)
+    }
+}
+
+impl Sub<f32> for Throttle {
+    type Output = Self;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        Self::from_normalised(self.as_normalised() - rhs)
     }
 }
 
