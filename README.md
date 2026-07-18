@@ -86,6 +86,7 @@ A tracked `pre-push` git hook runs the suite before every push, and [GitHub Acti
 - [ADR 0020](doc/decisions/0020-telemetry-aggregator-single-publisher.md) — Telemetry aggregator: a dedicated task is the sole publisher of `TelemetryState`, tick-sampling per-source `Watch`es at 100 Hz and owning frame-level fields.
 - [ADR 0021](doc/decisions/0021-coordinate-frames-and-command-semantics.md) — Coordinate frames and command semantics: world NED + body FRD, right-hand sign conventions, angle (self-levelling) mode first, remote sends raw normalised stick deflections (Proposed).
 - [ADR 0022](doc/decisions/0022-attitude-estimation-complementary-filter.md) — Attitude estimation: complementary filter for roll and pitch (fixed-gain accel/gyro blend); yaw stays rate-only; pure filter in `firmware-drone-core` (Proposed).
+- [ADR 0023](doc/decisions/0023-motor-numbering-layout-rotation.md) — Motor numbering, layout, and rotation directions: quad-X, Betaflight numbering (M1 rear-right … M4 front-left), props-out rotation, with the derived mixer sign table (Proposed).
 
 ## Licence
 

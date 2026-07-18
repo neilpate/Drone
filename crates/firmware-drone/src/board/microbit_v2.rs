@@ -43,10 +43,10 @@ pub struct Board {
 //
 // | Function       | nRF pin | Edge | Peripheral | Notes               |
 // |----------------|---------|------|------------|---------------------|
-// | Motor M0       | P0.10   | 8    | PWM0 ch0   | NFC2 -> GPIO        |
-// | Motor M1       | P0.09   | 9    | PWM0 ch1   | NFC1 -> GPIO        |
-// | Motor M2       | P0.12   | 12   | PWM0 ch2   | plain GPIO          |
-// | Motor M3       | P0.02   | 0    | PWM0 ch3   | large pad / ADC     |
+// | Motor M1       | P0.10   | 8    | PWM0 ch0   | rear-right (CCW), NFC2 -> GPIO |
+// | Motor M2       | P0.09   | 9    | PWM0 ch1   | front-right (CW), NFC1 -> GPIO |
+// | Motor M3       | P0.12   | 12   | PWM0 ch2   | rear-left (CW)                 |
+// | Motor M4       | P0.02   | 0    | PWM0 ch3   | front-left (CCW), large pad    |
 // | IMU SCK        | P0.17   | 13   | SPIM3      | SPI_EXT block       |
 // | IMU MISO       | P0.01   | 14   | SPIM3      |                     |
 // | IMU MOSI       | P0.13   | 15   | SPIM3      |                     |
@@ -114,15 +114,33 @@ pub struct Motors {
     _pwm: pwm::SequencePwm<'static, peripherals::PWM0>,
 }
 
-// Only `Motor0` is currently driven by a control loop; the remaining variants
-// exist so the channel mapping and failsafe path already cover all four
-// outputs. They start being constructed once the mixer lands.
-#[expect(dead_code)]
+/// Motor / ESC channel identity, in the Betaflight-style X layout in use.
+///
+/// Viewed from above, front between the two forward arms, props-out rotation:
+///
+/// ```text
+///           front
+///     M4 (FL)     M2 (FR)
+///       CCW         CW
+///         \        /
+///          \      /
+///            hub
+///          /      \
+///         /        \
+///     M3 (RL)     M1 (RR)
+///       CW          CCW
+///           rear
+/// ```
+///
+/// Corner + PWM channel per motor are in the pin map above (M1 = ch0 / P0.10,
+/// M2 = ch1 / P0.09, M3 = ch2 / P0.12, M4 = ch3 / P0.02). Adjacent corners spin
+/// opposite, diagonals the same (M1 & M4 CCW, M2 & M3 CW). Rotations are set and
+/// confirmed props-off on the bench; the mixer's yaw sign depends on them.
 pub enum Motor {
-    Motor0,
     Motor1,
     Motor2,
     Motor3,
+    Motor4,
 }
 
 /// Per-channel PWM compare values in "off-ticks" (0 = full on, `PERIOD_TICKS` =
@@ -154,10 +172,10 @@ impl Motors {
 
     pub fn new(
         peripherals: peripherals::PWM0,
-        motor0: impl Pin,
         motor1: impl Pin,
         motor2: impl Pin,
         motor3: impl Pin,
+        motor4: impl Pin,
     ) -> Self {
         let mut config = pwm::Config::default();
         config.prescaler = pwm::Prescaler::Div16; // 16 MHz / 16 = 1 MHz (1 tick = 1 us)
@@ -166,7 +184,7 @@ impl Motors {
         config.counter_mode = pwm::CounterMode::Up;
 
         let mut pwm =
-            pwm::SequencePwm::new_4ch(peripherals, motor0, motor1, motor2, motor3, config).unwrap();
+            pwm::SequencePwm::new_4ch(peripherals, motor1, motor2, motor3, motor4, config).unwrap();
 
         // EasyDMA reads the compare values straight out of `MOTOR_DUTIES`. The
         // driver wants a `&[u16]`; `AtomicU16` is layout-compatible with `u16`,
@@ -203,10 +221,10 @@ impl Motors {
 
     fn motor_to_channel(motor: Motor) -> usize {
         match motor {
-            Motor::Motor0 => 0,
-            Motor::Motor1 => 1,
-            Motor::Motor2 => 2,
-            Motor::Motor3 => 3,
+            Motor::Motor1 => 0,
+            Motor::Motor2 => 1,
+            Motor::Motor3 => 2,
+            Motor::Motor4 => 3,
         }
     }
 
