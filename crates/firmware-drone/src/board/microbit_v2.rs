@@ -43,10 +43,10 @@ pub struct Board {
 //
 // | Function       | nRF pin | Edge | Peripheral | Notes               |
 // |----------------|---------|------|------------|---------------------|
-// | Motor M1       | P0.10   | 8    | PWM0 ch0   | rear-right (CCW), NFC2 -> GPIO |
-// | Motor M2       | P0.09   | 9    | PWM0 ch1   | front-right (CW), NFC1 -> GPIO |
-// | Motor M3       | P0.12   | 12   | PWM0 ch2   | rear-left (CW)                 |
-// | Motor M4       | P0.02   | 0    | PWM0 ch3   | front-left (CCW), large pad    |
+// | Motor M1       | P0.02   | 0    | PWM0 ch0   | rear-right (CCW), large pad    |
+// | Motor M2       | P0.12   | 12   | PWM0 ch1   | front-right (CW)               |
+// | Motor M3       | P0.09   | 9    | PWM0 ch2   | rear-left (CW), NFC1 -> GPIO   |
+// | Motor M4       | P0.10   | 8    | PWM0 ch3   | front-left (CCW), NFC2 -> GPIO |
 // | IMU SCK        | P0.17   | 13   | SPIM3      | SPI_EXT block       |
 // | IMU MISO       | P0.01   | 14   | SPIM3      |                     |
 // | IMU MOSI       | P0.13   | 15   | SPIM3      |                     |
@@ -58,6 +58,28 @@ pub struct Board {
 //
 // Motors share PWM0 (one frequency, independent duty). The NFC pins
 // (P0.09 / P0.10) require the `nfc-pins-as-gpio` embassy-nrf feature.
+//
+// ===========================================================================
+// MOTOR WIRING -- bench-verified 2026-07-19. DO NOT reorder without re-testing.
+// ===========================================================================
+// The pin -> corner mapping above is NOT the "natural" ch0..ch3 order. On this
+// airframe the four ESC signal leads landed reversed, so each PWM channel
+// physically drives its DIAGONAL-OPPOSITE corner relative to a naive
+// ch0=M1 .. ch3=M4 wiring. Determined empirically by the single-motor bench
+// test (drive one `MOTOR_DUTIES` index, note which corner spins), giving the
+// physical pin -> corner map:
+//
+//     P0.02 -> rear-right    P0.12 -> front-right
+//     P0.09 -> rear-left     P0.10 -> front-left
+//
+// To make logical M1..M4 reach the correct corners, `Motors::new` is handed
+// the pins in REVERSED order (P0.02, P0.12, P0.09, P0.10) -- see `Board::new`.
+// The drone is tightly packed and the wiring cannot easily be re-inspected, so
+// this bench-determined mapping is the authoritative record. If the constructor
+// is ever "tidied" back to natural pin order, roll and pitch invert silently
+// (yaw still looks fine -- diagonals share spin direction). Re-run the
+// single-motor test before trusting any change here.
+// ===========================================================================
 
 impl Board {
     pub fn new() -> Self {
@@ -74,7 +96,10 @@ impl Board {
 
         Self {
             status_led: StatusLed::new(p.P0_21, p.P0_28),
-            motors: Motors::new(p.PWM0, p.P0_10, p.P0_09, p.P0_12, p.P0_02),
+            // Pin order is REVERSED on purpose to match the physical ESC wiring
+            // (P0.02 = rear-right .. P0.10 = front-left). See the "MOTOR WIRING"
+            // note in the pin map above. Do NOT sort these back to P0_10..P0_02.
+            motors: Motors::new(p.PWM0, p.P0_02, p.P0_12, p.P0_09, p.P0_10),
             radio: Radio::new(p.RADIO, Irqs),
             temperature_sensor: TemperatureSensor::new(p.TEMP, Irqs),
             imu: Imu {
@@ -137,10 +162,13 @@ pub struct Motors {
 ///           rear
 /// ```
 ///
-/// - `[0]` = M1: ch0 / P0.10, rear-right, CCW
-/// - `[1]` = M2: ch1 / P0.09, front-right, CW
-/// - `[2]` = M3: ch2 / P0.12, rear-left, CW
-/// - `[3]` = M4: ch3 / P0.02, front-left, CCW
+/// - `[0]` = M1: ch0 / P0.02, rear-right, CCW
+/// - `[1]` = M2: ch1 / P0.12, front-right, CW
+/// - `[2]` = M3: ch2 / P0.09, rear-left, CW
+/// - `[3]` = M4: ch3 / P0.10, front-left, CCW
+///
+/// NB: the pin order looks reversed on purpose -- see the "MOTOR WIRING" note
+/// in the pin map at the top of this module.
 ///
 /// Adjacent corners spin opposite, diagonals the same. Rotations are set and
 /// confirmed props-off on the bench; the mixer's yaw sign depends on them (see
