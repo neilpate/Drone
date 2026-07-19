@@ -12,18 +12,22 @@ pub struct ControllerDemand {
     pub yaw: Yaw,
 }
 
+impl ControllerDemand {
+    /// Neutral, fail-safe command: zero throttle, centred sticks. Publish this
+    /// at startup and fall back to it when no command has been received, so a
+    /// missing or dropped command holds the craft safe rather than acting on
+    /// garbage.
+    pub const ZERO: Self = Self {
+        throttle: Throttle::ZERO,
+        roll: Roll::ZERO,
+        pitch: Pitch::ZERO,
+        yaw: Yaw::ZERO,
+    };
+}
+
 impl Default for ControllerDemand {
-    /// Neutral, fail-safe command: zero throttle, centred sticks. This is the
-    /// value to publish at startup and to fall back to if no command has been
-    /// received, so a missing or dropped command holds the craft safe rather
-    /// than acting on garbage.
     fn default() -> Self {
-        Self {
-            throttle: Throttle::from_normalised(0.0),
-            roll: Roll::from_normalised(0.0),
-            pitch: Pitch::from_normalised(0.0),
-            yaw: Yaw::from_normalised(0.0),
-        }
+        Self::ZERO
     }
 }
 

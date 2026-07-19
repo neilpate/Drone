@@ -10,9 +10,6 @@ pub async fn motor_controller(mut motors: board::Motors) -> ! {
     loop {
         let motor_command = motor_command_receiver.changed().await;
 
-        motors.set_throttle(board::Motor::Motor1, motor_command.throttle);
-        motors.set_throttle(board::Motor::Motor2, motor_command.throttle);
-        motors.set_throttle(board::Motor::Motor3, motor_command.throttle);
-        motors.set_throttle(board::Motor::Motor4, motor_command.throttle);
+        motors.set_all_motors(motor_command);
     }
 }

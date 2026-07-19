@@ -15,7 +15,7 @@ use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
-use firmware_types::{Acceleration, AngularRate, ImuData, Throttle};
+use firmware_types::{Acceleration, AngularRate, ImuData, MotorCommand, Throttle};
 
 pub const NAME: &str = "BBC micro:bit v2";
 
@@ -114,9 +114,14 @@ pub struct Motors {
     _pwm: pwm::SequencePwm<'static, peripherals::PWM0>,
 }
 
-/// Motor / ESC channel identity, in the Betaflight-style X layout in use.
+/// Per-channel PWM compare values in "off-ticks" (0 = full on, `PERIOD_TICKS` =
+/// full off), read continuously by EasyDMA. Written by [`Motors::set_all_motors`]
+/// and picked up on the next PWM period. Interior mutability is required because
+/// the DMA loops over this buffer forever while the CPU updates it in place; see
+/// [`Motors::new`].
 ///
-/// Viewed from above, front between the two forward arms, props-out rotation:
+/// The array index is the motor, in the Betaflight-style X layout (props-out
+/// rotation). Viewed from above, front between the two forward arms:
 ///
 /// ```text
 ///           front
@@ -132,22 +137,15 @@ pub struct Motors {
 ///           rear
 /// ```
 ///
-/// Corner + PWM channel per motor are in the pin map above (M1 = ch0 / P0.10,
-/// M2 = ch1 / P0.09, M3 = ch2 / P0.12, M4 = ch3 / P0.02). Adjacent corners spin
-/// opposite, diagonals the same (M1 & M4 CCW, M2 & M3 CW). Rotations are set and
-/// confirmed props-off on the bench; the mixer's yaw sign depends on them.
-pub enum Motor {
-    Motor1,
-    Motor2,
-    Motor3,
-    Motor4,
-}
-
-/// Per-channel PWM compare values in "off-ticks" (0 = full on, `PERIOD_TICKS` =
-/// full off), read continuously by EasyDMA. Written by [`Motors::set_throttle`]
-/// and picked up on the next PWM period. Interior mutability is required because
-/// the DMA loops over this buffer forever while the CPU updates it in place; see
-/// [`Motors::new`].
+/// - `[0]` = M1: ch0 / P0.10, rear-right, CCW
+/// - `[1]` = M2: ch1 / P0.09, front-right, CW
+/// - `[2]` = M3: ch2 / P0.12, rear-left, CW
+/// - `[3]` = M4: ch3 / P0.02, front-left, CCW
+///
+/// Adjacent corners spin opposite, diagonals the same. Rotations are set and
+/// confirmed props-off on the bench; the mixer's yaw sign depends on them (see
+/// ADR 0023 and the pin map above). The order matches `MotorCommand`'s
+/// `motor1..motor4` fields, which [`Motors::set_all_motors`] writes here in turn.
 static MOTOR_DUTIES: [AtomicU16; 4] = [
     AtomicU16::new(Motors::PERIOD_TICKS),
     AtomicU16::new(Motors::PERIOD_TICKS),
@@ -219,16 +217,7 @@ impl Motors {
         }
     }
 
-    fn motor_to_channel(motor: Motor) -> usize {
-        match motor {
-            Motor::Motor1 => 0,
-            Motor::Motor2 => 1,
-            Motor::Motor3 => 2,
-            Motor::Motor4 => 3,
-        }
-    }
-
-    pub fn set_throttle(&mut self, motor: Motor, throttle: Throttle) {
+    fn calc_off_ticks(throttle: Throttle) -> u16 {
         // ESCs inherit the classic RC servo protocol: throttle is encoded in the
         // *width* of the high pulse.
         // 1 ms (MIN_PULSE_TICKS) = idle / min throttle
@@ -240,10 +229,22 @@ impl Motors {
         let on_ticks = f32::from(Self::MIN_PULSE_TICKS) + throttle.as_normalised() * span;
 
         // The compare value is "off-ticks": 0 = full on, PERIOD_TICKS = full off.
-        let off_ticks = Self::PERIOD_TICKS - on_ticks as u16;
+        Self::PERIOD_TICKS - on_ticks as u16
+    }
 
-        let channel = Self::motor_to_channel(motor);
-        MOTOR_DUTIES[channel].store(off_ticks, Ordering::Relaxed);
+    pub fn set_all_motors(&mut self, command: MotorCommand) {
+        let motor1_off_ticks = Self::calc_off_ticks(command.motor1);
+        let motor2_off_ticks = Self::calc_off_ticks(command.motor2);
+        let motor3_off_ticks = Self::calc_off_ticks(command.motor3);
+        let motor4_off_ticks = Self::calc_off_ticks(command.motor4);
+
+        // There is no simple way to atomically update the buffer the EasyDMA is using
+        // The "proper" way to do this would be to use a double-buffered sequence, but that is not supported by the embassy-nrf PWM driver.
+        // Instead, we just update the values in the buffer directly. This is safe because the EasyDMA is reading the values in a loop, and the worst that can happen is that one of the motors gets a slightly incorrect value for one PWM period, which is not a big deal.
+        MOTOR_DUTIES[0].store(motor1_off_ticks, Ordering::Relaxed);
+        MOTOR_DUTIES[1].store(motor2_off_ticks, Ordering::Relaxed);
+        MOTOR_DUTIES[2].store(motor3_off_ticks, Ordering::Relaxed);
+        MOTOR_DUTIES[3].store(motor4_off_ticks, Ordering::Relaxed);
     }
 }
 

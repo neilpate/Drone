@@ -1,6 +1,6 @@
-use firmware_types::{ControllerDemand, Throttle};
+use firmware_types::{ControllerDemand, MotorCommand};
 
-pub fn mixer(demand: ControllerDemand) -> [Throttle; 4] {
+pub fn mixer(demand: ControllerDemand) -> MotorCommand {
     let throttle = demand.throttle;
     let roll = demand.roll;
     let pitch = demand.pitch;
@@ -18,7 +18,12 @@ pub fn mixer(demand: ControllerDemand) -> [Throttle; 4] {
     let motor3 = throttle + roll.as_normalised() - pitch.as_normalised() - yaw.as_normalised(); // RL
     let motor4 = throttle + roll.as_normalised() + pitch.as_normalised() + yaw.as_normalised(); // FL
 
-    [motor1, motor2, motor3, motor4]
+    MotorCommand {
+        motor1,
+        motor2,
+        motor3,
+        motor4,
+    }
 }
 
 #[cfg(test)]
@@ -53,16 +58,16 @@ mod tests {
         //Just test this logic, not the exact values, as we don't want to hardcode the mixer logic in the test.
 
         //assert M3 > M1
-        assert!(motors[2].as_normalised() > motors[0].as_normalised());
+        assert!(motors.motor3.as_normalised() > motors.motor1.as_normalised());
 
         //assert M4 > M2
-        assert!(motors[3].as_normalised() > motors[1].as_normalised());
+        assert!(motors.motor4.as_normalised() > motors.motor2.as_normalised());
 
         //assert M4 > M1
-        assert!(motors[3].as_normalised() > motors[0].as_normalised());
+        assert!(motors.motor4.as_normalised() > motors.motor1.as_normalised());
 
         //assert M3 > M2
-        assert!(motors[2].as_normalised() > motors[1].as_normalised());
+        assert!(motors.motor3.as_normalised() > motors.motor2.as_normalised());
     }
 
     #[test]
@@ -80,16 +85,16 @@ mod tests {
         //Test the direction only, not exact values, to avoid hardcoding the mixer logic in the test.
 
         //assert M2 > M1 (front-right > rear-right)
-        assert!(motors[1].as_normalised() > motors[0].as_normalised());
+        assert!(motors.motor2.as_normalised() > motors.motor1.as_normalised());
 
         //assert M4 > M3 (front-left > rear-left)
-        assert!(motors[3].as_normalised() > motors[2].as_normalised());
+        assert!(motors.motor4.as_normalised() > motors.motor3.as_normalised());
 
         //assert M2 > M3 (front-right > rear-left)
-        assert!(motors[1].as_normalised() > motors[2].as_normalised());
+        assert!(motors.motor2.as_normalised() > motors.motor3.as_normalised());
 
         //assert M4 > M1 (front-left > rear-right)
-        assert!(motors[3].as_normalised() > motors[0].as_normalised());
+        assert!(motors.motor4.as_normalised() > motors.motor1.as_normalised());
     }
 
     #[test]
@@ -102,10 +107,10 @@ mod tests {
         };
 
         let motors = mixer(demand);
-        assert_eq!(motors[0].as_normalised(), 0.5 - 0.1 - (-0.2) + 0.05); // Rear right
-        assert_eq!(motors[1].as_normalised(), 0.5 - 0.1 + (-0.2) - 0.05); // Front right
-        assert_eq!(motors[2].as_normalised(), 0.5 + 0.1 - (-0.2) - 0.05); // Rear left
-        assert_eq!(motors[3].as_normalised(), 0.5 + 0.1 + (-0.2) + 0.05); // Front left
+        assert_eq!(motors.motor1.as_normalised(), 0.5 - 0.1 - (-0.2) + 0.05); // Rear right
+        assert_eq!(motors.motor2.as_normalised(), 0.5 - 0.1 + (-0.2) - 0.05); // Front right
+        assert_eq!(motors.motor3.as_normalised(), 0.5 + 0.1 - (-0.2) - 0.05); // Rear left
+        assert_eq!(motors.motor4.as_normalised(), 0.5 + 0.1 + (-0.2) + 0.05); // Front left
     }
 
     #[test]
@@ -124,13 +129,13 @@ mod tests {
         // Direction only, not exact values.
 
         // M1 (CCW) > M2 (CW)
-        assert!(motors[0].as_normalised() > motors[1].as_normalised());
+        assert!(motors.motor1.as_normalised() > motors.motor2.as_normalised());
         // M1 (CCW) > M3 (CW)
-        assert!(motors[0].as_normalised() > motors[2].as_normalised());
+        assert!(motors.motor1.as_normalised() > motors.motor3.as_normalised());
         // M4 (CCW) > M2 (CW)
-        assert!(motors[3].as_normalised() > motors[1].as_normalised());
+        assert!(motors.motor4.as_normalised() > motors.motor2.as_normalised());
         // M4 (CCW) > M3 (CW)
-        assert!(motors[3].as_normalised() > motors[2].as_normalised());
+        assert!(motors.motor4.as_normalised() > motors.motor3.as_normalised());
     }
 
     #[test]
@@ -145,9 +150,10 @@ mod tests {
         let motors = mixer(demand);
 
         // Pure collective: every motor gets exactly the throttle, no differential.
-        for motor in motors {
-            assert_eq!(motor.as_normalised(), 0.5);
-        }
+        assert_eq!(motors.motor1.as_normalised(), 0.5);
+        assert_eq!(motors.motor2.as_normalised(), 0.5);
+        assert_eq!(motors.motor3.as_normalised(), 0.5);
+        assert_eq!(motors.motor4.as_normalised(), 0.5);
     }
 
     #[test]
@@ -164,13 +170,29 @@ mod tests {
         let motors = mixer(demand);
 
         // No output ever leaves the valid 0..=1 motor range.
-        for motor in motors {
-            let v = motor.as_normalised();
-            assert!((0.0f32..=1.0).contains(&v), "motor out of range: {v}");
-        }
+        assert!(
+            (0.0f32..=1.0).contains(&motors.motor1.as_normalised()),
+            "motor out of range: {}",
+            motors.motor1.as_normalised()
+        );
+        assert!(
+            (0.0f32..=1.0).contains(&motors.motor2.as_normalised()),
+            "motor out of range: {}",
+            motors.motor2.as_normalised()
+        );
+        assert!(
+            (0.0f32..=1.0).contains(&motors.motor3.as_normalised()),
+            "motor out of range: {}",
+            motors.motor3.as_normalised()
+        );
+        assert!(
+            (0.0f32..=1.0).contains(&motors.motor4.as_normalised()),
+            "motor out of range: {}",
+            motors.motor4.as_normalised()
+        );
 
         // The left motors (0.9 + 0.5 = 1.4) clamp to full rather than overflowing.
-        assert_eq!(motors[2].as_normalised(), 1.0); // M3 rear-left
-        assert_eq!(motors[3].as_normalised(), 1.0); // M4 front-left
+        assert_eq!(motors.motor3.as_normalised(), 1.0); // M3 rear-left
+        assert_eq!(motors.motor4.as_normalised(), 1.0); // M4 front-left
     }
 }
