@@ -443,12 +443,14 @@ impl App {
                     self.yaw = stick_to_deflection(value);
                     changed = true;
                 }
+                // Right stick X -> roll: stick right commands +roll
+                // (right-side-down, bank right), per ADR 0021.
                 EventType::AxisChanged(Axis::RightStickX, value, _) => {
                     self.roll = stick_to_deflection(value);
                     changed = true;
                 }
-                // gilrs reports stick-up as positive; invert so pushing the
-                // stick forward commands nose-down (forward flight).
+                // Right stick Y -> pitch: gilrs reports stick-up as positive, so
+                // negate to command -pitch (nose-down), per ADR 0021 (+pitch = nose-up).
                 EventType::AxisChanged(Axis::RightStickY, value, _) => {
                     self.pitch = stick_to_deflection(-value);
                     changed = true;
