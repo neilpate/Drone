@@ -1,6 +1,6 @@
 # ADR 0023 — Motor numbering, layout, and rotation directions
 
-- **Status:** Proposed
+- **Status:** Proposed (mixer implemented and bench-verified 2026-07-19; first-hover confirmation pending)
 - **Date:** 2026-07-18
 - **Related:** [ADR 0019](0019-airframe-class-3in-4s-printed.md) (X-quad airframe class), [ADR 0021](0021-coordinate-frames-and-command-semantics.md) (frames + attitude sign conventions the mixer derives from), [ADR 0010](0010-board-support-package.md) (BSP: the `Motor` enum + pin map), [ADR 0017](0017-supervisor-failsafe-state-machine.md) (supervisor is the sole publisher of motor commands), [ADR 0022](0022-attitude-estimation-complementary-filter.md) (attitude estimate feeding the control loop that feeds the mixer)
 
@@ -47,12 +47,14 @@ Each motor maps to a fixed PWM channel and micro:bit v2 edge-connector pin (the 
 
 | Motor | Corner | PWM channel | nRF pin |
 |-------|--------|-------------|---------|
-| M1 | rear-right  | PWM0 ch0 | P0.10 |
-| M2 | front-right | PWM0 ch1 | P0.09 |
-| M3 | rear-left   | PWM0 ch2 | P0.12 |
-| M4 | front-left  | PWM0 ch3 | P0.02 |
+| M1 | rear-right  | PWM0 ch0 | P0.02 |
+| M2 | front-right | PWM0 ch1 | P0.12 |
+| M3 | rear-left   | PWM0 ch2 | P0.09 |
+| M4 | front-left  | PWM0 ch3 | P0.10 |
 
 The chosen ESC (Sequre Blueson A1, [ADR 0019](0019-airframe-class-3in-4s-printed.md)) numbers its own four motor-pad groups in this same Betaflight-style layout — M1 and M4 on opposite (diagonal) corners, adjacent numbers on adjacent corners (i.e. "4 opposite 1"). This is confirmed against the board (vendor wiring diagram kept at [`doc/hardware/blueson-a1-en-long.jpg`](../hardware/blueson-a1-en-long.jpg); the vendor docs give the pad *numbering* but not a phase pinout). So the ESC's labelled M1–M4 outputs map one-to-one onto the channels above, and no re-numbering is needed at the ESC-to-motor boundary. The individual **phase** wiring within each motor is a separate matter — see §5.
+
+**As-built wiring correction (2026-07-19).** The pin column above is not the order originally assumed. Single-motor bench testing — drive one channel, observe which corner spins — showed the four ESC signal leads had been connected in reversed order, so each PWM channel drove its **diagonal-opposite** corner. Rather than unpick the wiring on the tightly-packed airframe, the fix reverses the pin order handed to `Motors::new` (`P0.02, P0.12, P0.09, P0.10`) so the channel-to-corner mapping in the table above holds as running. This is why roll and pitch were initially inverted while yaw looked correct: a diagonal swap preserves the CW/CCW pairing that yaw depends on but flips the front/rear and left/right positions that pitch and roll depend on. The airframe cannot easily be re-inspected, so the authoritative record of the correction lives in the [`board`](../../crates/firmware-drone/src/board/microbit_v2.rs) pin-map note; do not reorder the constructor without re-running the single-motor test.
 
 ### 3. Rotation directions: props-out
 
@@ -91,6 +93,8 @@ Reasoning (each derived from ADR 0021, not copied from a stock table — our pos
 
 These signs are a **derivation, not yet a validated fact**. They must be confirmed before free flight — first on the bench (props off, tethered), then in a controlled first hover — because a mis-derivation here is the flip-on-arm failure mode. The derivation is recorded so the verification has something concrete to check against.
 
+**Bench-verified (2026-07-19).** With the wiring corrected (§2) and props off, each axis was checked against this table using two complementary probes: live telemetry to confirm the **command** sign end-to-end (ADR 0021: right roll = +roll, stick-forward = −pitch, right yaw = +yaw) and the single-motor test to confirm which physical corner each channel drives. Yaw was correct throughout; roll and pitch came right once the pin order was reversed, after which right roll raises the left pair, nose-up pitch raises the front pair, and right yaw raises the CCW diagonal — matching the table. The bench half of the validation is therefore complete; the first-hover confirmation remains outstanding.
+
 ### 5. Direction is set/corrected in the ESC, not by re-soldering
 
 Motor phase wires are soldered in arbitrary order (phase order only sets direction, which is recoverable). Actual rotation is confirmed on a **props-off spin test** and any wrong-way motor is brought into line with §3 — either by swapping any two of its three phase wires, or by flipping its direction in the **AM32 configurator** (with DShot, reversible in software live).
@@ -114,4 +118,4 @@ Motor phase wires are soldered in arbitrary order (phase order only sets directi
 
 ### Current state
 
-The layout, numbering, channel/pin assignment (§1–§2) and the props-out rotation scheme (§3) are already reflected in the firmware (`Motor1`..`Motor4`, the pin map, and the `Motor` enum doc comment). The mixer (§4) is not yet implemented — `motor_controller` currently drives all four channels with the same throttle as a bench placeholder, with no attitude mixing.
+The layout, numbering, channel/pin assignment (§1–§2) and the props-out rotation scheme (§3) are reflected in the firmware (the `MotorCommand` fields `motor1..motor4`, the `MOTOR_DUTIES` map, and the pin map). The mixer (§4) is implemented in `firmware-drone-core` and driven by the supervisor ([ADR 0017](0017-supervisor-failsafe-state-machine.md)); its corner mapping and sign table have been bench-verified (§2, §4), leaving the first-hover confirmation as the only remaining validation. The control loop (attitude estimate → PID → mixer demand) is still absent — the supervisor currently forwards raw pilot roll/pitch/yaw straight into the mixer (open-loop, no self-levelling).
