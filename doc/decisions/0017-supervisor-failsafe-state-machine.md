@@ -1,8 +1,19 @@
 # ADR 0017 — Supervisor task: failsafe state machine driving safe motor commands
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-07-19 — loss-of-link attitude ladder; see Amendment below)
 - **Date:** 2026-06-02
 - **Related:** [ADR 0004](0004-concurrency-embassy-channels.md) (actor-per-task), [ADR 0007](0007-testing-and-ci-strategy.md) (`core`/`task` split), [ADR 0009](0009-workspace-bootstrap-and-crate-naming.md) (crate naming), [ADR 0013](0013-async-communication-primitives.md) (Watch for state), [ADR 0015](0015-host-testing-no-std-crates.md) (host-test wiring)
+
+## Amendment (2026-07-19) — loss-of-link attitude ladder
+
+The original decision specified the failsafe in terms of **throttle only** (loss of link → ramp throttle to zero). Since then the motor **mixer** moved into the supervisor, so its output is now a full four-motor `MotorCommand` rather than a single `Throttle`, and the supervisor also decides what happens to **attitude** (roll/pitch/yaw) when commands stop arriving. That was previously unspecified. This amendment records the behaviour, which distinguishes a transient dropout from sustained loss:
+
+- **Transient drop** — a missed command while still `Armed`, before `LINK_LOSS_TICKS`: a **zero-order hold of the entire last demand**, throttle *and* attitude. A single dropped packet at the command rate should not snap the craft to level; it holds the last full command until the next packet arrives. (This is why the supervisor now stores `previous_demand: PilotCommand` rather than the earlier `previous_throttle`.)
+- **Loss declared** — the tick that crosses `LINK_LOSS_TICKS` into `Degraded`: **attitude is zeroed immediately** (wings-level) on that same output, while the throttle is still held. The instant loss is confirmed, a held bank must stop — otherwise it would fly the craft away as the throttle ramps.
+- **Sustained** — steady `Degraded` ticks: attitude stays zero and the **throttle ramps to zero** over `RAMP_TICKS`, then holds at zero (the original decision).
+- **Recovery** is unchanged: a zero-throttle command re-arms and resets the hold to neutral (`PilotCommand::ZERO`).
+
+The rule in one line: **hold the last command through a hiccup, neutralise attitude the instant loss is declared, then ramp throttle down.** All three rungs are covered by host tests in `firmware-drone-core`.
 
 ## Context
 
