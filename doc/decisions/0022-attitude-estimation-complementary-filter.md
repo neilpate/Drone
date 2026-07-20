@@ -41,14 +41,16 @@ The estimator outputs **roll and pitch angle**. It does **not** produce an absol
 
 ### 4. Frame, axes, and signs follow ADR 0021
 
-The accelerometer-derived angles, in the FRD body frame with the right-hand sign rules of [ADR 0021](0021-coordinate-frames-and-command-semantics.md) §3:
+The accelerometer measures **specific force**, so at rest its reading points *opposite* gravity: in the FRD body frame (+Z down) a level craft reads `a_z = -1 g`, with `a_x` going positive as the nose rises and `a_y` positive as the craft rolls left. The roll and pitch that gravity implies, with the right-hand sign rules of [ADR 0021](0021-coordinate-frames-and-command-semantics.md) §3 (+roll = right-side-down, +pitch = nose-up):
 
 ```
-roll_acc  = atan2( a_y, a_z )
-pitch_acc = atan2( -a_x, sqrt(a_y^2 + a_z^2) )
+roll_acc  = atan2( -a_y, -a_z )
+pitch_acc = atan2(  a_x, sqrt(a_y^2 + a_z^2) )
 ```
 
-Roll pairs with the gyro's X (forward) axis, pitch with Y (right), yaw rate with Z (down). The IMU's raw sensor axes are remapped into FRD at the driver boundary ([ADR 0021](0021-coordinate-frames-and-command-semantics.md) consequences), so the filter sees FRD-correct data and never the chip's native axes. Angles are held internally in **radians** (the natural output of `atan2`), converted to degrees only at the human-facing / telemetry boundary.
+These are the **FRD** forms, deliberately not the more commonly quoted `atan2(a_y, a_z)` / `atan2(-a_x, ...)`. Those assume a *Z-up* accelerometer reading `+1 g` at rest; an FRD (+Z-down) specific-force reading is the negated vector, so using the Z-up forms directly would put roll 180° out and invert pitch — a wrong-way self-level. Equivalently: negate the whole accel vector first (a down-positive gravity vector, `+1 g` at rest) and the textbook forms apply. Checked against bench readings: level -> (0, 0); nose-up -> +pitch; roll-right -> +roll.
+
+Roll pairs with the gyro's X (forward) axis, pitch with Y (right), yaw rate with Z (down). The IMU is mounted **axis-aligned to the body FRD frame**, confirmed by a static tilt test (level `a_z = -1 g`; nose-up gives `+a_x`; roll-right gives `-a_y`), so the filter reads the chip axes directly as FRD with no remap. Re-run that tilt test if the sensor is ever remounted. Angles are held internally in **radians** (the natural output of `atan2`), converted to degrees only at the human-facing / telemetry boundary.
 
 ### 5. Sample timing: nominal fixed `dt`
 
@@ -88,7 +90,7 @@ Fixed at bench-tuning time, not in this ADR:
 ### What this commits us to
 
 - An attitude estimate exists as roll/pitch angle newtypes in `firmware-types`, produced by pure `firmware-drone-core` logic and published on a single-owner `Watch`.
-- The estimator consumes FRD-remapped IMU data and obeys the [ADR 0021](0021-coordinate-frames-and-command-semantics.md) signs; the control loop is written against `Attitude`, not raw IMU samples.
+- The estimator consumes FRD-aligned IMU data (the sensor is mounted axis-aligned to the FRD frame, §4) and obeys the [ADR 0021](0021-coordinate-frames-and-command-semantics.md) signs; the control loop is written against `Attitude`, not raw IMU samples.
 - Startup includes a gyro-bias calibration step (a "hold still" window), which the supervisor's `Initialising` state accommodates.
 - Telemetry can carry the estimated roll/pitch (closing the [ADR 0017](0017-supervisor-failsafe-state-machine.md) open item), via the aggregator of [ADR 0020](0020-telemetry-aggregator-single-publisher.md).
 
