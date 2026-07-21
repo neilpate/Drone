@@ -1,7 +1,7 @@
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-use crate::{CpuLoad, DroneState, PilotCommand, Sensors};
+use crate::{Attitude, CpuLoad, DroneState, PilotCommand, Sensors};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -10,6 +10,7 @@ pub struct Telemetry {
     pub sensors: Sensors,
     pub drone_state: DroneState,
     pub pilot_command: PilotCommand,
+    pub attitude: Attitude,
     pub cpu_load: CpuLoad,
 }
 
@@ -48,6 +49,7 @@ mod tests {
                 pitch: PitchCommand::from_normalised(0.25),
                 yaw: YawCommand::from_normalised(-0.125),
             },
+            attitude: Attitude::from_degrees(0.0, 0.0),
             cpu_load: CpuLoad::from_percentage(50.0),
         };
         let mut buf = [0u8; Telemetry::POSTCARD_MAX_SIZE];

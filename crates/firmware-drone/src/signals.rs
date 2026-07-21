@@ -1,3 +1,4 @@
+pub mod attitude;
 pub mod cpu_load;
 pub mod imu_data;
 pub mod motor_command;

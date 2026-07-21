@@ -46,6 +46,7 @@ async fn main(thread_mode_spawner: Spawner) {
     high_priority_spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
     high_priority_spawner.must_spawn(tasks::sensors_aggregator::sensors_aggregator());
     high_priority_spawner.must_spawn(tasks::imu::imu(board.imu));
+    high_priority_spawner.must_spawn(tasks::attitude_estimator::attitude_estimator());
     high_priority_spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator());
 
     thread_mode_spawner.must_spawn(tasks::load_profiler::load_profiler(calibration_baseline));
