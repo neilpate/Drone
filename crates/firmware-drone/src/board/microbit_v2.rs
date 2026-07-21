@@ -15,7 +15,7 @@ use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
-use firmware_types::{Acceleration, AngularRate, ImuData, MotorCommand, Throttle};
+use firmware_types::{Acceleration, AngularRate, ImuData, MotorCommand, ThrottleCommand};
 
 pub const NAME: &str = "BBC micro:bit v2";
 
@@ -245,7 +245,7 @@ impl Motors {
         }
     }
 
-    fn calc_off_ticks(throttle: Throttle) -> u16 {
+    fn calc_off_ticks(throttle: ThrottleCommand) -> u16 {
         // ESCs inherit the classic RC servo protocol: throttle is encoded in the
         // *width* of the high pulse.
         // 1 ms (MIN_PULSE_TICKS) = idle / min throttle

@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, Default, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Acceleration(f32);
+pub struct YawAngle(f32);
 
-impl Acceleration {
-    pub fn from_g(g: f32) -> Self {
-        Self(g)
+impl YawAngle {
+    pub fn from_degrees(deg: f32) -> Self {
+        Self(deg)
     }
 
-    pub fn as_g(self) -> f32 {
+    pub fn as_degrees(self) -> f32 {
         self.0
     }
 }

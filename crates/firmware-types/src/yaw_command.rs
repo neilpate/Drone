@@ -3,23 +3,27 @@ use core::ops::Mul;
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-/// Normalised pitch stick deflection, `-1.0..=1.0` (centre `0.0`), dimensionless.
+/// Normalised yaw stick deflection, `-1.0..=1.0` (centre `0.0`), dimensionless.
 ///
-/// Intentionally parallel with [`Roll`](crate::Roll) and [`Yaw`](crate::Yaw):
+/// Intentionally parallel with [`Roll`](crate::Roll) and [`Pitch`](crate::Pitch):
 /// the three are structurally identical hand-written newtypes (ADR 0016 allows a
 /// macro here, but we keep them separate for grep-ability). Keep all three in
 /// sync — a change to one usually means the same change to the other two.
+///
+/// Note the wire value is a dimensionless deflection like roll and pitch; the
+/// drone interprets yaw as a *rate* (deg/s) rather than an angle, but that split
+/// lives in the control law, not here.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Pitch(f32);
+pub struct YawCommand(f32);
 
-impl<'de> Deserialize<'de> for Pitch {
+impl<'de> Deserialize<'de> for YawCommand {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         f32::deserialize(deserializer).map(Self::from_normalised)
     }
 }
 
-impl Pitch {
+impl YawCommand {
     pub const ZERO: Self = Self(0.0);
     pub const MAX: Self = Self(1.0);
     pub const MIN: Self = Self(-1.0);
@@ -33,7 +37,7 @@ impl Pitch {
     }
 }
 
-impl Mul<f32> for Pitch {
+impl Mul<f32> for YawCommand {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
@@ -47,38 +51,38 @@ mod tests {
 
     #[test]
     fn clamps_above_one() {
-        assert_eq!(Pitch::from_normalised(1.5).as_normalised(), 1.0);
+        assert_eq!(YawCommand::from_normalised(1.5).as_normalised(), 1.0);
     }
 
     #[test]
     fn no_clamp_within_bounds() {
-        assert_eq!(Pitch::from_normalised(0.5).as_normalised(), 0.5);
-        assert_eq!(Pitch::from_normalised(-0.5).as_normalised(), -0.5);
+        assert_eq!(YawCommand::from_normalised(0.5).as_normalised(), 0.5);
+        assert_eq!(YawCommand::from_normalised(-0.5).as_normalised(), -0.5);
     }
 
     #[test]
     fn clamps_below_minus_one() {
-        assert_eq!(Pitch::from_normalised(-1.5).as_normalised(), -1.0);
+        assert_eq!(YawCommand::from_normalised(-1.5).as_normalised(), -1.0);
     }
 
     #[test]
     fn nan_becomes_zero() {
-        assert_eq!(Pitch::from_normalised(f32::NAN).as_normalised(), 0.0);
+        assert_eq!(YawCommand::from_normalised(f32::NAN).as_normalised(), 0.0);
     }
 
     #[test]
     fn constants() {
-        assert_eq!(Pitch::ZERO.as_normalised(), 0.0);
-        assert_eq!(Pitch::MAX.as_normalised(), 1.0);
-        assert_eq!(Pitch::MIN.as_normalised(), -1.0);
+        assert_eq!(YawCommand::ZERO.as_normalised(), 0.0);
+        assert_eq!(YawCommand::MAX.as_normalised(), 1.0);
+        assert_eq!(YawCommand::MIN.as_normalised(), -1.0);
     }
 
     #[test]
     fn postcard_round_trip() {
-        let original = Pitch::from_normalised(0.42);
+        let original = YawCommand::from_normalised(0.42);
         let mut buf = [0u8; 16];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
-        let decoded: Pitch = postcard::from_bytes(bytes).unwrap();
+        let decoded: YawCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);
     }
 
@@ -88,7 +92,7 @@ mod tests {
         let garbage_f32: f32 = 2_071_499_600_000.0;
         let mut buf = [0u8; 8];
         let bytes = postcard::to_slice(&garbage_f32, &mut buf).unwrap();
-        let decoded: Pitch = postcard::from_bytes(bytes).unwrap();
+        let decoded: YawCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(decoded.as_normalised(), 1.0);
     }
 
@@ -96,25 +100,28 @@ mod tests {
     fn deserialize_scrubs_nan() {
         let mut buf = [0u8; 8];
         let bytes = postcard::to_slice(&f32::NAN, &mut buf).unwrap();
-        let decoded: Pitch = postcard::from_bytes(bytes).unwrap();
+        let decoded: YawCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(decoded.as_normalised(), 0.0);
     }
 
     #[test]
     fn multiply() {
-        let pitch = Pitch::from_normalised(0.5);
-        let result = pitch * 0.5;
+        let yaw = YawCommand::from_normalised(0.5);
+        let result = yaw * 0.5;
         assert_eq!(result.as_normalised(), 0.25);
     }
 
     #[test]
     fn multiply_clamps_when_overshoot() {
         // 0.6 * 2.0 = 1.2 -> clamped to MAX
-        assert_eq!((Pitch::from_normalised(0.6) * 2.0).as_normalised(), 1.0);
+        assert_eq!(
+            (YawCommand::from_normalised(0.6) * 2.0).as_normalised(),
+            1.0
+        );
     }
 
     #[test]
     fn multiply_by_zero_is_zero() {
-        assert_eq!((Pitch::MAX * 0.0).as_normalised(), 0.0);
+        assert_eq!((YawCommand::MAX * 0.0).as_normalised(), 0.0);
     }
 }

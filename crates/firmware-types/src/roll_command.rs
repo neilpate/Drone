@@ -11,15 +11,15 @@ use serde::{Deserialize, Serialize};
 /// sync — a change to one usually means the same change to the other two.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Roll(f32);
+pub struct RollCommand(f32);
 
-impl<'de> Deserialize<'de> for Roll {
+impl<'de> Deserialize<'de> for RollCommand {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         f32::deserialize(deserializer).map(Self::from_normalised)
     }
 }
 
-impl Roll {
+impl RollCommand {
     pub const ZERO: Self = Self(0.0);
     pub const MAX: Self = Self(1.0);
     pub const MIN: Self = Self(-1.0);
@@ -33,7 +33,7 @@ impl Roll {
     }
 }
 
-impl Mul<f32> for Roll {
+impl Mul<f32> for RollCommand {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
@@ -47,38 +47,38 @@ mod tests {
 
     #[test]
     fn clamps_above_one() {
-        assert_eq!(Roll::from_normalised(1.5).as_normalised(), 1.0);
+        assert_eq!(RollCommand::from_normalised(1.5).as_normalised(), 1.0);
     }
 
     #[test]
     fn no_clamp_within_bounds() {
-        assert_eq!(Roll::from_normalised(0.5).as_normalised(), 0.5);
-        assert_eq!(Roll::from_normalised(-0.5).as_normalised(), -0.5);
+        assert_eq!(RollCommand::from_normalised(0.5).as_normalised(), 0.5);
+        assert_eq!(RollCommand::from_normalised(-0.5).as_normalised(), -0.5);
     }
 
     #[test]
     fn clamps_below_minus_one() {
-        assert_eq!(Roll::from_normalised(-1.5).as_normalised(), -1.0);
+        assert_eq!(RollCommand::from_normalised(-1.5).as_normalised(), -1.0);
     }
 
     #[test]
     fn nan_becomes_zero() {
-        assert_eq!(Roll::from_normalised(f32::NAN).as_normalised(), 0.0);
+        assert_eq!(RollCommand::from_normalised(f32::NAN).as_normalised(), 0.0);
     }
 
     #[test]
     fn constants() {
-        assert_eq!(Roll::ZERO.as_normalised(), 0.0);
-        assert_eq!(Roll::MAX.as_normalised(), 1.0);
-        assert_eq!(Roll::MIN.as_normalised(), -1.0);
+        assert_eq!(RollCommand::ZERO.as_normalised(), 0.0);
+        assert_eq!(RollCommand::MAX.as_normalised(), 1.0);
+        assert_eq!(RollCommand::MIN.as_normalised(), -1.0);
     }
 
     #[test]
     fn postcard_round_trip() {
-        let original = Roll::from_normalised(0.42);
+        let original = RollCommand::from_normalised(0.42);
         let mut buf = [0u8; 16];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
-        let decoded: Roll = postcard::from_bytes(bytes).unwrap();
+        let decoded: RollCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);
     }
 
@@ -88,7 +88,7 @@ mod tests {
         let garbage_f32: f32 = 2_071_499_600_000.0;
         let mut buf = [0u8; 8];
         let bytes = postcard::to_slice(&garbage_f32, &mut buf).unwrap();
-        let decoded: Roll = postcard::from_bytes(bytes).unwrap();
+        let decoded: RollCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(decoded.as_normalised(), 1.0);
     }
 
@@ -96,13 +96,13 @@ mod tests {
     fn deserialize_scrubs_nan() {
         let mut buf = [0u8; 8];
         let bytes = postcard::to_slice(&f32::NAN, &mut buf).unwrap();
-        let decoded: Roll = postcard::from_bytes(bytes).unwrap();
+        let decoded: RollCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(decoded.as_normalised(), 0.0);
     }
 
     #[test]
     fn multiply() {
-        let roll = Roll::from_normalised(0.5);
+        let roll = RollCommand::from_normalised(0.5);
         let result = roll * 0.5;
         assert_eq!(result.as_normalised(), 0.25);
     }
@@ -110,11 +110,14 @@ mod tests {
     #[test]
     fn multiply_clamps_when_overshoot() {
         // 0.6 * 2.0 = 1.2 -> clamped to MAX
-        assert_eq!((Roll::from_normalised(0.6) * 2.0).as_normalised(), 1.0);
+        assert_eq!(
+            (RollCommand::from_normalised(0.6) * 2.0).as_normalised(),
+            1.0
+        );
     }
 
     #[test]
     fn multiply_by_zero_is_zero() {
-        assert_eq!((Roll::MAX * 0.0).as_normalised(), 0.0);
+        assert_eq!((RollCommand::MAX * 0.0).as_normalised(), 0.0);
     }
 }

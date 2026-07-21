@@ -29,7 +29,7 @@ pub fn mixer(demand: ControllerDemand) -> MotorCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use firmware_types::{Pitch, Roll, Throttle, Yaw};
+    use firmware_types::{PitchCommand, RollCommand, ThrottleCommand, YawCommand};
 
     //           front
     //      M4 (FL)     M2 (FR)
@@ -46,10 +46,10 @@ mod tests {
     #[test]
     fn mix_just_roll() {
         let demand = ControllerDemand {
-            throttle: Throttle::from_normalised(0.5),
-            roll: Roll::from_normalised(0.1),
-            pitch: Pitch::from_normalised(0.0),
-            yaw: Yaw::from_normalised(0.0),
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.1),
+            pitch: PitchCommand::from_normalised(0.0),
+            yaw: YawCommand::from_normalised(0.0),
         };
 
         let motors = mixer(demand);
@@ -73,10 +73,10 @@ mod tests {
     #[test]
     fn mix_just_pitch() {
         let demand = ControllerDemand {
-            throttle: Throttle::from_normalised(0.5),
-            roll: Roll::from_normalised(0.0),
-            pitch: Pitch::from_normalised(0.1),
-            yaw: Yaw::from_normalised(0.0),
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.0),
+            pitch: PitchCommand::from_normalised(0.1),
+            yaw: YawCommand::from_normalised(0.0),
         };
 
         let motors = mixer(demand);
@@ -100,10 +100,10 @@ mod tests {
     #[test]
     fn mix_all_no_saturation() {
         let demand = ControllerDemand {
-            throttle: Throttle::from_normalised(0.5),
-            roll: Roll::from_normalised(0.1),
-            pitch: Pitch::from_normalised(-0.2),
-            yaw: Yaw::from_normalised(0.05),
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.1),
+            pitch: PitchCommand::from_normalised(-0.2),
+            yaw: YawCommand::from_normalised(0.05),
         };
 
         let motors = mixer(demand);
@@ -116,10 +116,10 @@ mod tests {
     #[test]
     fn mix_just_yaw() {
         let demand = ControllerDemand {
-            throttle: Throttle::from_normalised(0.5),
-            roll: Roll::from_normalised(0.0),
-            pitch: Pitch::from_normalised(0.0),
-            yaw: Yaw::from_normalised(0.1),
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.0),
+            pitch: PitchCommand::from_normalised(0.0),
+            yaw: YawCommand::from_normalised(0.1),
         };
 
         let motors = mixer(demand);
@@ -141,10 +141,10 @@ mod tests {
     #[test]
     fn mix_just_throttle_is_even() {
         let demand = ControllerDemand {
-            throttle: Throttle::from_normalised(0.5),
-            roll: Roll::from_normalised(0.0),
-            pitch: Pitch::from_normalised(0.0),
-            yaw: Yaw::from_normalised(0.0),
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.0),
+            pitch: PitchCommand::from_normalised(0.0),
+            yaw: YawCommand::from_normalised(0.0),
         };
 
         let motors = mixer(demand);
@@ -161,10 +161,10 @@ mod tests {
         // A roll demand large enough to drive the left motors past full and the
         // right motors well below idle.
         let demand = ControllerDemand {
-            throttle: Throttle::from_normalised(0.9),
-            roll: Roll::from_normalised(0.5),
-            pitch: Pitch::from_normalised(0.0),
-            yaw: Yaw::from_normalised(0.0),
+            throttle: ThrottleCommand::from_normalised(0.9),
+            roll: RollCommand::from_normalised(0.5),
+            pitch: PitchCommand::from_normalised(0.0),
+            yaw: YawCommand::from_normalised(0.0),
         };
 
         let motors = mixer(demand);

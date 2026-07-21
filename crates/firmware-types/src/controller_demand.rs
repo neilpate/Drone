@@ -1,15 +1,15 @@
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-use crate::{Pitch, Roll, Throttle, Yaw};
+use crate::{PitchCommand, RollCommand, ThrottleCommand, YawCommand};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ControllerDemand {
-    pub throttle: Throttle,
-    pub roll: Roll,
-    pub pitch: Pitch,
-    pub yaw: Yaw,
+    pub throttle: ThrottleCommand,
+    pub roll: RollCommand,
+    pub pitch: PitchCommand,
+    pub yaw: YawCommand,
 }
 
 impl ControllerDemand {
@@ -18,10 +18,10 @@ impl ControllerDemand {
     /// missing or dropped command holds the craft safe rather than acting on
     /// garbage.
     pub const ZERO: Self = Self {
-        throttle: Throttle::ZERO,
-        roll: Roll::ZERO,
-        pitch: Pitch::ZERO,
-        yaw: Yaw::ZERO,
+        throttle: ThrottleCommand::ZERO,
+        roll: RollCommand::ZERO,
+        pitch: PitchCommand::ZERO,
+        yaw: YawCommand::ZERO,
     };
 }
 
@@ -38,10 +38,10 @@ mod tests {
     #[test]
     fn postcard_round_trip() {
         let original = ControllerDemand {
-            throttle: Throttle::from_normalised(0.75),
-            roll: Roll::from_normalised(-0.5),
-            pitch: Pitch::from_normalised(0.25),
-            yaw: Yaw::from_normalised(-0.125),
+            throttle: ThrottleCommand::from_normalised(0.75),
+            roll: RollCommand::from_normalised(-0.5),
+            pitch: PitchCommand::from_normalised(0.25),
+            yaw: YawCommand::from_normalised(-0.125),
         };
         let mut buf = [0u8; 32];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();

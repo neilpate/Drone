@@ -1,18 +1,18 @@
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-use crate::pitch::Pitch;
-use crate::roll::Roll;
-use crate::throttle::Throttle;
-use crate::yaw::Yaw;
+use crate::pitch_command::PitchCommand;
+use crate::roll_command::RollCommand;
+use crate::throttle_command::ThrottleCommand;
+use crate::yaw_command::YawCommand;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GroundstationCommand {
-    pub throttle: Throttle,
-    pub roll: Roll,
-    pub pitch: Pitch,
-    pub yaw: Yaw,
+    pub throttle: ThrottleCommand,
+    pub roll: RollCommand,
+    pub pitch: PitchCommand,
+    pub yaw: YawCommand,
 }
 
 // The maximum size of a `GroundstationCommand` frame, in bytes, when serialized with `postcard`.
@@ -26,10 +26,10 @@ mod tests {
     #[test]
     fn postcard_round_trip() {
         let original = GroundstationCommand {
-            throttle: Throttle::from_normalised(0.75),
-            roll: Roll::from_normalised(-0.5),
-            pitch: Pitch::from_normalised(0.25),
-            yaw: Yaw::from_normalised(-0.125),
+            throttle: ThrottleCommand::from_normalised(0.75),
+            roll: RollCommand::from_normalised(-0.5),
+            pitch: PitchCommand::from_normalised(0.25),
+            yaw: YawCommand::from_normalised(-0.125),
         };
         let mut buf = [0u8; 32];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();

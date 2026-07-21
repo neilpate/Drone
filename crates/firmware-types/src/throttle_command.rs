@@ -1,35 +1,26 @@
+use core::ops::Add;
 use core::ops::Mul;
+use core::ops::Sub;
 
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-/// Normalised yaw stick deflection, `-1.0..=1.0` (centre `0.0`), dimensionless.
-///
-/// Intentionally parallel with [`Roll`](crate::Roll) and [`Pitch`](crate::Pitch):
-/// the three are structurally identical hand-written newtypes (ADR 0016 allows a
-/// macro here, but we keep them separate for grep-ability). Keep all three in
-/// sync — a change to one usually means the same change to the other two.
-///
-/// Note the wire value is a dimensionless deflection like roll and pitch; the
-/// drone interprets yaw as a *rate* (deg/s) rather than an angle, but that split
-/// lives in the control law, not here.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct Yaw(f32);
+pub struct ThrottleCommand(f32);
 
-impl<'de> Deserialize<'de> for Yaw {
+impl<'de> Deserialize<'de> for ThrottleCommand {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         f32::deserialize(deserializer).map(Self::from_normalised)
     }
 }
 
-impl Yaw {
+impl ThrottleCommand {
     pub const ZERO: Self = Self(0.0);
     pub const MAX: Self = Self(1.0);
-    pub const MIN: Self = Self(-1.0);
 
     pub fn from_normalised(n: f32) -> Self {
-        Self(if n.is_nan() { 0.0 } else { n.clamp(-1.0, 1.0) })
+        Self(if n.is_nan() { 0.0 } else { n.clamp(0.0, 1.0) })
     }
 
     pub fn as_normalised(self) -> f32 {
@@ -37,11 +28,27 @@ impl Yaw {
     }
 }
 
-impl Mul<f32> for Yaw {
+impl Mul<f32> for ThrottleCommand {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
         Self::from_normalised(self.as_normalised() * rhs)
+    }
+}
+
+impl Add<f32> for ThrottleCommand {
+    type Output = Self;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        Self::from_normalised(self.as_normalised() + rhs)
+    }
+}
+
+impl Sub<f32> for ThrottleCommand {
+    type Output = Self;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        Self::from_normalised(self.as_normalised() - rhs)
     }
 }
 
@@ -51,38 +58,34 @@ mod tests {
 
     #[test]
     fn clamps_above_one() {
-        assert_eq!(Yaw::from_normalised(1.5).as_normalised(), 1.0);
+        assert_eq!(ThrottleCommand::from_normalised(1.5).as_normalised(), 1.0);
     }
 
     #[test]
-    fn no_clamp_within_bounds() {
-        assert_eq!(Yaw::from_normalised(0.5).as_normalised(), 0.5);
-        assert_eq!(Yaw::from_normalised(-0.5).as_normalised(), -0.5);
-    }
-
-    #[test]
-    fn clamps_below_minus_one() {
-        assert_eq!(Yaw::from_normalised(-1.5).as_normalised(), -1.0);
+    fn clamps_below_zero() {
+        assert_eq!(ThrottleCommand::from_normalised(-0.5).as_normalised(), 0.0);
     }
 
     #[test]
     fn nan_becomes_zero() {
-        assert_eq!(Yaw::from_normalised(f32::NAN).as_normalised(), 0.0);
+        assert_eq!(
+            ThrottleCommand::from_normalised(f32::NAN).as_normalised(),
+            0.0
+        );
     }
 
     #[test]
     fn constants() {
-        assert_eq!(Yaw::ZERO.as_normalised(), 0.0);
-        assert_eq!(Yaw::MAX.as_normalised(), 1.0);
-        assert_eq!(Yaw::MIN.as_normalised(), -1.0);
+        assert_eq!(ThrottleCommand::ZERO.as_normalised(), 0.0);
+        assert_eq!(ThrottleCommand::MAX.as_normalised(), 1.0);
     }
 
     #[test]
     fn postcard_round_trip() {
-        let original = Yaw::from_normalised(0.42);
+        let original = ThrottleCommand::from_normalised(0.42);
         let mut buf = [0u8; 16];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
-        let decoded: Yaw = postcard::from_bytes(bytes).unwrap();
+        let decoded: ThrottleCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);
     }
 
@@ -92,7 +95,7 @@ mod tests {
         let garbage_f32: f32 = 2_071_499_600_000.0;
         let mut buf = [0u8; 8];
         let bytes = postcard::to_slice(&garbage_f32, &mut buf).unwrap();
-        let decoded: Yaw = postcard::from_bytes(bytes).unwrap();
+        let decoded: ThrottleCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(decoded.as_normalised(), 1.0);
     }
 
@@ -100,25 +103,28 @@ mod tests {
     fn deserialize_scrubs_nan() {
         let mut buf = [0u8; 8];
         let bytes = postcard::to_slice(&f32::NAN, &mut buf).unwrap();
-        let decoded: Yaw = postcard::from_bytes(bytes).unwrap();
+        let decoded: ThrottleCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(decoded.as_normalised(), 0.0);
     }
 
     #[test]
     fn multiply() {
-        let yaw = Yaw::from_normalised(0.5);
-        let result = yaw * 0.5;
+        let throttle = ThrottleCommand::from_normalised(0.5);
+        let result = throttle * 0.5;
         assert_eq!(result.as_normalised(), 0.25);
     }
 
     #[test]
     fn multiply_clamps_when_overshoot() {
         // 0.6 * 2.0 = 1.2 -> clamped to MAX
-        assert_eq!((Yaw::from_normalised(0.6) * 2.0).as_normalised(), 1.0);
+        assert_eq!(
+            (ThrottleCommand::from_normalised(0.6) * 2.0).as_normalised(),
+            1.0
+        );
     }
 
     #[test]
     fn multiply_by_zero_is_zero() {
-        assert_eq!((Yaw::MAX * 0.0).as_normalised(), 0.0);
+        assert_eq!((ThrottleCommand::MAX * 0.0).as_normalised(), 0.0);
     }
 }

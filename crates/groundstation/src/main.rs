@@ -261,20 +261,20 @@ impl App {
             self.series[SERIES_TEMPERATURE]
                 .push(t, telemetry.sensors.temperature.as_celsius() as f64);
             self.series[SERIES_CPU_LOAD].push(t, telemetry.cpu_load.as_percentage() as f64);
-            self.series[SERIES_ACCEL_X].push(t, telemetry.imu.acceleration_x.as_g() as f64);
-            self.series[SERIES_ACCEL_Y].push(t, telemetry.imu.acceleration_y.as_g() as f64);
-            self.series[SERIES_ACCEL_Z].push(t, telemetry.imu.acceleration_z.as_g() as f64);
+            self.series[SERIES_ACCEL_X].push(t, telemetry.sensors.imu.acceleration_x.as_g() as f64);
+            self.series[SERIES_ACCEL_Y].push(t, telemetry.sensors.imu.acceleration_y.as_g() as f64);
+            self.series[SERIES_ACCEL_Z].push(t, telemetry.sensors.imu.acceleration_z.as_g() as f64);
             self.series[SERIES_GYRO_X].push(
                 t,
-                telemetry.imu.angular_rate_x.as_degrees_per_second() as f64,
+                telemetry.sensors.imu.angular_rate_x.as_degrees_per_second() as f64,
             );
             self.series[SERIES_GYRO_Y].push(
                 t,
-                telemetry.imu.angular_rate_y.as_degrees_per_second() as f64,
+                telemetry.sensors.imu.angular_rate_y.as_degrees_per_second() as f64,
             );
             self.series[SERIES_GYRO_Z].push(
                 t,
-                telemetry.imu.angular_rate_z.as_degrees_per_second() as f64,
+                telemetry.sensors.imu.angular_rate_z.as_degrees_per_second() as f64,
             );
             self.match_round_trip(&telemetry.pilot_command);
             if let Some(rtt) = self.last_rtt_ms {
@@ -352,12 +352,12 @@ impl App {
             cpu = telemetry.cpu_load.as_percentage(),
             rtt = opt(rtt),
             avg = opt(avg),
-            ax = telemetry.imu.acceleration_x.as_g(),
-            ay = telemetry.imu.acceleration_y.as_g(),
-            az = telemetry.imu.acceleration_z.as_g(),
-            gx = telemetry.imu.angular_rate_x.as_degrees_per_second(),
-            gy = telemetry.imu.angular_rate_y.as_degrees_per_second(),
-            gz = telemetry.imu.angular_rate_z.as_degrees_per_second(),
+            ax = telemetry.sensors.imu.acceleration_x.as_g(),
+            ay = telemetry.sensors.imu.acceleration_y.as_g(),
+            az = telemetry.sensors.imu.acceleration_z.as_g(),
+            gx = telemetry.sensors.imu.angular_rate_x.as_degrees_per_second(),
+            gy = telemetry.sensors.imu.angular_rate_y.as_degrees_per_second(),
+            gz = telemetry.sensors.imu.angular_rate_z.as_degrees_per_second(),
         );
         if wrote.is_ok() {
             self.log_rows += 1;
@@ -552,37 +552,37 @@ impl App {
             (
                 "Accel X",
                 SERIES_ACCEL_X,
-                last.map_or_else(dash, |t| format!("{:+.3} g", t.imu.acceleration_x.as_g())),
+                last.map_or_else(dash, |t| format!("{:+.3} g", t.sensors.imu.acceleration_x.as_g())),
             ),
             (
                 "Accel Y",
                 SERIES_ACCEL_Y,
-                last.map_or_else(dash, |t| format!("{:+.3} g", t.imu.acceleration_y.as_g())),
+                last.map_or_else(dash, |t| format!("{:+.3} g", t.sensors.imu.acceleration_y.as_g())),
             ),
             (
                 "Accel Z",
                 SERIES_ACCEL_Z,
-                last.map_or_else(dash, |t| format!("{:+.3} g", t.imu.acceleration_z.as_g())),
+                last.map_or_else(dash, |t| format!("{:+.3} g", t.sensors.imu.acceleration_z.as_g())),
             ),
             (
                 "Gyro X",
                 SERIES_GYRO_X,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} dps", t.imu.angular_rate_x.as_degrees_per_second())
+                    format!("{:+.1} dps", t.sensors.imu.angular_rate_x.as_degrees_per_second())
                 }),
             ),
             (
                 "Gyro Y",
                 SERIES_GYRO_Y,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} dps", t.imu.angular_rate_y.as_degrees_per_second())
+                    format!("{:+.1} dps", t.sensors.imu.angular_rate_y.as_degrees_per_second())
                 }),
             ),
             (
                 "Gyro Z",
                 SERIES_GYRO_Z,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} dps", t.imu.angular_rate_z.as_degrees_per_second())
+                    format!("{:+.1} dps", t.sensors.imu.angular_rate_z.as_degrees_per_second())
                 }),
             ),
         ];

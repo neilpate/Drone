@@ -1,6 +1,7 @@
 // use crate::mixer::mixer;
 use firmware_types::{
-    ControllerDemand, DroneState, MotorCommand, PilotCommand, Pitch, Roll, Throttle, Yaw,
+    ControllerDemand, DroneState, MotorCommand, PilotCommand, PitchCommand, RollCommand,
+    ThrottleCommand, YawCommand,
 };
 
 use crate::mixer::mixer;
@@ -115,9 +116,9 @@ impl Supervisor {
 
                     let controller_demand = ControllerDemand {
                         throttle: self.previous_demand.throttle,
-                        roll: Roll::ZERO,
-                        pitch: Pitch::ZERO,
-                        yaw: Yaw::ZERO,
+                        roll: RollCommand::ZERO,
+                        pitch: PitchCommand::ZERO,
+                        yaw: YawCommand::ZERO,
                     };
 
                     let mixed = mixer(controller_demand);
@@ -147,7 +148,7 @@ impl Supervisor {
     fn step_degraded(&mut self, event: Event) -> Output {
         match event {
             Event::Command(cmd) => {
-                if cmd.throttle == Throttle::ZERO {
+                if cmd.throttle == ThrottleCommand::ZERO {
                     self.state = DroneState::Armed;
                     self.ticks_without_command = 0;
                     self.previous_demand = PilotCommand::ZERO;
@@ -172,9 +173,9 @@ impl Supervisor {
                 // In Degraded state, attitude is neutralised to zero and the throttle is ramped down to zero. This ensures that the drone does not continue to fly uncontrollably after losing link with the pilot.
                 let controller_demand = ControllerDemand {
                     throttle: ramped_throttle,
-                    roll: Roll::ZERO,
-                    pitch: Pitch::ZERO,
-                    yaw: Yaw::ZERO,
+                    roll: RollCommand::ZERO,
+                    pitch: PitchCommand::ZERO,
+                    yaw: YawCommand::ZERO,
                 };
 
                 let mixed = mixer(controller_demand);
@@ -208,16 +209,16 @@ impl Default for Supervisor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use firmware_types::{PilotCommand, Pitch, Roll, Throttle, Yaw};
+    use firmware_types::{PilotCommand, PitchCommand, RollCommand, ThrottleCommand, YawCommand};
 
     /// Build a `Command` event at a given normalised throttle.
     fn cmd(throttle: f32) -> Event {
         Event::Command(PilotCommand {
             sequence_count: 0,
-            throttle: Throttle::from_normalised(throttle),
-            roll: Roll::ZERO,
-            pitch: Pitch::ZERO,
-            yaw: Yaw::ZERO,
+            throttle: ThrottleCommand::from_normalised(throttle),
+            roll: RollCommand::ZERO,
+            pitch: PitchCommand::ZERO,
+            yaw: YawCommand::ZERO,
         })
     }
 
@@ -374,10 +375,10 @@ mod tests {
         // the mixer verbatim (throttle + all three axes), not flattened to
         // collective. Assert the output is exactly what the mixer produces for
         // the same demand.
-        let throttle = Throttle::from_normalised(0.5);
-        let roll = Roll::from_normalised(0.2);
-        let pitch = Pitch::from_normalised(-0.1);
-        let yaw = Yaw::from_normalised(0.05);
+        let throttle = ThrottleCommand::from_normalised(0.5);
+        let roll = RollCommand::from_normalised(0.2);
+        let pitch = PitchCommand::from_normalised(-0.1);
+        let yaw = YawCommand::from_normalised(0.05);
 
         let expected = mixer(ControllerDemand {
             throttle,
@@ -409,22 +410,22 @@ mod tests {
         // attitude through, not just throttle.
         let mut s = Supervisor::new();
 
-        let throttle = Throttle::from_normalised(0.4);
-        let roll = Roll::from_normalised(0.3);
+        let throttle = ThrottleCommand::from_normalised(0.4);
+        let roll = RollCommand::from_normalised(0.3);
 
         let expected = mixer(ControllerDemand {
             throttle,
             roll,
-            pitch: Pitch::ZERO,
-            yaw: Yaw::ZERO,
+            pitch: PitchCommand::ZERO,
+            yaw: YawCommand::ZERO,
         });
 
         let out = s.step(Event::Command(PilotCommand {
             sequence_count: 0,
             throttle,
             roll,
-            pitch: Pitch::ZERO,
-            yaw: Yaw::ZERO,
+            pitch: PitchCommand::ZERO,
+            yaw: YawCommand::ZERO,
         }));
 
         assert_eq!(out.state, DroneState::Armed);
@@ -438,22 +439,22 @@ mod tests {
         // matches mixing the previous command verbatim.
         let mut s = Supervisor::new();
 
-        let throttle = Throttle::from_normalised(0.5);
-        let roll = Roll::from_normalised(0.3);
+        let throttle = ThrottleCommand::from_normalised(0.5);
+        let roll = RollCommand::from_normalised(0.3);
 
         s.step(Event::Command(PilotCommand {
             sequence_count: 0,
             throttle,
             roll,
-            pitch: Pitch::ZERO,
-            yaw: Yaw::ZERO,
+            pitch: PitchCommand::ZERO,
+            yaw: YawCommand::ZERO,
         }));
 
         let expected = mixer(ControllerDemand {
             throttle,
             roll,
-            pitch: Pitch::ZERO,
-            yaw: Yaw::ZERO,
+            pitch: PitchCommand::ZERO,
+            yaw: YawCommand::ZERO,
         });
 
         let out = s.step(Event::Tick);
@@ -475,10 +476,10 @@ mod tests {
 
         s.step(Event::Command(PilotCommand {
             sequence_count: 0,
-            throttle: Throttle::from_normalised(0.5),
-            roll: Roll::from_normalised(0.3),
-            pitch: Pitch::ZERO,
-            yaw: Yaw::ZERO,
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.3),
+            pitch: PitchCommand::ZERO,
+            yaw: YawCommand::ZERO,
         }));
 
         // Silent ticks up to (but not including) the threshold: still Armed.

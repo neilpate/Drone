@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Acceleration, AngularRate};
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Default, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct ImuData {
     pub acceleration_x: Acceleration,

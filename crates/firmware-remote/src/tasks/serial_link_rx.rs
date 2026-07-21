@@ -1,5 +1,6 @@
 use firmware_types::{
-    GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, Pitch, Roll, Throttle, Yaw,
+    GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PitchCommand, RollCommand,
+    ThrottleCommand, YawCommand,
 };
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
@@ -11,10 +12,10 @@ pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
     defmt::info!("serial_link_rx (from groundstation) task: started");
 
     // Set the watch signals so that the link to the drone will be in a known state and not blocking
-    throttle_command::set(Throttle::ZERO);
-    roll_command::set(Roll::ZERO);
-    pitch_command::set(Pitch::ZERO);
-    yaw_command::set(Yaw::ZERO);
+    throttle_command::set(ThrottleCommand::ZERO);
+    roll_command::set(RollCommand::ZERO);
+    pitch_command::set(PitchCommand::ZERO);
+    yaw_command::set(YawCommand::ZERO);
 
     let mut byte = [0u8; 1];
     let mut cobs: CobsAccumulator<GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES> =
