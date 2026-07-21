@@ -189,7 +189,10 @@ impl Default for App {
                 Series::new("Gyro Y (dps)", egui::Color32::from_rgb(170, 240, 170)).hidden(),
                 Series::new("Gyro Z (dps)", egui::Color32::from_rgb(170, 170, 240)).hidden(),
                 Series::new("Attitude roll (deg)", egui::Color32::from_rgb(255, 80, 80)),
-                Series::new("Attitude pitch (deg)", egui::Color32::from_rgb(180, 100, 255)),
+                Series::new(
+                    "Attitude pitch (deg)",
+                    egui::Color32::from_rgb(180, 100, 255),
+                ),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -566,48 +569,67 @@ impl App {
             (
                 "Accel X",
                 SERIES_ACCEL_X,
-                last.map_or_else(dash, |t| format!("{:+.3} g", t.sensors.imu.acceleration_x.as_g())),
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3} g", t.sensors.imu.acceleration_x.as_g())
+                }),
             ),
             (
                 "Accel Y",
                 SERIES_ACCEL_Y,
-                last.map_or_else(dash, |t| format!("{:+.3} g", t.sensors.imu.acceleration_y.as_g())),
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3} g", t.sensors.imu.acceleration_y.as_g())
+                }),
             ),
             (
                 "Accel Z",
                 SERIES_ACCEL_Z,
-                last.map_or_else(dash, |t| format!("{:+.3} g", t.sensors.imu.acceleration_z.as_g())),
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3} g", t.sensors.imu.acceleration_z.as_g())
+                }),
             ),
             (
                 "Gyro X",
                 SERIES_GYRO_X,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} dps", t.sensors.imu.angular_rate_x.as_degrees_per_second())
+                    format!(
+                        "{:+.1} dps",
+                        t.sensors.imu.angular_rate_x.as_degrees_per_second()
+                    )
                 }),
             ),
             (
                 "Gyro Y",
                 SERIES_GYRO_Y,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} dps", t.sensors.imu.angular_rate_y.as_degrees_per_second())
+                    format!(
+                        "{:+.1} dps",
+                        t.sensors.imu.angular_rate_y.as_degrees_per_second()
+                    )
                 }),
             ),
             (
                 "Gyro Z",
                 SERIES_GYRO_Z,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} dps", t.sensors.imu.angular_rate_z.as_degrees_per_second())
+                    format!(
+                        "{:+.1} dps",
+                        t.sensors.imu.angular_rate_z.as_degrees_per_second()
+                    )
                 }),
             ),
             (
                 "Attitude roll",
                 SERIES_ATTITUDE_ROLL,
-                last.map_or_else(dash, |t| format!("{:+.1} deg", t.attitude.roll.as_degrees())),
+                last.map_or_else(dash, |t| {
+                    format!("{:+.1} deg", t.attitude.roll.as_degrees())
+                }),
             ),
             (
                 "Attitude pitch",
                 SERIES_ATTITUDE_PITCH,
-                last.map_or_else(dash, |t| format!("{:+.1} deg", t.attitude.pitch.as_degrees())),
+                last.map_or_else(dash, |t| {
+                    format!("{:+.1} deg", t.attitude.pitch.as_degrees())
+                }),
             ),
         ];
 
