@@ -17,7 +17,10 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
-use firmware_types::{GroundstationCommand, PilotCommand, Pitch, Roll, Telemetry, Throttle, Yaw};
+use firmware_types::{
+    GroundstationCommand, PilotCommand, PitchCommand, RollCommand, Telemetry, ThrottleCommand,
+    YawCommand,
+};
 
 use groundstation::{
     commands_match, drone_state_code, encode_command, stick_to_deflection, trigger_to_throttle,
@@ -111,6 +114,8 @@ const SERIES_ACCEL_Z: usize = 12;
 const SERIES_GYRO_X: usize = 13;
 const SERIES_GYRO_Y: usize = 14;
 const SERIES_GYRO_Z: usize = 15;
+const SERIES_ATTITUDE_ROLL: usize = 16;
+const SERIES_ATTITUDE_PITCH: usize = 17;
 
 /// Maximum number of rows in one telemetry-table column before wrapping into
 /// the next column.
@@ -183,6 +188,8 @@ impl Default for App {
                 Series::new("Gyro X (dps)", egui::Color32::from_rgb(240, 170, 90)).hidden(),
                 Series::new("Gyro Y (dps)", egui::Color32::from_rgb(170, 240, 170)).hidden(),
                 Series::new("Gyro Z (dps)", egui::Color32::from_rgb(170, 170, 240)).hidden(),
+                Series::new("Attitude roll (deg)", egui::Color32::from_rgb(255, 80, 80)),
+                Series::new("Attitude pitch (deg)", egui::Color32::from_rgb(180, 100, 255)),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -217,10 +224,10 @@ impl App {
     /// Build the command from the four current control values.
     fn command(&self) -> GroundstationCommand {
         GroundstationCommand {
-            throttle: Throttle::from_normalised(self.throttle),
-            roll: Roll::from_normalised(self.roll),
-            pitch: Pitch::from_normalised(self.pitch),
-            yaw: Yaw::from_normalised(self.yaw),
+            throttle: ThrottleCommand::from_normalised(self.throttle),
+            roll: RollCommand::from_normalised(self.roll),
+            pitch: PitchCommand::from_normalised(self.pitch),
+            yaw: YawCommand::from_normalised(self.yaw),
         }
     }
 
@@ -276,6 +283,9 @@ impl App {
                 t,
                 telemetry.sensors.imu.angular_rate_z.as_degrees_per_second() as f64,
             );
+            self.series[SERIES_ATTITUDE_ROLL].push(t, telemetry.attitude.roll.as_degrees() as f64);
+            self.series[SERIES_ATTITUDE_PITCH]
+                .push(t, telemetry.attitude.pitch.as_degrees() as f64);
             self.match_round_trip(&telemetry.pilot_command);
             if let Some(rtt) = self.last_rtt_ms {
                 self.series[SERIES_RTT].push(t, rtt);
@@ -301,7 +311,8 @@ impl App {
                 let mut writer = BufWriter::new(file);
                 let header = "t_s\tsequence\tdrone_state\tthrottle\troll\tpitch\tyaw\t\
                      temperature_c\tcpu_load_pct\trtt_ms\tavg_rtt_ms\t\
-                     accel_x_g\taccel_y_g\taccel_z_g\tgyro_x_dps\tgyro_y_dps\tgyro_z_dps";
+                     accel_x_g\taccel_y_g\taccel_z_g\tgyro_x_dps\tgyro_y_dps\tgyro_z_dps\t\
+                     attitude_roll_deg\tattitude_pitch_deg";
                 if let Err(e) = writeln!(writer, "{header}") {
                     self.status = format!("failed to write log header: {e}");
                     return;
@@ -341,7 +352,8 @@ impl App {
             writer,
             "{t:.3}\t{seq}\t{state:?}\t{thr:.6}\t{roll:.6}\t{pitch:.6}\t{yaw:.6}\t\
              {temp:.4}\t{cpu:.4}\t{rtt}\t{avg}\t\
-             {ax:.6}\t{ay:.6}\t{az:.6}\t{gx:.4}\t{gy:.4}\t{gz:.4}",
+             {ax:.6}\t{ay:.6}\t{az:.6}\t{gx:.4}\t{gy:.4}\t{gz:.4}\t\
+             {att_roll:.4}\t{att_pitch:.4}",
             seq = telemetry.sequence_number,
             state = telemetry.drone_state,
             thr = telemetry.pilot_command.throttle.as_normalised(),
@@ -358,6 +370,8 @@ impl App {
             gx = telemetry.sensors.imu.angular_rate_x.as_degrees_per_second(),
             gy = telemetry.sensors.imu.angular_rate_y.as_degrees_per_second(),
             gz = telemetry.sensors.imu.angular_rate_z.as_degrees_per_second(),
+            att_roll = telemetry.attitude.roll.as_degrees(),
+            att_pitch = telemetry.attitude.pitch.as_degrees(),
         );
         if wrote.is_ok() {
             self.log_rows += 1;
@@ -488,7 +502,7 @@ impl App {
         // formatted current value). Built up front so the loop below only
         // borrows `self.series`.
         let dash = || "\u{2014}".to_string();
-        let rows: [(&str, usize, String); 16] = [
+        let rows: [(&str, usize, String); 18] = [
             (
                 "Sequence",
                 SERIES_SEQUENCE,
@@ -584,6 +598,16 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!("{:+.1} dps", t.sensors.imu.angular_rate_z.as_degrees_per_second())
                 }),
+            ),
+            (
+                "Attitude roll",
+                SERIES_ATTITUDE_ROLL,
+                last.map_or_else(dash, |t| format!("{:+.1} deg", t.attitude.roll.as_degrees())),
+            ),
+            (
+                "Attitude pitch",
+                SERIES_ATTITUDE_PITCH,
+                last.map_or_else(dash, |t| format!("{:+.1} deg", t.attitude.pitch.as_degrees())),
             ),
         ];
 

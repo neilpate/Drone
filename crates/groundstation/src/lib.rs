@@ -54,7 +54,7 @@ pub fn commands_match(sent: &GroundstationCommand, echoed: &PilotCommand) -> boo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use firmware_types::{Pitch, Roll, Throttle, Yaw};
+    use firmware_types::{PitchCommand, RollCommand, ThrottleCommand, YawCommand};
     use postcard::accumulator::{CobsAccumulator, FeedResult};
 
     #[test]
@@ -99,10 +99,10 @@ mod tests {
     fn encoded_command_round_trips_through_the_accumulator() {
         let mut buf = [0u8; 32];
         let command = GroundstationCommand {
-            throttle: Throttle::from_normalised(0.5),
-            roll: Roll::from_normalised(-0.5),
-            pitch: Pitch::from_normalised(0.25),
-            yaw: Yaw::from_normalised(-0.125),
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(-0.5),
+            pitch: PitchCommand::from_normalised(0.25),
+            yaw: YawCommand::from_normalised(-0.125),
         };
         let framed = encode_command(command, &mut buf).unwrap();
 
@@ -119,20 +119,20 @@ mod tests {
 
     fn sent(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> GroundstationCommand {
         GroundstationCommand {
-            throttle: Throttle::from_normalised(throttle),
-            roll: Roll::from_normalised(roll),
-            pitch: Pitch::from_normalised(pitch),
-            yaw: Yaw::from_normalised(yaw),
+            throttle: ThrottleCommand::from_normalised(throttle),
+            roll: RollCommand::from_normalised(roll),
+            pitch: PitchCommand::from_normalised(pitch),
+            yaw: YawCommand::from_normalised(yaw),
         }
     }
 
     fn echoed(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> PilotCommand {
         PilotCommand {
             sequence_count: 1,
-            throttle: Throttle::from_normalised(throttle),
-            roll: Roll::from_normalised(roll),
-            pitch: Pitch::from_normalised(pitch),
-            yaw: Yaw::from_normalised(yaw),
+            throttle: ThrottleCommand::from_normalised(throttle),
+            roll: RollCommand::from_normalised(roll),
+            pitch: PitchCommand::from_normalised(pitch),
+            yaw: YawCommand::from_normalised(yaw),
         }
     }
 
