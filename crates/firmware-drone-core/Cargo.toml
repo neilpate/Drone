@@ -21,6 +21,12 @@ defmt = { workspace = true, optional = true }
 
 firmware-types = { path = "../firmware-types" }
 
+# no_std trig/sqrt for the attitude filter (sensor_fusion), via
+# `micromath::F32Ext`. Fast f32 approximations; see ADR 0022.
+micromath = { workspace = true }
+
+
+
 [lints]
 workspace = true
 
