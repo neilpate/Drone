@@ -1,11 +1,13 @@
 use firmware_types::{
-    GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PitchCommand, RollCommand,
-    ThrottleCommand, YawCommand,
+    ControlMode, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PitchCommand,
+    RollCommand, ThrottleCommand, YawCommand,
 };
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use crate::board::UartRx;
-use crate::signals::{pitch_command, roll_command, throttle_command, yaw_command};
+use crate::signals::{
+    control_mode_command, pitch_command, roll_command, throttle_command, yaw_command,
+};
 
 #[embassy_executor::task]
 pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
@@ -16,6 +18,7 @@ pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
     roll_command::set(RollCommand::ZERO);
     pitch_command::set(PitchCommand::ZERO);
     yaw_command::set(YawCommand::ZERO);
+    control_mode_command::set(ControlMode::Manual);
 
     let mut byte = [0u8; 1];
     let mut cobs: CobsAccumulator<GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES> =
@@ -33,6 +36,7 @@ pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
             roll_command::set(data.roll);
             pitch_command::set(data.pitch);
             yaw_command::set(data.yaw);
+            control_mode_command::set(data.control_mode);
         }
     }
 }

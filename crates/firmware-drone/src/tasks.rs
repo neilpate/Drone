@@ -1,4 +1,5 @@
 pub mod attitude_estimator;
+pub mod control_system;
 pub mod imu;
 pub mod load_profiler;
 pub mod motor_controller;

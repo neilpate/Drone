@@ -18,7 +18,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use firmware_types::{
-    GroundstationCommand, PilotCommand, PitchCommand, RollCommand, Telemetry, ThrottleCommand,
+    ControlMode, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PilotCommand,
+    PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry, ThrottleCommand,
     YawCommand,
 };
 
@@ -30,7 +31,7 @@ use eframe::egui;
 use egui_plot::{Corner, Legend, Line, Plot, PlotPoints};
 use gilrs::{Axis, Button, EventType, GamepadId, Gilrs};
 
-const MAX_SEND_BUFFER_SIZE: usize = 32;
+const MAX_SEND_BUFFER_SIZE: usize = GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES;
 
 /// Maximum number of samples retained per signal (the last N frames).
 const MAX_POINTS: usize = 10_000;
@@ -116,6 +117,13 @@ const SERIES_GYRO_Y: usize = 14;
 const SERIES_GYRO_Z: usize = 15;
 const SERIES_ATTITUDE_ROLL: usize = 16;
 const SERIES_ATTITUDE_PITCH: usize = 17;
+const SERIES_DEMAND_ROLL: usize = 18;
+const SERIES_DEMAND_PITCH: usize = 19;
+const SERIES_DEMAND_YAW: usize = 20;
+const SERIES_MOTOR_1: usize = 21;
+const SERIES_MOTOR_2: usize = 22;
+const SERIES_MOTOR_3: usize = 23;
+const SERIES_MOTOR_4: usize = 24;
 
 /// Maximum number of rows in one telemetry-table column before wrapping into
 /// the next column.
@@ -143,6 +151,9 @@ struct App {
     gilrs: Option<Gilrs>,
     active_gamepad: Option<GamepadId>,
     gamepad_name: Option<String>,
+    /// Current control mode; toggled by the gamepad triangle button and sent to
+    /// the drone in every command.
+    control_mode: ControlMode,
     /// Open TSV log sink while data logging is active; `None` when stopped.
     log_file: Option<BufWriter<File>>,
     /// Absolute path of the active (or most recent) log file, for the status line.
@@ -193,6 +204,16 @@ impl Default for App {
                     "Attitude pitch (deg)",
                     egui::Color32::from_rgb(180, 100, 255),
                 ),
+                Series::new("Demand roll (-1..1)", egui::Color32::from_rgb(255, 130, 90)),
+                Series::new(
+                    "Demand pitch (-1..1)",
+                    egui::Color32::from_rgb(150, 130, 255),
+                ),
+                Series::new("Demand yaw (-1..1)", egui::Color32::from_rgb(255, 210, 90)),
+                Series::new("Motor 1 (0..1)", egui::Color32::from_rgb(255, 120, 120)),
+                Series::new("Motor 2 (0..1)", egui::Color32::from_rgb(120, 220, 140)),
+                Series::new("Motor 3 (0..1)", egui::Color32::from_rgb(120, 180, 255)),
+                Series::new("Motor 4 (0..1)", egui::Color32::from_rgb(230, 180, 80)),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -201,6 +222,7 @@ impl Default for App {
             gilrs: Gilrs::new().ok(),
             active_gamepad: None,
             gamepad_name: None,
+            control_mode: ControlMode::Manual,
             log_file: None,
             log_path: None,
             log_rows: 0,
@@ -231,6 +253,7 @@ impl App {
             roll: RollCommand::from_normalised(self.roll),
             pitch: PitchCommand::from_normalised(self.pitch),
             yaw: YawCommand::from_normalised(self.yaw),
+            control_mode: self.control_mode,
         }
     }
 
@@ -289,6 +312,20 @@ impl App {
             self.series[SERIES_ATTITUDE_ROLL].push(t, telemetry.attitude.roll.as_degrees() as f64);
             self.series[SERIES_ATTITUDE_PITCH]
                 .push(t, telemetry.attitude.pitch.as_degrees() as f64);
+            self.series[SERIES_DEMAND_ROLL]
+                .push(t, telemetry.controller_demand.roll.as_normalised() as f64);
+            self.series[SERIES_DEMAND_PITCH]
+                .push(t, telemetry.controller_demand.pitch.as_normalised() as f64);
+            self.series[SERIES_DEMAND_YAW]
+                .push(t, telemetry.controller_demand.yaw.as_normalised() as f64);
+            self.series[SERIES_MOTOR_1]
+                .push(t, telemetry.motor_command.motor1.as_normalised() as f64);
+            self.series[SERIES_MOTOR_2]
+                .push(t, telemetry.motor_command.motor2.as_normalised() as f64);
+            self.series[SERIES_MOTOR_3]
+                .push(t, telemetry.motor_command.motor3.as_normalised() as f64);
+            self.series[SERIES_MOTOR_4]
+                .push(t, telemetry.motor_command.motor4.as_normalised() as f64);
             self.match_round_trip(&telemetry.pilot_command);
             if let Some(rtt) = self.last_rtt_ms {
                 self.series[SERIES_RTT].push(t, rtt);
@@ -315,7 +352,9 @@ impl App {
                 let header = "t_s\tsequence\tdrone_state\tthrottle\troll\tpitch\tyaw\t\
                      temperature_c\tcpu_load_pct\trtt_ms\tavg_rtt_ms\t\
                      accel_x_g\taccel_y_g\taccel_z_g\tgyro_x_dps\tgyro_y_dps\tgyro_z_dps\t\
-                     attitude_roll_deg\tattitude_pitch_deg";
+                     attitude_roll_deg\tattitude_pitch_deg\t\
+                     demand_roll\tdemand_pitch\tdemand_yaw\t\
+                     motor1\tmotor2\tmotor3\tmotor4";
                 if let Err(e) = writeln!(writer, "{header}") {
                     self.status = format!("failed to write log header: {e}");
                     return;
@@ -356,7 +395,9 @@ impl App {
             "{t:.3}\t{seq}\t{state:?}\t{thr:.6}\t{roll:.6}\t{pitch:.6}\t{yaw:.6}\t\
              {temp:.4}\t{cpu:.4}\t{rtt}\t{avg}\t\
              {ax:.6}\t{ay:.6}\t{az:.6}\t{gx:.4}\t{gy:.4}\t{gz:.4}\t\
-             {att_roll:.4}\t{att_pitch:.4}",
+             {att_roll:.4}\t{att_pitch:.4}\t\
+             {dem_roll:.6}\t{dem_pitch:.6}\t{dem_yaw:.6}\t\
+             {m1:.6}\t{m2:.6}\t{m3:.6}\t{m4:.6}",
             seq = telemetry.sequence_number,
             state = telemetry.drone_state,
             thr = telemetry.pilot_command.throttle.as_normalised(),
@@ -375,6 +416,13 @@ impl App {
             gz = telemetry.sensors.imu.angular_rate_z.as_degrees_per_second(),
             att_roll = telemetry.attitude.roll.as_degrees(),
             att_pitch = telemetry.attitude.pitch.as_degrees(),
+            dem_roll = telemetry.controller_demand.roll.as_normalised(),
+            dem_pitch = telemetry.controller_demand.pitch.as_normalised(),
+            dem_yaw = telemetry.controller_demand.yaw.as_normalised(),
+            m1 = telemetry.motor_command.motor1.as_normalised(),
+            m2 = telemetry.motor_command.motor2.as_normalised(),
+            m3 = telemetry.motor_command.motor3.as_normalised(),
+            m4 = telemetry.motor_command.motor4.as_normalised(),
         );
         if wrote.is_ok() {
             self.log_rows += 1;
@@ -472,6 +520,15 @@ impl App {
                     self.pitch = stick_to_deflection(-value);
                     changed = true;
                 }
+                // Triangle toggles between Stabilized (closed-loop) and Manual
+                // (open-loop, raw stick passthrough) control on the drone.
+                EventType::ButtonPressed(Button::North, _) => {
+                    self.control_mode = match self.control_mode {
+                        ControlMode::Stabilized => ControlMode::Manual,
+                        ControlMode::Manual => ControlMode::Stabilized,
+                    };
+                    changed = true;
+                }
                 _ => {}
             }
             gilrs.update(&event);
@@ -505,7 +562,7 @@ impl App {
         // formatted current value). Built up front so the loop below only
         // borrows `self.series`.
         let dash = || "\u{2014}".to_string();
-        let rows: [(&str, usize, String); 18] = [
+        let rows: [(&str, usize, String); 25] = [
             (
                 "Sequence",
                 SERIES_SEQUENCE,
@@ -631,6 +688,55 @@ impl App {
                     format!("{:+.1} deg", t.attitude.pitch.as_degrees())
                 }),
             ),
+            (
+                "Demand roll",
+                SERIES_DEMAND_ROLL,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3}", t.controller_demand.roll.as_normalised())
+                }),
+            ),
+            (
+                "Demand pitch",
+                SERIES_DEMAND_PITCH,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3}", t.controller_demand.pitch.as_normalised())
+                }),
+            ),
+            (
+                "Demand yaw",
+                SERIES_DEMAND_YAW,
+                last.map_or_else(dash, |t| {
+                    format!("{:+.3}", t.controller_demand.yaw.as_normalised())
+                }),
+            ),
+            (
+                "Motor 1",
+                SERIES_MOTOR_1,
+                last.map_or_else(dash, |t| {
+                    format!("{:.3}", t.motor_command.motor1.as_normalised())
+                }),
+            ),
+            (
+                "Motor 2",
+                SERIES_MOTOR_2,
+                last.map_or_else(dash, |t| {
+                    format!("{:.3}", t.motor_command.motor2.as_normalised())
+                }),
+            ),
+            (
+                "Motor 3",
+                SERIES_MOTOR_3,
+                last.map_or_else(dash, |t| {
+                    format!("{:.3}", t.motor_command.motor3.as_normalised())
+                }),
+            ),
+            (
+                "Motor 4",
+                SERIES_MOTOR_4,
+                last.map_or_else(dash, |t| {
+                    format!("{:.3}", t.motor_command.motor4.as_normalised())
+                }),
+            ),
         ];
 
         ui.vertical(|ui| {
@@ -722,6 +828,21 @@ impl eframe::App for App {
                         };
                     });
 
+                    ui.horizontal(|ui| {
+                        ui.label("Control mode:");
+                        let (label, color) = match self.control_mode {
+                            ControlMode::Stabilized => (
+                                "Stabilized (closed-loop)",
+                                egui::Color32::from_rgb(80, 200, 120),
+                            ),
+                            ControlMode::Manual => {
+                                ("Manual (open-loop)", egui::Color32::from_rgb(230, 150, 60))
+                            }
+                        };
+                        ui.colored_label(color, label);
+                        ui.label("(triangle to toggle)");
+                    });
+
                     ui.add_space(4.0);
                     let mut changed = ui
                         .add(
@@ -789,7 +910,7 @@ fn serial_io_thread(
 ) {
     let mut buf = [0u8; MAX_SEND_BUFFER_SIZE]; // serialization scratch
     let mut raw = [0u8; 256]; // chunk from each read
-    let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();
+    let mut cobs: CobsAccumulator<TELEMETRY_FRAME_MAX_SIZE_BYTES> = CobsAccumulator::new();
 
     loop {
         // 1. Send any pending commands (non-blocking drain).

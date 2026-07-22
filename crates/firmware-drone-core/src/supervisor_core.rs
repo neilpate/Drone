@@ -42,16 +42,16 @@ impl Supervisor {
         }
     }
 
-    pub fn step(&mut self, event: Event) -> Output {
+    pub fn step(&mut self, event: Event, controller_demand: ControllerDemand) -> Output {
         match self.state {
-            DroneState::Initialising => self.step_initialising(event),
-            DroneState::Armed => self.step_armed(event),
+            DroneState::Initialising => self.step_initialising(event, controller_demand),
+            DroneState::Armed => self.step_armed(event, controller_demand),
             DroneState::Degraded => self.step_degraded(event),
             DroneState::Fault => self.step_fault(event),
         }
     }
 
-    fn step_initialising(&mut self, event: Event) -> Output {
+    fn step_initialising(&mut self, event: Event, controller_demand: ControllerDemand) -> Output {
         match event {
             Event::Command(cmd) => {
                 self.state = DroneState::Armed;
@@ -59,13 +59,6 @@ impl Supervisor {
                 self.previous_demand = cmd;
 
                 self.ticks_without_command = 0;
-
-                let controller_demand = ControllerDemand {
-                    throttle: cmd.throttle,
-                    roll: cmd.roll,
-                    pitch: cmd.pitch,
-                    yaw: cmd.yaw,
-                };
 
                 let mix = mixer(controller_demand);
 
@@ -87,18 +80,11 @@ impl Supervisor {
         }
     }
 
-    fn step_armed(&mut self, event: Event) -> Output {
+    fn step_armed(&mut self, event: Event, controller_demand: ControllerDemand) -> Output {
         match event {
             Event::Command(cmd) => {
                 self.previous_demand = cmd;
                 self.ticks_without_command = 0;
-
-                let controller_demand = ControllerDemand {
-                    throttle: cmd.throttle,
-                    roll: cmd.roll,
-                    pitch: cmd.pitch,
-                    yaw: cmd.yaw,
-                };
 
                 let mixed = mixer(controller_demand);
 
@@ -127,13 +113,6 @@ impl Supervisor {
                         motor_command: mixed,
                     }
                 } else {
-                    let controller_demand = ControllerDemand {
-                        throttle: self.previous_demand.throttle,
-                        roll: self.previous_demand.roll,
-                        pitch: self.previous_demand.pitch,
-                        yaw: self.previous_demand.yaw,
-                    };
-
                     let mixed = mixer(controller_demand);
 
                     Output {
@@ -209,7 +188,9 @@ impl Default for Supervisor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use firmware_types::{PilotCommand, PitchCommand, RollCommand, ThrottleCommand, YawCommand};
+    use firmware_types::{
+        ControlMode, PilotCommand, PitchCommand, RollCommand, ThrottleCommand, YawCommand,
+    };
 
     /// Build a `Command` event at a given normalised throttle.
     fn cmd(throttle: f32) -> Event {
@@ -219,6 +200,7 @@ mod tests {
             roll: RollCommand::ZERO,
             pitch: PitchCommand::ZERO,
             yaw: YawCommand::ZERO,
+            control_mode: ControlMode::Stabilized,
         })
     }
 
@@ -237,7 +219,7 @@ mod tests {
     #[test]
     fn initialising_tick_stays_initialising_with_zero_throttle() {
         let mut s = Supervisor::new();
-        let out = s.step(Event::Tick);
+        let out = s.step(Event::Tick, ControllerDemand::ZERO);
         assert_eq!(out.state, DroneState::Initialising);
         assert_eq!(collective(out.motor_command), 0.0);
     }
@@ -245,7 +227,13 @@ mod tests {
     #[test]
     fn initialising_then_command_arms() {
         let mut s = Supervisor::new();
-        let out = s.step(cmd(0.5));
+        // The arming command transitions to Armed and mixes the controller
+        // demand (the stabilised output), not the raw pilot command.
+        let demand = ControllerDemand {
+            throttle: ThrottleCommand::from_normalised(0.5),
+            ..ControllerDemand::ZERO
+        };
+        let out = s.step(cmd(0.0), demand);
         assert_eq!(out.state, DroneState::Armed);
         assert_eq!(collective(out.motor_command), 0.5);
     }
@@ -253,38 +241,47 @@ mod tests {
     #[test]
     fn armed_command_resets_link_loss_counter() {
         let mut s = Supervisor::new();
-        s.step(cmd(0.5));
+        s.step(cmd(0.5), ControllerDemand::ZERO);
         // accumulate ticks just short of the threshold
         for _ in 0..LINK_LOSS_TICKS - 1 {
-            s.step(Event::Tick);
+            s.step(Event::Tick, ControllerDemand::ZERO);
         }
         // a fresh command must reset the counter
-        s.step(cmd(0.7));
+        s.step(cmd(0.7), ControllerDemand::ZERO);
         // we should now be able to tick almost the full threshold again
         for _ in 0..LINK_LOSS_TICKS - 1 {
-            assert_eq!(s.step(Event::Tick).state, DroneState::Armed);
+            assert_eq!(
+                s.step(Event::Tick, ControllerDemand::ZERO).state,
+                DroneState::Armed
+            );
         }
     }
 
     #[test]
     fn armed_degrades_after_link_loss_ticks() {
         let mut s = Supervisor::new();
-        s.step(cmd(0.5));
+        s.step(cmd(0.5), ControllerDemand::ZERO);
         // up to LINK_LOSS_TICKS - 1 silent ticks: still Armed
         for _ in 0..LINK_LOSS_TICKS - 1 {
-            assert_eq!(s.step(Event::Tick).state, DroneState::Armed);
+            assert_eq!(
+                s.step(Event::Tick, ControllerDemand::ZERO).state,
+                DroneState::Armed
+            );
         }
         // the next tick crosses the threshold
-        assert_eq!(s.step(Event::Tick).state, DroneState::Degraded);
+        assert_eq!(
+            s.step(Event::Tick, ControllerDemand::ZERO).state,
+            DroneState::Degraded
+        );
     }
 
     #[test]
     fn degraded_ramps_monotonically_to_zero_then_holds() {
         let mut s = Supervisor::new();
-        s.step(cmd(1.0));
+        s.step(cmd(1.0), ControllerDemand::ZERO);
         // drive the state into Degraded
         for _ in 0..LINK_LOSS_TICKS {
-            s.step(Event::Tick);
+            s.step(Event::Tick, ControllerDemand::ZERO);
         }
         assert_eq!(s.state, DroneState::Degraded);
 
@@ -292,7 +289,7 @@ mod tests {
         // Output must be non-increasing and the final sample exactly zero.
         let mut last = 1.0_f32;
         for i in 0..=RAMP_TICKS {
-            let t = collective(s.step(Event::Tick).motor_command);
+            let t = collective(s.step(Event::Tick, ControllerDemand::ZERO).motor_command);
             assert!(
                 t <= last,
                 "ramp not monotonic at tick {}: {} > {}",
@@ -309,21 +306,24 @@ mod tests {
 
         // further ticks stay clamped at zero
         for _ in 0..5 {
-            assert_eq!(collective(s.step(Event::Tick).motor_command), 0.0);
+            assert_eq!(
+                collective(s.step(Event::Tick, ControllerDemand::ZERO).motor_command),
+                0.0
+            );
         }
     }
 
     #[test]
     fn degraded_refuses_re_engage_with_nonzero_throttle() {
         let mut s = Supervisor::new();
-        s.step(cmd(0.5));
+        s.step(cmd(0.5), ControllerDemand::ZERO);
         for _ in 0..LINK_LOSS_TICKS {
-            s.step(Event::Tick);
+            s.step(Event::Tick, ControllerDemand::ZERO);
         }
         assert_eq!(s.state, DroneState::Degraded);
 
         // a fresh non-zero command must NOT re-arm
-        let out = s.step(cmd(0.8));
+        let out = s.step(cmd(0.8), ControllerDemand::ZERO);
         assert_eq!(out.state, DroneState::Degraded);
         assert_eq!(collective(out.motor_command), 0.0);
     }
@@ -331,21 +331,21 @@ mod tests {
     #[test]
     fn degraded_recovers_cleanly_with_zero_command() {
         let mut s = Supervisor::new();
-        s.step(cmd(0.5));
+        s.step(cmd(0.5), ControllerDemand::ZERO);
         // fully degrade and ramp out
         for _ in 0..LINK_LOSS_TICKS + RAMP_TICKS {
-            s.step(Event::Tick);
+            s.step(Event::Tick, ControllerDemand::ZERO);
         }
         assert_eq!(s.state, DroneState::Degraded);
 
         // a zero-throttle command re-arms
-        let out = s.step(cmd(0.0));
+        let out = s.step(cmd(0.0), ControllerDemand::ZERO);
         assert_eq!(out.state, DroneState::Armed);
 
         // crucial: the link-loss counter must have reset, otherwise
         // the very next tick flips us straight back to Degraded
         assert_eq!(
-            s.step(Event::Tick).state,
+            s.step(Event::Tick, ControllerDemand::ZERO).state,
             DroneState::Armed,
             "counter must reset on recovery"
         );
@@ -357,43 +357,45 @@ mod tests {
         // there is currently no public path into Fault; reach in for the test
         s.state = DroneState::Fault;
 
-        let out = s.step(cmd(1.0));
+        let out = s.step(cmd(1.0), ControllerDemand::ZERO);
         assert_eq!(out.state, DroneState::Fault);
         assert_eq!(collective(out.motor_command), 0.0);
 
-        let out = s.step(Event::Tick);
+        let out = s.step(Event::Tick, ControllerDemand::ZERO);
         assert_eq!(out.state, DroneState::Fault);
         assert_eq!(collective(out.motor_command), 0.0);
     }
 
     #[test]
-    fn armed_forwards_attitude_command_through_mixer() {
+    fn armed_mixes_controller_demand_not_pilot_command() {
         let mut s = Supervisor::new();
-        s.step(cmd(0.0)); // Initialising -> Armed
+        s.step(cmd(0.0), ControllerDemand::ZERO); // Initialising -> Armed
 
-        // A full command with attitude demand, while Armed, must be forwarded to
-        // the mixer verbatim (throttle + all three axes), not flattened to
-        // collective. Assert the output is exactly what the mixer produces for
-        // the same demand.
-        let throttle = ThrottleCommand::from_normalised(0.5);
-        let roll = RollCommand::from_normalised(0.2);
-        let pitch = PitchCommand::from_normalised(-0.1);
-        let yaw = YawCommand::from_normalised(0.05);
+        // While Armed, a Command mixes the CONTROLLER demand (the stabilised
+        // output), not the raw pilot sticks. Assert the output is exactly what
+        // the mixer produces for the controller_demand argument, and that the
+        // pilot command's own attitude does not leak through.
+        let demand = ControllerDemand {
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.2),
+            pitch: PitchCommand::from_normalised(-0.1),
+            yaw: YawCommand::from_normalised(0.05),
+        };
+        let expected = mixer(demand);
 
-        let expected = mixer(ControllerDemand {
-            throttle,
-            roll,
-            pitch,
-            yaw,
-        });
-
-        let out = s.step(Event::Command(PilotCommand {
-            sequence_count: 1,
-            throttle,
-            roll,
-            pitch,
-            yaw,
-        }));
+        // The pilot command carries deliberately different attitude to prove it
+        // is ignored in favour of the controller demand while Armed.
+        let out = s.step(
+            Event::Command(PilotCommand {
+                sequence_count: 1,
+                throttle: ThrottleCommand::from_normalised(0.5),
+                roll: RollCommand::from_normalised(-0.9),
+                pitch: PitchCommand::from_normalised(0.9),
+                yaw: YawCommand::from_normalised(-0.9),
+                control_mode: ControlMode::Stabilized,
+            }),
+            demand,
+        );
 
         assert_eq!(out.state, DroneState::Armed);
         assert_eq!(out.motor_command, expected);
@@ -405,62 +407,57 @@ mod tests {
     }
 
     #[test]
-    fn arming_command_forwards_attitude() {
-        // The very first command (Initialising -> Armed) must also carry its
-        // attitude through, not just throttle.
+    fn arming_command_mixes_controller_demand() {
+        // The very first command (Initialising -> Armed) mixes the controller
+        // demand (the stabilised output), not the raw pilot sticks.
         let mut s = Supervisor::new();
 
-        let throttle = ThrottleCommand::from_normalised(0.4);
-        let roll = RollCommand::from_normalised(0.3);
-
-        let expected = mixer(ControllerDemand {
-            throttle,
-            roll,
+        let demand = ControllerDemand {
+            throttle: ThrottleCommand::from_normalised(0.4),
+            roll: RollCommand::from_normalised(0.3),
             pitch: PitchCommand::ZERO,
             yaw: YawCommand::ZERO,
-        });
+        };
+        let expected = mixer(demand);
 
-        let out = s.step(Event::Command(PilotCommand {
-            sequence_count: 0,
-            throttle,
-            roll,
-            pitch: PitchCommand::ZERO,
-            yaw: YawCommand::ZERO,
-        }));
+        // The pilot command carries deliberately different attitude to prove it
+        // is ignored in favour of the controller demand.
+        let out = s.step(
+            Event::Command(PilotCommand {
+                sequence_count: 0,
+                throttle: ThrottleCommand::from_normalised(0.4),
+                roll: RollCommand::from_normalised(-0.9),
+                pitch: PitchCommand::from_normalised(0.9),
+                yaw: YawCommand::ZERO,
+                control_mode: ControlMode::Stabilized,
+            }),
+            demand,
+        );
 
         assert_eq!(out.state, DroneState::Armed);
         assert_eq!(out.motor_command, expected);
     }
 
     #[test]
-    fn armed_tick_holds_full_previous_demand() {
-        // A missed command (Tick while Armed, before link loss) is a zero-order
-        // hold of the ENTIRE last demand - throttle AND attitude - so the output
-        // matches mixing the previous command verbatim.
+    fn armed_tick_mixes_controller_demand() {
+        // A missed command (Tick while Armed, before link loss) still mixes the
+        // latest controller demand: the stabilised output keeps reaching the
+        // motors even when no fresh pilot frame arrives.
         let mut s = Supervisor::new();
+        s.step(cmd(0.0), ControllerDemand::ZERO); // Initialising -> Armed
 
-        let throttle = ThrottleCommand::from_normalised(0.5);
-        let roll = RollCommand::from_normalised(0.3);
-
-        s.step(Event::Command(PilotCommand {
-            sequence_count: 0,
-            throttle,
-            roll,
+        let demand = ControllerDemand {
+            throttle: ThrottleCommand::from_normalised(0.5),
+            roll: RollCommand::from_normalised(0.3),
             pitch: PitchCommand::ZERO,
             yaw: YawCommand::ZERO,
-        }));
+        };
+        let expected = mixer(demand);
 
-        let expected = mixer(ControllerDemand {
-            throttle,
-            roll,
-            pitch: PitchCommand::ZERO,
-            yaw: YawCommand::ZERO,
-        });
-
-        let out = s.step(Event::Tick);
+        let out = s.step(Event::Tick, demand);
         assert_eq!(out.state, DroneState::Armed);
         assert_eq!(out.motor_command, expected);
-        // Sanity: attitude is genuinely held (differential), not neutralised.
+        // Sanity: the demand is a genuine differential, not neutralised.
         assert_ne!(
             out.motor_command.motor1.as_normalised(),
             out.motor_command.motor3.as_normalised()
@@ -474,23 +471,27 @@ mod tests {
         // is declared, not one tick later - while the throttle is still held.
         let mut s = Supervisor::new();
 
-        s.step(Event::Command(PilotCommand {
-            sequence_count: 0,
-            throttle: ThrottleCommand::from_normalised(0.5),
-            roll: RollCommand::from_normalised(0.3),
-            pitch: PitchCommand::ZERO,
-            yaw: YawCommand::ZERO,
-        }));
+        s.step(
+            Event::Command(PilotCommand {
+                sequence_count: 0,
+                throttle: ThrottleCommand::from_normalised(0.5),
+                roll: RollCommand::from_normalised(0.3),
+                pitch: PitchCommand::ZERO,
+                yaw: YawCommand::ZERO,
+                control_mode: ControlMode::Stabilized,
+            }),
+            ControllerDemand::ZERO,
+        );
 
         // Silent ticks up to (but not including) the threshold: still Armed.
         for _ in 0..LINK_LOSS_TICKS - 1 {
-            let out = s.step(Event::Tick);
+            let out = s.step(Event::Tick, ControllerDemand::ZERO);
             assert_eq!(out.state, DroneState::Armed);
         }
 
         // The threshold-crossing tick transitions to Degraded AND neutralises
         // attitude in the same output.
-        let out = s.step(Event::Tick);
+        let out = s.step(Event::Tick, ControllerDemand::ZERO);
         assert_eq!(out.state, DroneState::Degraded);
         // Attitude gone (collective), throttle still held on this first frame.
         assert_eq!(collective(out.motor_command), 0.5);

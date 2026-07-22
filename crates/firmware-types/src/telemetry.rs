@@ -1,7 +1,7 @@
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-use crate::{Attitude, CpuLoad, DroneState, PilotCommand, Sensors};
+use crate::{Attitude, ControllerDemand, CpuLoad, DroneState, MotorCommand, PilotCommand, Sensors};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -12,6 +12,8 @@ pub struct Telemetry {
     pub pilot_command: PilotCommand,
     pub attitude: Attitude,
     pub cpu_load: CpuLoad,
+    pub controller_demand: ControllerDemand,
+    pub motor_command: MotorCommand,
 }
 
 // The maximum size of a `Telemetry` frame, in bytes, when serialized with `postcard`.
@@ -22,7 +24,7 @@ pub const FRAME_MAX_SIZE_BYTES: usize =
 mod tests {
     use super::*;
     use crate::{
-        Acceleration, AngularRate, ImuData, PitchCommand, RollCommand, Temperature,
+        Acceleration, AngularRate, ControlMode, ImuData, PitchCommand, RollCommand, Temperature,
         ThrottleCommand, YawCommand,
     };
 
@@ -48,9 +50,12 @@ mod tests {
                 roll: RollCommand::from_normalised(-0.5),
                 pitch: PitchCommand::from_normalised(0.25),
                 yaw: YawCommand::from_normalised(-0.125),
+                control_mode: ControlMode::Manual,
             },
             attitude: Attitude::from_degrees(0.0, 0.0),
             cpu_load: CpuLoad::from_percentage(50.0),
+            controller_demand: ControllerDemand::ZERO,
+            motor_command: MotorCommand::ZERO,
         };
         let mut buf = [0u8; Telemetry::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();

@@ -1,7 +1,7 @@
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-use crate::{PitchCommand, RollCommand, ThrottleCommand, YawCommand};
+use crate::{ControlMode, PitchCommand, RollCommand, ThrottleCommand, YawCommand};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -11,6 +11,7 @@ pub struct PilotCommand {
     pub roll: RollCommand,
     pub pitch: PitchCommand,
     pub yaw: YawCommand,
+    pub control_mode: ControlMode,
 }
 
 impl PilotCommand {
@@ -24,6 +25,7 @@ impl PilotCommand {
         roll: RollCommand::ZERO,
         pitch: PitchCommand::ZERO,
         yaw: YawCommand::ZERO,
+        control_mode: ControlMode::Manual,
     };
 }
 
@@ -45,6 +47,7 @@ mod tests {
             roll: RollCommand::from_normalised(-0.5),
             pitch: PitchCommand::from_normalised(0.25),
             yaw: YawCommand::from_normalised(-0.125),
+            control_mode: ControlMode::Manual,
         };
         let mut buf = [0u8; 32];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();

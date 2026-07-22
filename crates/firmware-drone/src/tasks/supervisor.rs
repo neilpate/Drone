@@ -3,7 +3,7 @@ use embassy_time::{Duration, Ticker};
 use firmware_drone_core::supervisor_core::{Event, Supervisor};
 use firmware_types::DroneState;
 
-use crate::signals::{motor_command, pilot_command, status};
+use crate::signals::{controller_demand, motor_command, pilot_command, status};
 
 const TIMEOUT_PERIOD: Duration = Duration::from_millis(10);
 
@@ -16,16 +16,18 @@ pub async fn supervisor() -> ! {
 
     let mut pilot_command_receiver = pilot_command::subscribe();
 
+    let mut controller_demand_receiver = controller_demand::subscribe();
+
     let mut supervisor = Supervisor::new();
 
     loop {
         // Wait either for a new PilotCommand to arrive, or for the timeout to elapse.
-
         let event = select(pilot_command_receiver.changed(), ticker.next()).await;
 
+        let controller_demand = controller_demand_receiver.get().await;
         let output = match event {
-            Either::First(cmd) => supervisor.step(Event::Command(cmd)),
-            Either::Second(_) => supervisor.step(Event::Tick),
+            Either::First(cmd) => supervisor.step(Event::Command(cmd), controller_demand),
+            Either::Second(_) => supervisor.step(Event::Tick, controller_demand),
         };
 
         status::set(output.state);

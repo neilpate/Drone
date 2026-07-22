@@ -1,7 +1,9 @@
 use embassy_time::{Duration, Ticker};
 use firmware_types::Telemetry;
 
-use crate::signals::{attitude, cpu_load, pilot_command, sensors, status, telemetry};
+use crate::signals::{
+    attitude, controller_demand, cpu_load, motor_command, pilot_command, sensors, status, telemetry,
+};
 
 #[embassy_executor::task]
 pub async fn telemetry_aggregator() -> ! {
@@ -14,6 +16,8 @@ pub async fn telemetry_aggregator() -> ! {
     let mut pilot_command_receiver = pilot_command::subscribe();
     let mut cpu_load_receiver = cpu_load::subscribe();
     let mut attitude_receiver = attitude::subscribe();
+    let mut controller_demand_receiver = controller_demand::subscribe();
+    let mut motor_command_receiver = motor_command::subscribe();
 
     let mut ticker = Ticker::every(Duration::from_millis(10));
 
@@ -27,6 +31,8 @@ pub async fn telemetry_aggregator() -> ! {
         let pilot_command = pilot_command_receiver.get().await;
         let cpu_load = cpu_load_receiver.get().await;
         let attitude = attitude_receiver.get().await;
+        let controller_demand = controller_demand_receiver.get().await;
+        let motor_command = motor_command_receiver.get().await;
 
         let state = Telemetry {
             drone_state,
@@ -35,6 +41,8 @@ pub async fn telemetry_aggregator() -> ! {
             pilot_command,
             attitude,
             cpu_load,
+            controller_demand,
+            motor_command,
         };
 
         telemetry::set(state);

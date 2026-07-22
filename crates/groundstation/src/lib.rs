@@ -54,7 +54,7 @@ pub fn commands_match(sent: &GroundstationCommand, echoed: &PilotCommand) -> boo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use firmware_types::{PitchCommand, RollCommand, ThrottleCommand, YawCommand};
+    use firmware_types::{ControlMode, PitchCommand, RollCommand, ThrottleCommand, YawCommand};
     use postcard::accumulator::{CobsAccumulator, FeedResult};
 
     #[test]
@@ -103,6 +103,7 @@ mod tests {
             roll: RollCommand::from_normalised(-0.5),
             pitch: PitchCommand::from_normalised(0.25),
             yaw: YawCommand::from_normalised(-0.125),
+            control_mode: ControlMode::Stabilized,
         };
         let framed = encode_command(command, &mut buf).unwrap();
 
@@ -123,6 +124,7 @@ mod tests {
             roll: RollCommand::from_normalised(roll),
             pitch: PitchCommand::from_normalised(pitch),
             yaw: YawCommand::from_normalised(yaw),
+            control_mode: ControlMode::Stabilized,
         }
     }
 
@@ -133,6 +135,7 @@ mod tests {
             roll: RollCommand::from_normalised(roll),
             pitch: PitchCommand::from_normalised(pitch),
             yaw: YawCommand::from_normalised(yaw),
+            control_mode: ControlMode::Stabilized,
         }
     }
 

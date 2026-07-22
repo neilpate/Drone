@@ -2,12 +2,15 @@ use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
 use firmware_types::{PilotCommand, Telemetry};
+use postcard::experimental::max_size::MaxSize;
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::{pitch_command, roll_command, telemetry, throttle_command, yaw_command};
+use crate::signals::{
+    control_mode_command, pitch_command, roll_command, telemetry, throttle_command, yaw_command,
+};
 
-const MAX_SEND_BUFFER_SIZE: usize = 32;
+const MAX_SEND_BUFFER_SIZE: usize = PilotCommand::POSTCARD_MAX_SIZE;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(8); //Needs to be shorter than the LOOP_PERIOD
 
@@ -64,6 +67,7 @@ pub async fn drone_link(mut radio: Radio) -> ! {
     let mut roll_command_receiver = roll_command::subscribe();
     let mut pitch_command_receiver = pitch_command::subscribe();
     let mut yaw_command_receiver = yaw_command::subscribe();
+    let mut control_mode_command_receiver = control_mode_command::subscribe();
 
     loop {
         ticker.next().await; // Wait for the next tick before sending the next control state
@@ -72,8 +76,7 @@ pub async fn drone_link(mut radio: Radio) -> ! {
         let pitch = pitch_command_receiver.get().await;
         let roll = roll_command_receiver.get().await;
         let yaw = yaw_command_receiver.get().await;
-
-        defmt::debug!("drone_link received: {}", throttle);
+        let control_mode = control_mode_command_receiver.get().await;
 
         let state = PilotCommand {
             sequence_count,
@@ -81,6 +84,7 @@ pub async fn drone_link(mut radio: Radio) -> ! {
             roll,
             pitch,
             yaw,
+            control_mode,
         };
         if let Err(e) = send(&mut radio, state).await {
             defmt::error!("drone_link transmit: error: {:?}", e);

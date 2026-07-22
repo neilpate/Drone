@@ -1,3 +1,4 @@
+pub mod control_mode_command;
 pub mod pitch_command;
 pub mod roll_command;
 pub mod status;
