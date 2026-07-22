@@ -34,3 +34,4 @@ Each non-trivial design decision gets its own file here.
 - [0021 — Coordinate frames, attitude sign conventions, and pilot-command semantics](0021-coordinate-frames-and-command-semantics.md) — Proposed, 2026-06-21
 - [0022 — Attitude estimation: complementary filter for roll and pitch](0022-attitude-estimation-complementary-filter.md) — Proposed, 2026-06-27
 - [0023 — Motor numbering, layout, and rotation directions](0023-motor-numbering-layout-rotation.md) — Proposed, 2026-07-18
+- [0024 — Control law: single-loop PD, angle mode roll/pitch, rate mode yaw](0024-control-law-angle-mode-pd.md) — Proposed, 2026-07-22
