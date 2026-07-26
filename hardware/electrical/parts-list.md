@@ -102,16 +102,52 @@ bench is already owned or printed:
 - **Always props-off on the bench.** Props go on only inside a tethered enclosure once the firmware
   is trusted (Phase 2 safety prerequisite).
 
-## Deferred (until tethered / free flight)
+## Flight battery and charging (selected 2026-07-26, FPV24)
 
-Not bought this round. Needed only once the build moves from props-off bench bring-up to
-props-on power:
+The props-on power round: the flight battery, a charger, and the connector rework needed to mate
+them to the ESC. This is the step a bench PSU cannot do — it browns out under motor load and cannot
+sink the motors' regenerative current, tripping its over-voltage protection (recorded in the
+learning note [imu-vibration-and-bench-psu-power.md](../../doc/learning/imu-vibration-and-bench-psu-power.md)).
+Realises the battery class from [ADR 0019](../../doc/decisions/0019-airframe-class-3in-4s-printed.md).
 
-- **Flight battery** — 4S LiPo, 450–650 mAh, XT30, per ADR 0019. Provisional candidate:
-  CNHL MiniStar 4S 650 mAh 70C (XT30U), ~€12.50 at FPV24 (re-verify at order time). Required for
-  props-on hover, which a bench PSU cannot supply (tens of amps peak across four motors).
-- **LiPo balance charger** — required before the first battery charge; a fire-safety prerequisite,
-  not a convenience.
+| Part | Selection | Qty | Unit |
+| --- | --- | --- | ---: |
+| Battery | CNHL MiniStar 4S 650 mAh 70C (XT30U) | 2–3 | €12.50 |
+| Charger | ToolkitRC M4 Pocket 1–4S 5A 80W (RTC-TK11800) | 1 | €32.90 |
+
+### Battery — CNHL MiniStar 4S 650 mAh 70C (XT30U)
+
+- **Link:** <https://www.fpv24.com/en/cnhl/cnhl-ministar-lipo-battery-650mah-148v-4s-70c-xt30u>
+- **Key specs:** 4S (14.8 V nominal), 650 mAh, 70C, XT30U connector, ~72 g.
+- **Why:** top of the ADR 0019 450–650 mAh band for the most loiter time to observe behaviour during
+  PID tuning; 70C (≈45 A continuous) covers the gentle hover current of a ~200 g craft with headroom
+  for tuning-burst transients. XT30 is the correct connector for this current/weight class (see the
+  connector note below). Two or three packs so a charging pack never blocks a bench session.
+
+### Charger — ToolkitRC M4 Pocket 1–4S 5A 80W
+
+- **Link:** <https://www.fpv24.com/en/toolkitrc/toolkitrc-m4-pocket-lipo-1-4s-5a-charger-dc-7-25v-usb-c>
+- **Key specs:** 1–4S balance charge, 1–5 A / 80 W, 400 mA balancer, output **XT30 & XT60**, input
+  **XT60 (7–25 V)** or **USB-C PD (5–20 V)**, 75 g.
+- **Why:** 1–4S matches the 4S-only platform exactly (no wasted 6S capability); the native **XT30
+  output** mates the CNHL packs with no charge-lead adapter; the **USB-C PD input** lets it charge
+  from a laptop/phone PD brick, or it can run off the existing bench PSU via its XT60 input. 80 W / 5 A
+  is ample for a 650 mAh pack (1C = 0.65 A). Preferred over a bigger 6S charger (e.g. SkyRC B6neo)
+  precisely because it is 4S-native, XT30-native, and USB-C-powerable.
+- **Still needed alongside:** a **LiPo-safe charging/storage bag** (fire-safety prerequisite), and —
+  if powering the charger from the bench PSU rather than USB-C PD — a bench-PSU → XT60 input lead.
+
+### Connector note — ESC pigtail XT60 → XT30
+
+The Blueson A1 ESC ships with an **XT60** pigtail, but the battery class is **XT30** (lighter, and
+correctly sized for a 3"/4S whoop's current). Plan: **re-terminate the ESC pigtail to XT30** so it
+mates the packs directly. Interim option for bench use: an XT30↔XT60 adapter lead. Do not buy XT60
+packs to match the pigtail — XT60 is oversized for this class.
+
+## Deferred (until untethered / free flight)
+
+Not bought yet. Needed only once the build moves from tethered to free flight:
+
 - **5 V switching BEC** — the Blueson A1 has no BEC. A buck (switching, not linear) BEC rated for
   ≥4S input is needed to power the micro:bit from the pack in untethered flight.
 
