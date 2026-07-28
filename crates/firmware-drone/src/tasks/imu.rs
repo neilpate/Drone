@@ -2,9 +2,38 @@ use embassy_time::{Duration, Ticker, Timer};
 
 use crate::board;
 use crate::signals::imu_data;
-use firmware_types::ImuData;
+use firmware_types::{Acceleration, ImuData};
 
 const LOOP_PERIOD_MS: u64 = 1; // Loop period in milliseconds
+
+struct ImuCalibration {
+    x_offset: Acceleration,
+    y_offset: Acceleration,
+}
+
+async fn calibrate_imu(imu: &mut board::Imu) -> ImuCalibration {
+    const CALIBRATION_SAMPLES: usize = 100;
+    let mut x_sum = 0.0;
+    let mut y_sum = 0.0;
+
+    let mut collected = 0;
+    while collected < CALIBRATION_SAMPLES {
+        match imu.read_all().await {
+            Ok(d) => {
+                x_sum += d.acceleration_x.as_g();
+                y_sum += d.acceleration_y.as_g();
+                collected += 1;
+            }
+            Err(e) => defmt::warn!("imu calibration read failed, retrying: {:?}", e),
+        }
+        Timer::after(Duration::from_millis(1)).await;
+    }
+
+    ImuCalibration {
+        x_offset: Acceleration::from_g(x_sum / CALIBRATION_SAMPLES as f32),
+        y_offset: Acceleration::from_g(y_sum / CALIBRATION_SAMPLES as f32),
+    }
+}
 
 #[embassy_executor::task]
 pub async fn imu(mut imu: board::Imu) -> ! {
@@ -42,15 +71,24 @@ pub async fn imu(mut imu: board::Imu) -> ! {
 
     Timer::after(Duration::from_millis(100)).await; // Give the IMU some time to stabilize after configuration
 
+    let calibration = calibrate_imu(&mut imu).await;
+
     let mut ticker = Ticker::every(Duration::from_millis(LOOP_PERIOD_MS));
 
     loop {
         ticker.next().await; // Adjust the delay as needed
-        let imu_data = imu.read_all().await; // Read all IMU data (accelerometer, gyroscope, etc.)
+        let raw_imu_data = imu.read_all().await; // Read all IMU data (accelerometer, gyroscope, etc.)
 
-        match imu_data {
+        match raw_imu_data {
             Ok(data) => {
-                imu_data::set(data); // Update the shared signal with the latest IMU data
+                let corrected_imu_data = ImuData {
+                    acceleration_x: data.acceleration_x - calibration.x_offset,
+
+                    acceleration_y: data.acceleration_y - calibration.y_offset,
+                    ..data // Keep the other fields (like acceleration_z and angular rates) unchanged
+                };
+
+                imu_data::set(corrected_imu_data); // Update the shared signal with the latest IMU data
             }
             Err(e) => {
                 defmt::error!("imu read failed: {:?}", e); // Log any errors encountered during IMU reading
