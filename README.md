@@ -18,7 +18,7 @@ See [`doc/00-vision.md`](doc/00-vision.md) for the full vision and the phased mi
 
 ## Status
 
-**Phase 1 in progress.** The whole stack runs on hardware: a PC ground station drives the drone over a two-hop link and gets live telemetry back, and the drone flies a **closed, self-levelling control loop** on the bench (not yet tuned or airborne).
+**Phase 2 (advanced prototyping) in progress.** The whole stack runs on hardware: a PC ground station drives the drone over a two-hop link and gets live telemetry back, and the drone flies a **closed, self-levelling control loop** on the bench with all four motors (not yet tuned or airborne).
 
 - **Command + telemetry round trip, 100 Hz, ~25–30 ms.** The `groundstation` app (binary `gs`) sends a four-axis pilot command — throttle plus roll/pitch/yaw — from on-screen sliders or a PlayStation gamepad, over USB-CDC to a remote micro:bit, which relays it to the drone micro:bit over IEEE 802.15.4 ([ADR 0014](doc/decisions/0014-radio-protocol-ieee802154.md)). Telemetry returns the same path, postcard + COBS framed, with every wire buffer sized at compile time from the shared types.
 - **Drone firmware — an Embassy task graph.** A **supervisor** failsafe ([ADR 0017](doc/decisions/0017-supervisor-failsafe-state-machine.md)) detects loss-of-link within ~100 ms and is the sole publisher of motor commands; a lowest-priority idle-spinner profiler reports CPU load in telemetry.
@@ -37,7 +37,7 @@ The airframe is the **first complete quad-X frame** — the in-house PETG design
 
 ![The first complete 3D-printed quad-X airframe: a blue printed frame with all four iFlight XING2 1404 brushless motors mounted at the arm ends (no propellers), hand-marked with motor numbers and rotation-direction arrows, on the bench.](doc/images/first%20quad%20mount.jpg)
 
-**Next:** tune the PD gains — which first needs the two bench-rig fixes the first closed-loop run surfaced: a soft-mounted IMU and battery power (a bench PSU browns out under motor load and cannot sink regenerative current), both written up in [imu-vibration-and-bench-psu-power.md](doc/learning/imu-vibration-and-bench-psu-power.md) — plus a gyro low-pass filter for the residual vibration.
+**Next (to finish Phase 2):** tune the PD gains — which first needs the two bench-rig fixes the first closed-loop run surfaced (a soft-mounted IMU and battery power; a bench PSU browns out under motor load and cannot sink regenerative current, per [imu-vibration-and-bench-psu-power.md](doc/learning/imu-vibration-and-bench-psu-power.md)) plus a gyro low-pass filter — then the outstanding Phase 2 milestones: DShot in place of PWM, a firmware power-limit mode, and the netted test enclosure ([07-safety.md](doc/07-safety.md)) before the first props-on full-power run.
 
 See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
 

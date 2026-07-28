@@ -74,7 +74,7 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 
 ## Project: Drone
 
-**Status:** Vision agreed (2026-05-21). hardware/language baseline chosen (2026-05-21). IMU chosen (2026-05-21). Phase plan redefined (2026-05-23, hardware-build oriented; see [doc/00-vision.md](doc/00-vision.md)). Ready to start Phase 1 bring-up once parts arrive.
+**Status:** current snapshot in the [README](README.md) "Status" section; dated history in [doc/progress.md](doc/progress.md). Deliberately not duplicated here — this file holds durable context, not churning state.
 
 ### Scope guardrail (read every time)
 
