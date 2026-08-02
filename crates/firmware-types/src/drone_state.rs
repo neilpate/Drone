@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum DroneState {
     Initialising,
+    Disarmed,
     Armed,
     Degraded,
     Fault,

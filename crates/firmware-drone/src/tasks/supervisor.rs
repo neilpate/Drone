@@ -20,6 +20,13 @@ pub async fn supervisor() -> ! {
 
     let mut supervisor = Supervisor::new();
 
+    let mut prev_superviser_state = supervisor.state;
+
+    defmt::info!(
+        "supervisor task: state changed: {:?}",
+        prev_superviser_state
+    );
+
     loop {
         // Wait either for a new PilotCommand to arrive, or for the timeout to elapse.
         let event = select(pilot_command_receiver.changed(), ticker.next()).await;
@@ -29,6 +36,16 @@ pub async fn supervisor() -> ! {
             Either::First(cmd) => supervisor.step(Event::Command(cmd), controller_demand),
             Either::Second(_) => supervisor.step(Event::Tick, controller_demand),
         };
+
+        if supervisor.state != prev_superviser_state {
+            prev_superviser_state = supervisor.state;
+            defmt::info!(
+                "supervisor task: state changed: {:?}",
+                prev_superviser_state
+            );
+        }
+
+        prev_superviser_state = supervisor.state;
 
         status::set(output.state);
         motor_command::set(output.motor_command);

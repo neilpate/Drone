@@ -9,17 +9,17 @@ pub fn update(
 ) -> ControllerDemand {
     const MAX_TILT_DEGREES: f32 = 30.0;
 
-    const MAX_TILT_RATE_DEGREES_PER_SECOND: f32 = 45.0;
+    const MAX_TILT_RATE_DEGREES_PER_SECOND: f32 = 20.0;
 
-    const MAX_YAW_RATE_DEGREES_PER_SECOND: f32 = 45.0;
+    const MAX_YAW_RATE_DEGREES_PER_SECOND: f32 = 20.0;
 
-    const KP_ROLL: f32 = 0.9;
-    const KD_ROLL: f32 = 0.1;
+    const KP_ROLL: f32 = 0.4;
+    const KD_ROLL: f32 = 0.00;
 
-    const KP_PITCH: f32 = 0.9;
-    const KD_PITCH: f32 = 0.1;
+    const KP_PITCH: f32 = 0.4;
+    const KD_PITCH: f32 = 0.00;
 
-    const KP_YAW: f32 = 0.5;
+    const KP_YAW: f32 = 0.0;
 
     let roll_setpoint = pilot_command.roll.as_normalised() * MAX_TILT_DEGREES;
     let pitch_setpoint = pilot_command.pitch.as_normalised() * MAX_TILT_DEGREES;

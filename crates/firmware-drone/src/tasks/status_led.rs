@@ -15,6 +15,13 @@ fn pattern_for_state(s: DroneState) -> LedPattern {
             on_ms: 125,
             off_ms: 125,
         },
+
+        // Fast symmetric blink: "working hard" during init.
+        DroneState::Disarmed => LedPattern::Blinking {
+            on_ms: 500,
+            off_ms: 500,
+        },
+
         // Heartbeat blip: short flash, long pause. Classic "alive but idle".
         DroneState::Armed => LedPattern::Blinking {
             on_ms: 50,

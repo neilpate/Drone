@@ -29,7 +29,7 @@ use groundstation::{
 
 use eframe::egui;
 use egui_plot::{Corner, Legend, Line, Plot, PlotPoints};
-use gilrs::{Axis, Button, EventType, GamepadId, Gilrs};
+use gilrs::{Axis, Button, EventType, GamepadId, Gilrs, PowerInfo};
 
 const MAX_SEND_BUFFER_SIZE: usize = GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES;
 
@@ -151,6 +151,8 @@ struct App {
     gilrs: Option<Gilrs>,
     active_gamepad: Option<GamepadId>,
     gamepad_name: Option<String>,
+    /// Most recent power state reported by the active gamepad.
+    controller_power: Option<PowerInfo>,
     /// Current control mode; toggled by the gamepad triangle button and sent to
     /// the drone in every command.
     control_mode: ControlMode,
@@ -222,6 +224,7 @@ impl Default for App {
             gilrs: Gilrs::new().ok(),
             active_gamepad: None,
             gamepad_name: None,
+            controller_power: None,
             control_mode: ControlMode::Manual,
             log_file: None,
             log_path: None,
@@ -534,10 +537,11 @@ impl App {
             gilrs.update(&event);
         }
 
-        self.gamepad_name = self
+        let gp_id = self
             .active_gamepad
-            .or_else(|| gilrs.gamepads().next().map(|(id, _)| id))
-            .map(|id| gilrs.gamepad(id).name().to_string());
+            .or_else(|| gilrs.gamepads().next().map(|(id, _)| id));
+        self.gamepad_name = gp_id.map(|id| gilrs.gamepad(id).name().to_string());
+        self.controller_power = gp_id.map(|id| gilrs.gamepad(id).power_info());
 
         if changed {
             self.send_command();
@@ -821,10 +825,20 @@ impl eframe::App for App {
                     ui.horizontal(|ui| {
                         ui.label("Gamepad:");
                         match &self.gamepad_name {
-                            Some(name) => ui.label(format!(
-                                "{name}  (R2 -> throttle, left stick -> yaw, right stick -> roll/pitch)"
-                            )),
-                            None => ui.label("none detected"),
+                            Some(name) => {
+                                let battery = match self.controller_power {
+                                    Some(PowerInfo::Discharging(pct)) => format!("  battery: {pct}%"),
+                                    Some(PowerInfo::Charging(pct)) => format!("  charging: {pct}%"),
+                                    Some(PowerInfo::Charged) => "  charged".to_string(),
+                                    Some(PowerInfo::Wired) => "  wired".to_string(),
+                                    Some(PowerInfo::Unknown) => "  battery: unknown".to_string(),
+                                    None => String::new(),
+                                };
+                                ui.label(format!(
+                                    "{name}{battery}  (R2 -> throttle, left stick -> yaw, right stick -> roll/pitch)"
+                                ));
+                            }
+                            None => { ui.label("none detected"); }
                         };
                     });
 

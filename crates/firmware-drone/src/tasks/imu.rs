@@ -73,6 +73,9 @@ pub async fn imu(mut imu: board::Imu) -> ! {
 
     let calibration = calibrate_imu(&mut imu).await;
 
+    // calibration.x_offset = Acceleration::from_g(0.0); // Override X offset to zero for this build
+    // calibration.y_offset = Acceleration::from_g(0.0); // Override Y offset
+
     let mut ticker = Ticker::every(Duration::from_millis(LOOP_PERIOD_MS));
 
     loop {

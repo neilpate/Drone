@@ -12,18 +12,25 @@ use firmware_types::{DroneState, GroundstationCommand, PilotCommand};
 pub fn drone_state_code(state: DroneState) -> f64 {
     match state {
         DroneState::Initialising => 0.0,
-        DroneState::Armed => 1.0,
-        DroneState::Degraded => 2.0,
-        DroneState::Fault => 3.0,
+        DroneState::Disarmed => 1.0,
+        DroneState::Armed => 2.0,
+        DroneState::Degraded => 3.0,
+        DroneState::Fault => 4.0,
     }
 }
+
+/// Maximum throttle fraction sent to the drone. Full trigger deflection maps
+/// to this value, not 1.0, to keep initial flight tests at a safe power level.
+pub const MAX_THROTTLE: f32 = 0.4;
 
 /// Map a raw gamepad trigger reading to a throttle fraction.
 ///
 /// gilrs reports a trigger as roughly `0.0..=1.0`, but can momentarily report
-/// slightly out-of-range values, so the reading is clamped before use.
+/// slightly out-of-range values, so the reading is clamped before use. The
+/// result is scaled by `MAX_THROTTLE` so full trigger produces that fraction,
+/// not 1.0.
 pub fn trigger_to_throttle(value: f32) -> f32 {
-    value.clamp(0.0, 1.0)
+    value.clamp(0.0, 1.0) * MAX_THROTTLE
 }
 
 /// Map a raw gamepad stick-axis reading to a normalised deflection.
@@ -72,12 +79,12 @@ mod tests {
 
     #[test]
     fn trigger_clamps_above_one() {
-        assert_eq!(trigger_to_throttle(1.4), 1.0);
+        assert_eq!(trigger_to_throttle(1.4), MAX_THROTTLE);
     }
 
     #[test]
     fn trigger_passes_through_in_range() {
-        assert_eq!(trigger_to_throttle(0.5), 0.5);
+        assert_eq!(trigger_to_throttle(0.5), 0.5 * MAX_THROTTLE);
     }
 
     #[test]
