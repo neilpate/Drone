@@ -43,6 +43,7 @@ mod tests {
         let original = ControlSystemParameters {
             kp_roll: 0.4,
             kd_roll: 0.0,
+            kp_pitch: 0.3,
             kd_pitch: 0.0,
             kp_yaw: 0.0,
             kd_yaw: 0.0,
