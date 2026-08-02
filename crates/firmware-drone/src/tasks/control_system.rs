@@ -1,5 +1,5 @@
 use firmware_drone_core::control_system;
-use firmware_types::{ControlMode, ControllerDemand};
+use firmware_types::{ControlMode, ControlSystemParameters, ControllerDemand};
 
 use crate::signals::{attitude, controller_demand, imu_data, pilot_command};
 
@@ -31,9 +31,11 @@ pub async fn control_system() -> ! {
                 continue;
             }
             ControlMode::Stabilized => {
+                let parameters = ControlSystemParameters::default();
+
                 // In stabilised mode, we use the control system to generate a controller demand
                 // from the pilot command and the current attitude.
-                let demand = control_system::update(pilot_command, attitude, imu_data);
+                let demand = control_system::update(pilot_command, attitude, imu_data, parameters);
                 controller_demand::set(demand);
             }
         }

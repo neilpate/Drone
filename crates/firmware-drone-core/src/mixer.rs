@@ -1,4 +1,4 @@
-use firmware_types::{ControllerDemand, MotorCommand};
+use firmware_types::{ControllerDemand, MotorCommand, ThrottleCommand};
 
 pub fn mixer(demand: ControllerDemand) -> MotorCommand {
     let throttle = demand.throttle;
@@ -12,6 +12,10 @@ pub fn mixer(demand: ControllerDemand) -> MotorCommand {
     // | M2    | front-right | CW   | +        | −                     | +                   | −                    |
     // | M3    | rear-left   | CW   | +        | +                     | −                   | −                    |
     // | M4    | front-left  | CCW  | +        | +                     | +                   | +                    |
+
+    if throttle == ThrottleCommand::ZERO {
+        return MotorCommand::ZERO;
+    }
 
     let motor1 = throttle - roll.as_normalised() - pitch.as_normalised() + yaw.as_normalised(); // RR
     let motor2 = throttle - roll.as_normalised() + pitch.as_normalised() - yaw.as_normalised(); // FR
@@ -194,5 +198,19 @@ mod tests {
         // The left motors (0.9 + 0.5 = 1.4) clamp to full rather than overflowing.
         assert_eq!(motors.motor3.as_normalised(), 1.0); // M3 rear-left
         assert_eq!(motors.motor4.as_normalised(), 1.0); // M4 front-left
+    }
+
+    #[test]
+    fn zero_throttle_always_outputs_zero() {
+        // Regardless of attitude corrections the mixer must return zero motors
+        // when throttle is zero: the drone is on the ground and no correction
+        // should spin any motor.
+        let demand = ControllerDemand {
+            throttle: ThrottleCommand::from_normalised(0.0),
+            roll: RollCommand::from_normalised(0.9),
+            pitch: PitchCommand::from_normalised(-0.5),
+            yaw: YawCommand::from_normalised(1.0),
+        };
+        assert_eq!(mixer(demand), MotorCommand::ZERO);
     }
 }
