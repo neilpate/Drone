@@ -4,7 +4,9 @@
 //! Anything here is free of egui / serialport / gilrs I/O so it can be unit
 //! tested without a window, a port or a gamepad attached.
 
-use firmware_types::{DroneState, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PilotCommand};
+use firmware_types::{
+    DroneState, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PilotCommand,
+};
 
 /// Numeric code for a drone state, used as the y-value of the drone-state
 /// time series in the plot. Distinct, ordered values so the trace steps
