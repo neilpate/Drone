@@ -34,7 +34,7 @@ mod tests {
             motor3: ThrottleCommand::from_normalised(0.75),
             motor4: ThrottleCommand::from_normalised(0.75),
         };
-        let mut buf = [0u8; 32];
+        let mut buf = [0u8; MotorCommand::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: MotorCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);

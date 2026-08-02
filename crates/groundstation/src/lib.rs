@@ -4,7 +4,7 @@
 //! Anything here is free of egui / serialport / gilrs I/O so it can be unit
 //! tested without a window, a port or a gamepad attached.
 
-use firmware_types::{DroneState, GroundstationCommand, PilotCommand};
+use firmware_types::{DroneState, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PilotCommand};
 
 /// Numeric code for a drone state, used as the y-value of the drone-state
 /// time series in the plot. Distinct, ordered values so the trace steps
@@ -105,7 +105,7 @@ mod tests {
 
     #[test]
     fn encoded_command_round_trips_through_the_accumulator() {
-        let mut buf = [0u8; 32];
+        let mut buf = [0u8; GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES];
         let command = GroundstationCommand {
             throttle: ThrottleCommand::from_normalised(0.5),
             roll: RollCommand::from_normalised(-0.5),

@@ -43,7 +43,7 @@ mod tests {
             pitch: PitchCommand::from_normalised(0.25),
             yaw: YawCommand::from_normalised(-0.125),
         };
-        let mut buf = [0u8; 32];
+        let mut buf = [0u8; ControllerDemand::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: ControllerDemand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);

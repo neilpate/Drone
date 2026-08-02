@@ -49,7 +49,7 @@ mod tests {
             yaw: YawCommand::from_normalised(-0.125),
             control_mode: ControlMode::Manual,
         };
-        let mut buf = [0u8; 32];
+        let mut buf = [0u8; PilotCommand::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: PilotCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);

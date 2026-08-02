@@ -18,7 +18,7 @@ mod tests {
     #[test]
     fn postcard_round_trip() {
         let original = DroneState::Initialising;
-        let mut buf = [0u8; 32];
+        let mut buf = [0u8; DroneState::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: DroneState = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);

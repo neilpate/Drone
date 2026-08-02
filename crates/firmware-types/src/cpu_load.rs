@@ -33,7 +33,7 @@ mod tests {
     #[test]
     fn postcard_round_trip() {
         let original = CpuLoad::from_percentage(42.0);
-        let mut buf = [0u8; 16];
+        let mut buf = [0u8; CpuLoad::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: CpuLoad = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);

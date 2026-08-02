@@ -76,7 +76,7 @@ mod tests {
     #[test]
     fn postcard_round_trip() {
         let original = RollCommand::from_normalised(0.42);
-        let mut buf = [0u8; 16];
+        let mut buf = [0u8; RollCommand::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: RollCommand = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);
