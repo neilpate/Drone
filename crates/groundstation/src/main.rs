@@ -18,9 +18,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use firmware_types::{
-    ControlMode, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand, PilotCommand,
-    PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry, ThrottleCommand,
-    YawCommand,
+    ControlMode, DroneState, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand,
+    PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry,
+    ThrottleCommand, YawCommand,
 };
 
 use groundstation::{
@@ -798,6 +798,33 @@ impl eframe::App for App {
         self.poll_gamepad(ctx);
 
         egui::TopBottomPanel::top("controls").show(ctx, |ui| {
+            ui.add_space(4.0);
+
+            // Drone state badge — prominent coloured indicator at the top of the panel.
+            ui.horizontal(|ui| {
+                ui.label("Drone state:");
+                let (label, bg) = match self.last.map(|t| t.drone_state) {
+                    Some(DroneState::Initialising) => ("Initialising", egui::Color32::from_rgb(110, 110, 110)),
+                    Some(DroneState::Disarmed)     => ("Disarmed",     egui::Color32::from_rgb(180, 140,   0)),
+                    Some(DroneState::Armed)        => ("Armed",        egui::Color32::from_rgb( 40, 180,  80)),
+                    Some(DroneState::Degraded)     => ("Degraded",     egui::Color32::from_rgb(220, 100,   0)),
+                    Some(DroneState::Fault)        => ("FAULT",        egui::Color32::from_rgb(210,  30,  30)),
+                    None                           => ("No telemetry", egui::Color32::from_rgb( 80,  80,  80)),
+                };
+                egui::Frame::none()
+                    .fill(bg)
+                    .inner_margin(egui::Margin::symmetric(10.0, 4.0))
+                    .rounding(egui::Rounding::same(5.0))
+                    .show(ui, |ui| {
+                        ui.label(
+                            egui::RichText::new(label)
+                                .color(egui::Color32::WHITE)
+                                .strong()
+                                .size(15.0),
+                        );
+                    });
+            });
+
             ui.add_space(4.0);
 
             ui.horizontal_top(|ui| {
