@@ -67,9 +67,10 @@ mod tests {
     #[test]
     fn drone_state_codes_are_distinct_and_ordered() {
         assert_eq!(drone_state_code(DroneState::Initialising), 0.0);
-        assert_eq!(drone_state_code(DroneState::Armed), 1.0);
-        assert_eq!(drone_state_code(DroneState::Degraded), 2.0);
-        assert_eq!(drone_state_code(DroneState::Fault), 3.0);
+        assert_eq!(drone_state_code(DroneState::Disarmed), 1.0);
+        assert_eq!(drone_state_code(DroneState::Armed), 2.0);
+        assert_eq!(drone_state_code(DroneState::Degraded), 3.0);
+        assert_eq!(drone_state_code(DroneState::Fault), 4.0);
     }
 
     #[test]
