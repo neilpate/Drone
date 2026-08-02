@@ -51,7 +51,7 @@ mod tests {
             max_tilt_rate_degrees_per_second: 20.0,
             max_yaw_rate_degrees_per_second: 20.0,
         };
-        let mut buf = [0u8; 64];
+        let mut buf = [0u8; ControlSystemParameters::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
         let decoded: ControlSystemParameters = postcard::from_bytes(bytes).unwrap();
         assert_eq!(original, decoded);
