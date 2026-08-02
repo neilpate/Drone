@@ -117,6 +117,8 @@ impl Supervisor {
                     self.gesture_detection_ticks = 0;
                 }
 
+                // Always pass out zero demand in the disarmed state, regardless of what the pilot or control system is commanding.
+
                 Output {
                     state: self.state,
                     motor_command: MotorCommand::ZERO,

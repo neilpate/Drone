@@ -1,7 +1,7 @@
 use embassy_futures::select::{Either, select};
 use embassy_time::{Duration, Ticker};
 use firmware_drone_core::supervisor_core::{Event, Supervisor};
-use firmware_types::DroneState;
+use firmware_types::{DroneState, MotorCommand};
 
 use crate::signals::{controller_demand, motor_command, pilot_command, status};
 
@@ -36,6 +36,14 @@ pub async fn supervisor() -> ! {
             Either::First(cmd) => supervisor.step(Event::Command(cmd), controller_demand),
             Either::Second(_) => supervisor.step(Event::Tick, controller_demand),
         };
+
+        // Just for safety, assert that the motor command is zero when disarmed. This should always be true, but if it ever fails, it's a serious safety issue.
+        if output.state == DroneState::Disarmed {
+            debug_assert!(
+                output.motor_command == MotorCommand::ZERO,
+                "supervisor task: motor command must be zero while disarmed"
+            );
+        }
 
         if supervisor.state != prev_superviser_state {
             prev_superviser_state = supervisor.state;
