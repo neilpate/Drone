@@ -15,17 +15,19 @@ pub enum Event {
 
 pub const LINK_LOSS_TICKS: u16 = 10;
 pub const RAMP_TICKS: u16 = 50;
+const MAX_NO_THROTTLE_TICKS: u64 = 100_000;
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Supervisor {
     pub state: DroneState,
-    ticks_without_command: u16,
+    no_command_received_ticks: u16,
     ramp_ticks: u16,
     previous_demand: PilotCommand,
     arm_gesture_detected: bool,
     disarm_gesture_detected: bool,
     gesture_detection_ticks: u16,
+    no_throttle_ticks: u16,
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -39,13 +41,20 @@ impl Supervisor {
     pub fn new() -> Self {
         Self {
             state: DroneState::Initialising,
-            ticks_without_command: 0,
+            no_command_received_ticks: 0,
             ramp_ticks: 0,
             previous_demand: PilotCommand::ZERO,
             arm_gesture_detected: false,
             disarm_gesture_detected: false,
             gesture_detection_ticks: 0,
+            no_throttle_ticks: 0,
         }
+    }
+
+    fn ticks_to_ms(ticks: u16) -> u64 {
+        // Convert ticks to milliseconds. Each tick is 10ms, so multiply by 10.
+
+        ticks as u64 * 10
     }
 
     pub fn step(&mut self, event: Event, controller_demand: ControllerDemand) -> Output {
@@ -98,9 +107,10 @@ impl Supervisor {
                 {
                     self.state = DroneState::Armed;
                     self.arm_gesture_detected = false; // Reset the arm gesture detection flag after arming
-                    self.ticks_without_command = 0;
+                    self.no_command_received_ticks = 0;
                     self.previous_demand = PilotCommand::ZERO;
                     self.gesture_detection_ticks = 0;
+                    self.no_throttle_ticks = 0;
                 }
 
                 if cmd.throttle == ThrottleCommand::ZERO && cmd.yaw.as_normalised() >= 0.95 {
@@ -108,7 +118,8 @@ impl Supervisor {
 
                     self.gesture_detection_ticks = self.gesture_detection_ticks.saturating_add(1);
 
-                    if self.gesture_detection_ticks >= 50 {
+                    // Gesture needs to be held for > 500ms for it to be considered detected
+                    if Self::ticks_to_ms(self.gesture_detection_ticks) >= 500 {
                         self.arm_gesture_detected = true;
                     }
                 } else {
@@ -134,34 +145,51 @@ impl Supervisor {
     fn step_armed(&mut self, event: Event, controller_demand: ControllerDemand) -> Output {
         match event {
             Event::Command(cmd) => {
+                let mut motor_command = mixer(controller_demand);
+                self.previous_demand = cmd;
+                self.no_command_received_ticks = 0;
+
                 if (cmd.throttle == ThrottleCommand::ZERO)
                     && cmd.yaw == YawCommand::ZERO
                     && self.disarm_gesture_detected
                 {
                     self.state = DroneState::Disarmed;
                     self.disarm_gesture_detected = false; // Reset the disarm gesture detection flag after disarming
-                    self.ticks_without_command = 0;
+                    self.no_command_received_ticks = 0;
                     self.previous_demand = PilotCommand::ZERO;
+                    motor_command = MotorCommand::ZERO; // Ensure motors are stopped when disarming
                 }
 
                 if cmd.throttle == ThrottleCommand::ZERO && cmd.yaw.as_normalised() <= -0.95 {
                     self.disarm_gesture_detected = true;
                 }
 
-                self.previous_demand = cmd;
-                self.ticks_without_command = 0;
+                // Track how long the throttle has been held at zero. If it has been held at zero for a long enough period of time, we will transition to disarmed state
+                // This is to prevent the developer coming back to work thinking the drone is disarmed but actually its armed.
+                if cmd.throttle.as_normalised() >= 0.1 {
+                    self.no_throttle_ticks = 0;
+                } else {
+                    self.no_throttle_ticks = self.no_throttle_ticks.saturating_add(1);
 
-                let mixed = mixer(controller_demand);
+                    // If we have not received any kind of active throttle command for 100 s then transition to disarmed.
+                    // This is a safety feature to prevent the drone from being armed for long periods of time without any active throttle command.
+
+                    if Self::ticks_to_ms(self.no_throttle_ticks) >= MAX_NO_THROTTLE_TICKS {
+                        self.state = DroneState::Disarmed;
+                        self.no_throttle_ticks = 0;
+                        motor_command = MotorCommand::ZERO; // Ensure motors are stopped when disarming
+                    }
+                }
 
                 Output {
                     state: self.state,
-                    motor_command: mixed,
+                    motor_command,
                 }
             }
             Event::Tick => {
-                self.ticks_without_command = self.ticks_without_command.saturating_add(1);
+                self.no_command_received_ticks = self.no_command_received_ticks.saturating_add(1);
 
-                if self.ticks_without_command >= LINK_LOSS_TICKS {
+                if self.no_command_received_ticks >= LINK_LOSS_TICKS {
                     self.state = DroneState::Degraded;
                     self.ramp_ticks = 0;
 
@@ -196,7 +224,7 @@ impl Supervisor {
 
                 if cmd.throttle == ThrottleCommand::ZERO {
                     self.state = DroneState::Disarmed;
-                    self.ticks_without_command = 0;
+                    self.no_command_received_ticks = 0;
                     self.previous_demand = PilotCommand::ZERO;
                     self.arm_gesture_detected = false;
                     self.disarm_gesture_detected = false;
@@ -614,5 +642,56 @@ mod tests {
         assert_eq!(out.state, DroneState::Degraded);
         // Attitude gone (collective), throttle still held on this first frame.
         assert_eq!(collective(out.motor_command), 0.5);
+    }
+
+    /// Number of zero-throttle commands required to trigger the idle auto-disarm,
+    /// derived from the module-level `MAX_NO_THROTTLE_TICKS` threshold.
+    const IDLE_DISARM_TICKS: u16 = (super::MAX_NO_THROTTLE_TICKS / 10) as u16;
+
+    #[test]
+    fn armed_auto_disarms_after_idle_timeout() {
+        // The drone must auto-disarm and stop motors if throttle stays below
+        // the active threshold for the full idle timeout.
+        let mut s = Supervisor::new();
+        arm_supervisor(&mut s);
+
+        // One tick short of the threshold: must still be Armed.
+        for _ in 0..IDLE_DISARM_TICKS - 1 {
+            assert_eq!(
+                s.step(cmd(0.0), ControllerDemand::ZERO).state,
+                DroneState::Armed,
+            );
+        }
+
+        // The threshold-crossing command transitions to Disarmed with motors zeroed.
+        let out = s.step(cmd(0.0), ControllerDemand::ZERO);
+        assert_eq!(out.state, DroneState::Disarmed);
+        assert_eq!(collective(out.motor_command), 0.0);
+    }
+
+    #[test]
+    fn armed_active_throttle_resets_idle_timeout() {
+        // A single command with active throttle (>= 0.1) must reset the idle
+        // counter so the drone does not auto-disarm until a full timeout has
+        // elapsed without active throttle.
+        let mut s = Supervisor::new();
+        arm_supervisor(&mut s);
+
+        // Accumulate almost the full timeout.
+        for _ in 0..IDLE_DISARM_TICKS - 1 {
+            s.step(cmd(0.0), ControllerDemand::ZERO);
+        }
+        assert_eq!(s.state, DroneState::Armed);
+
+        // One active-throttle command resets the counter.
+        s.step(cmd(0.5), ControllerDemand::ZERO);
+
+        // Must survive a further full timeout minus one before auto-disarming.
+        for _ in 0..IDLE_DISARM_TICKS - 1 {
+            assert_eq!(
+                s.step(cmd(0.0), ControllerDemand::ZERO).state,
+                DroneState::Armed,
+            );
+        }
     }
 }
