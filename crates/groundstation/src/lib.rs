@@ -62,8 +62,8 @@ pub fn commands_match(sent: &GroundstationCommand, echoed: &PilotCommand) -> boo
 mod tests {
     use super::*;
     use firmware_types::{
-        ControlMode, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, PitchCommand, RollCommand,
-        ThrottleCommand, YawCommand,
+        ControlMode, PitchCommand, RollCommand, ThrottleCommand, YawCommand,
+        GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES,
     };
     use postcard::accumulator::{CobsAccumulator, FeedResult};
 
