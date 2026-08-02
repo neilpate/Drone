@@ -479,7 +479,12 @@ mod tests {
     fn yaw_saturates_positive() {
         // Huge leftward yaw rate: setpoint=0, gyro_z=-900 dps
         // yaw_out = 0.6*(0-(-900))/180 = 3.0 → clamped to 1.0
-        let out = update(PilotCommand::ZERO, Attitude::default(), gyro(0.0, 0.0, -900.0), test_params());
+        let out = update(
+            PilotCommand::ZERO,
+            Attitude::default(),
+            gyro(0.0, 0.0, -900.0),
+            test_params(),
+        );
         assert_eq!(out.yaw.as_normalised(), 1.0);
     }
 
@@ -487,7 +492,12 @@ mod tests {
     fn yaw_saturates_negative() {
         // Huge rightward yaw rate: setpoint=0, gyro_z=900 dps
         // yaw_out = 0.6*(0-900)/180 = -3.0 → clamped to -1.0
-        let out = update(PilotCommand::ZERO, Attitude::default(), gyro(0.0, 0.0, 900.0), test_params());
+        let out = update(
+            PilotCommand::ZERO,
+            Attitude::default(),
+            gyro(0.0, 0.0, 900.0),
+            test_params(),
+        );
         assert_eq!(out.yaw.as_normalised(), -1.0);
     }
 
@@ -499,9 +509,9 @@ mod tests {
         let (mut pilot, att, imu) = neutral();
         pilot.throttle = ThrottleCommand::from_normalised(1.0);
         let out = update(pilot, att, imu, test_params());
-        assert_eq!(out.roll.as_normalised(),  0.0);
+        assert_eq!(out.roll.as_normalised(), 0.0);
         assert_eq!(out.pitch.as_normalised(), 0.0);
-        assert_eq!(out.yaw.as_normalised(),   0.0);
+        assert_eq!(out.yaw.as_normalised(), 0.0);
     }
 
     #[test]
@@ -511,7 +521,7 @@ mod tests {
         let p = test_params();
         let p_high_kd_yaw = ControlSystemParameters { kd_yaw: 99.9, ..p };
         let imu = gyro(0.0, 0.0, 30.0);
-        let out_base  = update(PilotCommand::ZERO, Attitude::default(), imu, p);
+        let out_base = update(PilotCommand::ZERO, Attitude::default(), imu, p);
         let out_kdyaw = update(PilotCommand::ZERO, Attitude::default(), imu, p_high_kd_yaw);
         assert_eq!(out_base.yaw.as_normalised(), out_kdyaw.yaw.as_normalised());
     }
@@ -528,15 +538,15 @@ mod tests {
         // Yaw:   setpoint=-180 dps, gyro_z=+900 → error=-1080
         //        yaw_out = 0.6*(-1080)/180 = -3.6 → -1.0
         let mut pilot = PilotCommand::ZERO;
-        pilot.roll  = RollCommand::from_normalised(-1.0);
+        pilot.roll = RollCommand::from_normalised(-1.0);
         pilot.pitch = PitchCommand::from_normalised(-1.0);
-        pilot.yaw   = YawCommand::from_normalised(-1.0);
+        pilot.yaw = YawCommand::from_normalised(-1.0);
         let att = Attitude::from_degrees(90.0, 90.0);
         let imu = gyro(900.0, 900.0, 900.0);
         let out = update(pilot, att, imu, test_params());
-        assert_eq!(out.roll.as_normalised(),  -1.0);
+        assert_eq!(out.roll.as_normalised(), -1.0);
         assert_eq!(out.pitch.as_normalised(), -1.0);
-        assert_eq!(out.yaw.as_normalised(),   -1.0);
+        assert_eq!(out.yaw.as_normalised(), -1.0);
     }
 
     #[test]
@@ -544,9 +554,12 @@ mod tests {
         // If all gains are zero the controller must output zero demands regardless
         // of attitude or rate (but still pass throttle through).
         let zero_gains = ControlSystemParameters {
-            kp_roll: 0.0, kd_roll: 0.0,
-            kp_pitch: 0.0, kd_pitch: 0.0,
-            kp_yaw: 0.0, kd_yaw: 0.0,
+            kp_roll: 0.0,
+            kd_roll: 0.0,
+            kp_pitch: 0.0,
+            kd_pitch: 0.0,
+            kp_yaw: 0.0,
+            kd_yaw: 0.0,
             max_tilt_degrees: 25.0,
             max_tilt_rate_degrees_per_second: 400.0,
             max_yaw_rate_degrees_per_second: 180.0,
@@ -554,8 +567,8 @@ mod tests {
         let att = Attitude::from_degrees(45.0, -30.0);
         let imu = gyro(100.0, 200.0, 300.0);
         let out = update(PilotCommand::ZERO, att, imu, zero_gains);
-        assert_eq!(out.roll.as_normalised(),  0.0);
+        assert_eq!(out.roll.as_normalised(), 0.0);
         assert_eq!(out.pitch.as_normalised(), 0.0);
-        assert_eq!(out.yaw.as_normalised(),   0.0);
+        assert_eq!(out.yaw.as_normalised(), 0.0);
     }
 }
