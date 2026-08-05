@@ -17,6 +17,7 @@
 //! function of its inputs; the matching `firmware-drone` task does the I/O.
 
 pub mod control_system;
+pub mod filter;
 pub mod mixer;
 pub mod sensor_fusion;
 pub mod supervisor_core;
