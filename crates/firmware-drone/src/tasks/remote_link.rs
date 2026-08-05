@@ -71,12 +71,16 @@ pub async fn remote_link(mut radio: Radio) -> ! {
         // Most of the time it will be a PilotCommand
         match command {
             Command::PilotCommand(pilot_command) => {
+                // defmt::debug!("remote link: pilot_command={:?}", pilot_command);
                 pilot_command::set(pilot_command);
             }
             Command::ControlModeUpdate(control_mode) => {
+                // defmt::debug!("remote link: mode={:?}", control_mode);
                 control_mode_update::set(control_mode);
             }
             Command::ControlSystemParameterUpdate(control_system_parameters) => {
+                // defmt::debug!("remote link: parameters={:?}", control_system_parameters);
+
                 control_system_parameter_update::set(control_system_parameters);
             }
         }

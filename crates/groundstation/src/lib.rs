@@ -21,7 +21,7 @@ pub fn drone_state_code(state: DroneState) -> f64 {
 
 /// Maximum throttle fraction sent to the drone. Full trigger deflection maps
 /// to this value, not 1.0, to keep initial flight tests at a safe power level.
-pub const MAX_THROTTLE: f32 = 0.4;
+pub const MAX_THROTTLE: f32 = 1.0;
 
 /// Map a raw gamepad trigger reading to a throttle fraction.
 ///

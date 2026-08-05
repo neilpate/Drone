@@ -17,8 +17,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use firmware_types::{
-    COMMAND_FRAME_MAX_SIZE_BYTES, Command, ControlMode, DroneState, PilotCommand, PitchCommand,
-    RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry, ThrottleCommand, YawCommand,
+    COMMAND_FRAME_MAX_SIZE_BYTES, Command, ControlMode, ControlSystemParameters, DroneState,
+    PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry,
+    ThrottleCommand, YawCommand,
 };
 
 use groundstation::{
@@ -152,6 +153,8 @@ struct App {
     /// Current control mode; toggled by the gamepad triangle button and sent to
     /// the drone in every command.
     control_mode: ControlMode,
+    /// Control system parameters (gains, limits) sent to the drone on demand.
+    params: ControlSystemParameters,
     /// Open TSV log sink while data logging is active; `None` when stopped.
     log_file: Option<BufWriter<File>>,
     /// Absolute path of the active (or most recent) log file, for the status line.
@@ -221,6 +224,7 @@ impl Default for App {
             active_gamepad: None,
             gamepad_name: None,
             control_mode: ControlMode::Manual,
+            params: ControlSystemParameters::default(),
             log_file: None,
             log_path: None,
             log_rows: 0,
@@ -525,10 +529,12 @@ impl App {
                         ControlMode::Manual => ControlMode::Stabilized,
                     };
                     // Mode changes are their own command type — send immediately.
+                    // Do NOT set changed=true here: a simultaneous PilotCommand
+                    // would overwrite the Watch before drone_link can send the
+                    // mode update over radio.
                     if let Some(tx) = &self.tx {
                         let _ = tx.send(Command::ControlModeUpdate(self.control_mode));
                     }
-                    changed = true;
                 }
                 _ => {}
             }
@@ -543,6 +549,75 @@ impl App {
         if changed {
             self.send_command();
         }
+    }
+
+    /// Render the collapsible control system parameters panel with sliders for
+    /// every gain and limit, and a button to push the current values to the drone.
+    fn params_panel(&mut self, ui: &mut egui::Ui) {
+        ui.collapsing("Control System Parameters", |ui| {
+            egui::Grid::new("params_grid")
+                .num_columns(2)
+                .spacing([8.0, 4.0])
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.label("kp_roll");
+                    ui.add(
+                        egui::Slider::new(&mut self.params.kp_roll, 0.0..=5.0).fixed_decimals(3),
+                    );
+                    ui.end_row();
+                    ui.label("kd_roll");
+                    ui.add(
+                        egui::Slider::new(&mut self.params.kd_roll, 0.0..=2.0).fixed_decimals(3),
+                    );
+                    ui.end_row();
+                    ui.label("kp_pitch");
+                    ui.add(
+                        egui::Slider::new(&mut self.params.kp_pitch, 0.0..=5.0).fixed_decimals(3),
+                    );
+                    ui.end_row();
+                    ui.label("kd_pitch");
+                    ui.add(
+                        egui::Slider::new(&mut self.params.kd_pitch, 0.0..=2.0).fixed_decimals(3),
+                    );
+                    ui.end_row();
+                    ui.label("kp_yaw");
+                    ui.add(egui::Slider::new(&mut self.params.kp_yaw, 0.0..=5.0).fixed_decimals(3));
+                    ui.end_row();
+                    ui.label("kd_yaw");
+                    ui.add(egui::Slider::new(&mut self.params.kd_yaw, 0.0..=2.0).fixed_decimals(3));
+                    ui.end_row();
+                    ui.label("max_tilt_deg");
+                    ui.add(
+                        egui::Slider::new(&mut self.params.max_tilt_degrees, 1.0..=45.0)
+                            .fixed_decimals(1),
+                    );
+                    ui.end_row();
+                    ui.label("max_tilt_rate_dps");
+                    ui.add(
+                        egui::Slider::new(
+                            &mut self.params.max_tilt_rate_degrees_per_second,
+                            50.0..=1000.0,
+                        )
+                        .fixed_decimals(0),
+                    );
+                    ui.end_row();
+                    ui.label("max_yaw_rate_dps");
+                    ui.add(
+                        egui::Slider::new(
+                            &mut self.params.max_yaw_rate_degrees_per_second,
+                            20.0..=360.0,
+                        )
+                        .fixed_decimals(0),
+                    );
+                    ui.end_row();
+                });
+            ui.add_space(4.0);
+            if ui.button("Send to drone").clicked()
+                && let Some(tx) = &self.tx
+            {
+                let _ = tx.send(Command::ControlSystemParameterUpdate(self.params));
+            }
+        });
     }
 
     /// Render the telemetry as a name/value table where every channel carries
@@ -905,6 +980,9 @@ impl eframe::App for App {
                     if changed {
                         self.send_command();
                     }
+
+                    ui.add_space(4.0);
+                    self.params_panel(ui);
                 });
 
                 ui.add_space(16.0);
