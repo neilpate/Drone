@@ -66,7 +66,7 @@ pub fn commands_match(sent: &Command, echoed: &PilotCommand) -> bool {
 mod tests {
     use super::*;
     use firmware_types::{
-        PitchCommand, RollCommand, ThrottleCommand, YawCommand, COMMAND_FRAME_MAX_SIZE_BYTES,
+        COMMAND_FRAME_MAX_SIZE_BYTES, PitchCommand, RollCommand, ThrottleCommand, YawCommand,
     };
     use postcard::accumulator::{CobsAccumulator, FeedResult};
 

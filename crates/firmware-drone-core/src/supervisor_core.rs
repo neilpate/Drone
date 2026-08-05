@@ -281,32 +281,26 @@ impl Default for Supervisor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use firmware_types::{
-        ControlMode, PilotCommand, PitchCommand, RollCommand, ThrottleCommand, YawCommand,
-    };
+    use firmware_types::{PilotCommand, PitchCommand, RollCommand, ThrottleCommand, YawCommand};
 
     /// Build a `Command` event at a given normalised throttle (yaw and attitude
     /// all zero).
     fn cmd(throttle: f32) -> Event {
         Event::Command(PilotCommand {
-            sequence_count: 0,
             throttle: ThrottleCommand::from_normalised(throttle),
             roll: RollCommand::ZERO,
             pitch: PitchCommand::ZERO,
             yaw: YawCommand::ZERO,
-            control_mode: ControlMode::Stabilized,
         })
     }
 
     /// Build a `Command` event with the given throttle and yaw deflections.
     fn cmd_yaw(throttle: f32, yaw: f32) -> Event {
         Event::Command(PilotCommand {
-            sequence_count: 0,
             throttle: ThrottleCommand::from_normalised(throttle),
             roll: RollCommand::ZERO,
             pitch: PitchCommand::ZERO,
             yaw: YawCommand::from_normalised(yaw),
-            control_mode: ControlMode::Stabilized,
         })
     }
 
@@ -532,12 +526,10 @@ mod tests {
         // is ignored in favour of the controller demand while Armed.
         let out = s.step(
             Event::Command(PilotCommand {
-                sequence_count: 1,
                 throttle: ThrottleCommand::from_normalised(0.5),
                 roll: RollCommand::from_normalised(-0.9),
                 pitch: PitchCommand::from_normalised(0.9),
                 yaw: YawCommand::from_normalised(-0.9),
-                control_mode: ControlMode::Stabilized,
             }),
             demand,
         );
@@ -570,12 +562,10 @@ mod tests {
         // is ignored in favour of the controller demand.
         let out = s.step(
             Event::Command(PilotCommand {
-                sequence_count: 0,
                 throttle: ThrottleCommand::from_normalised(0.4),
                 roll: RollCommand::from_normalised(-0.9),
                 pitch: PitchCommand::from_normalised(0.9),
                 yaw: YawCommand::ZERO,
-                control_mode: ControlMode::Stabilized,
             }),
             demand,
         );
@@ -620,12 +610,10 @@ mod tests {
 
         s.step(
             Event::Command(PilotCommand {
-                sequence_count: 0,
                 throttle: ThrottleCommand::from_normalised(0.5),
                 roll: RollCommand::from_normalised(0.3),
                 pitch: PitchCommand::ZERO,
                 yaw: YawCommand::ZERO,
-                control_mode: ControlMode::Stabilized,
             }),
             ControllerDemand::ZERO,
         );

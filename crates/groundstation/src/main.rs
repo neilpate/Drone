@@ -17,7 +17,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use firmware_types::{
-    Command, ControlMode, DroneState, COMMAND_FRAME_MAX_SIZE_BYTES, PilotCommand, PitchCommand,
+    COMMAND_FRAME_MAX_SIZE_BYTES, Command, ControlMode, DroneState, PilotCommand, PitchCommand,
     RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry, ThrottleCommand, YawCommand,
 };
 
