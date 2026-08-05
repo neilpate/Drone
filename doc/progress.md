@@ -2,6 +2,26 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-08-05 — Arming, runtime gain tuning, a gyro D-term filter, and airframe v3
+
+Three strands landed together: a real arm/disarm sequence, live gain tuning from the ground station, and the D-term noise filter that makes closed-loop tuning viable — plus the third airframe iteration.
+
+**Arming and disarming.** The supervisor state machine ([ADR 0017](decisions/0017-supervisor-failsafe-state-machine.md)) gained an explicit `Disarmed` state between `Initialising` and `Armed`, replacing the previous behaviour of arming on the first command received. Arming now takes a deliberate two-phase stick gesture — throttle held at zero with yaw full-right for ~500 ms, then yaw returned to centre — so the motors cannot spin the instant a packet arrives. Disarming mirrors it (throttle zero, yaw full-left) and reacts immediately. `Degraded` (loss-of-link) now recovers to `Disarmed` on a zero-throttle command rather than re-arming directly, and a safety timeout auto-disarms after 100 s of idle throttle so the craft can't sit armed unattended. The mixer short-circuits to zero motors whenever throttle is zero, and a `debug_assert` in the supervisor task enforces the invariant that a `Disarmed` state never emits a non-zero motor command. A coloured drone-state badge on the ground station makes the current state unmissable.
+
+**Runtime gain tuning.** Reflashing to change a gain is a dead end, so the PD gains and limits became a runtime message. The ground-station-to-drone wire type was refactored from the flat `GroundstationCommand` into a `Command` enum (`PilotCommand` / `ControlModeUpdate` / `ControlSystemParameterUpdate`), carried over the radio inside a new `RadioMessage { sequence_count, command }` — moving the sequence counter out of `PilotCommand` (a transport concern) and the control mode into its own occasional message rather than riding every stick frame. The ground station gained a collapsible gains panel: sliders for every gain and limit and a "Send to drone" button that pushes a parameter update live. The drone routes each `Command` variant to its own `Watch` signal; the control loop reads the latest parameters every tick. Because the remote resends the last value each 10 ms until the sticks next move, a parameter update is naturally retransmitted a few times — implicit acknowledgement on a lossy link, for free.
+
+![Ground station gains panel: the Control System Parameters section expanded with sliders for kp/kd on each axis and the tilt/rate limits, a Send-to-drone button, and the coloured drone-state badge above the live telemetry plot.](images/groundstation%205.png)
+
+**Gyro D-term low-pass filter.** Closed-loop runs were rough because the D term differentiates the gyro, amplifying motor-vibration noise into the motor command. A first-order PT1 filter (pure, host-tested in `firmware-drone-core` — seven tests covering DC gain, monotonic step response, Nyquist attenuation and an exact hand-derived sample) now filters each gyro axis before it reaches the controller, in the control-loop task so the attitude estimator keeps its unfiltered gyro (filtering there would add lag to the estimate). Cutoff is 100 Hz against the confirmed 1 ms (1 kHz) sensor cadence. The starting default gains were also made sane: the D-normalisation rate was 20 dps (absurdly twitchy) and is now 400 dps; yaw rate limit went from 20 to 180 dps; a conservative `kd` of 0.05 replaces the old 0.4.
+
+**Airframe v3.** The third printed airframe iteration packages the build sensibly — a base for the LiPo, provision for a removable lid, and a proper IMU mount, with the IMU soft-mounted on adhesive putty for vibration isolation (the mount rigidity and squareness matter more than the damping, since a skewed mount is a static attitude bias).
+
+![The third-iteration 3D-printed airframe, packaging the battery, electronics and a soft-mounted IMU more sensibly than the earlier open frame.](images/Airframe%20v3.jpg)
+
+The previous ground-station view this entry supersedes, before the gains panel and state badge:
+
+![Ground station: live telemetry plot and table showing pilot command, IMU, attitude estimate, controller demand and the four motor outputs, with the Stabilized/Manual control-mode toggle.](images/groundstation%204.png)
+
 ## 2026-07-28 — First complete quad airframe, and accelerometer level calibration
 
 The airframe became a **quad**. The single motor-mount plate grew into the first complete 3D-printed quad-X frame — the in-house PETG design of [ADR 0019](decisions/0019-airframe-class-3in-4s-printed.md) — carrying all four iFlight XING2 1404 motors, with a two-tier body housing the micro:bit and the 4-in-1 ESC below the motor deck and the [ADR 0023](decisions/0023-motor-numbering-layout-rotation.md) motor numbering and props-out rotation directions marked on it by hand.
