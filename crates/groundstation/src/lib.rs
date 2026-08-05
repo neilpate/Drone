@@ -4,7 +4,7 @@
 //! Anything here is free of egui / serialport / gilrs I/O so it can be unit
 //! tested without a window, a port or a gamepad attached.
 
-use firmware_types::{DroneState, GroundstationCommand, PilotCommand};
+use firmware_types::{Command, DroneState, PilotCommand};
 
 /// Numeric code for a drone state, used as the y-value of the drone-state
 /// time series in the plot. Distinct, ordered values so the trace steps
@@ -41,29 +41,32 @@ pub fn stick_to_deflection(value: f32) -> f32 {
     value.clamp(-1.0, 1.0)
 }
 
-/// Serialise a `GroundstationCommand` into a postcard + COBS framed buffer,
+/// Serialise a `Command` into a postcard + COBS framed buffer,
 /// returning the framed bytes written into `buf`.
-pub fn encode_command(command: GroundstationCommand, buf: &mut [u8]) -> postcard::Result<&[u8]> {
+pub fn encode_command(command: Command, buf: &mut [u8]) -> postcard::Result<&[u8]> {
     postcard::to_slice_cobs(&command, buf).map(|framed| &framed[..])
 }
 
 /// True when a telemetry-echoed `PilotCommand` carries the same four control
-/// axes as a previously sent `GroundstationCommand`. The drone echoes the
-/// command verbatim, so the axis newtypes compare bit-exact. Used to match an
-/// echo back to the send that produced it for the round-trip measurement.
-pub fn commands_match(sent: &GroundstationCommand, echoed: &PilotCommand) -> bool {
-    sent.throttle == echoed.throttle
-        && sent.roll == echoed.roll
-        && sent.pitch == echoed.pitch
-        && sent.yaw == echoed.yaw
+/// axes as a previously sent `Command::PilotCommand`. Non-pilot commands
+/// (mode changes, parameter updates) never match an echo.
+pub fn commands_match(sent: &Command, echoed: &PilotCommand) -> bool {
+    match sent {
+        Command::PilotCommand(pilot) => {
+            pilot.throttle == echoed.throttle
+                && pilot.roll == echoed.roll
+                && pilot.pitch == echoed.pitch
+                && pilot.yaw == echoed.yaw
+        }
+        _ => false,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use firmware_types::{
-        ControlMode, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, PitchCommand, RollCommand,
-        ThrottleCommand, YawCommand,
+        PitchCommand, RollCommand, ThrottleCommand, YawCommand, COMMAND_FRAME_MAX_SIZE_BYTES,
     };
     use postcard::accumulator::{CobsAccumulator, FeedResult};
 
@@ -108,20 +111,19 @@ mod tests {
 
     #[test]
     fn encoded_command_round_trips_through_the_accumulator() {
-        let mut buf = [0u8; GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES];
-        let command = GroundstationCommand {
+        let mut buf = [0u8; COMMAND_FRAME_MAX_SIZE_BYTES];
+        let command = Command::PilotCommand(PilotCommand {
             throttle: ThrottleCommand::from_normalised(0.5),
             roll: RollCommand::from_normalised(-0.5),
             pitch: PitchCommand::from_normalised(0.25),
             yaw: YawCommand::from_normalised(-0.125),
-            control_mode: ControlMode::Stabilized,
-        };
+        });
         let framed = encode_command(command, &mut buf).unwrap();
 
         // Decode the frame the same way the firmware does, to prove the
         // groundstation's framing matches the wire format on the other end.
         let mut cobs: CobsAccumulator<64> = CobsAccumulator::new();
-        match cobs.feed::<GroundstationCommand>(framed) {
+        match cobs.feed::<Command>(framed) {
             FeedResult::Success { data, .. } => {
                 assert_eq!(data, command);
             }
@@ -129,24 +131,21 @@ mod tests {
         }
     }
 
-    fn sent(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> GroundstationCommand {
-        GroundstationCommand {
+    fn sent(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> Command {
+        Command::PilotCommand(PilotCommand {
             throttle: ThrottleCommand::from_normalised(throttle),
             roll: RollCommand::from_normalised(roll),
             pitch: PitchCommand::from_normalised(pitch),
             yaw: YawCommand::from_normalised(yaw),
-            control_mode: ControlMode::Stabilized,
-        }
+        })
     }
 
     fn echoed(throttle: f32, roll: f32, pitch: f32, yaw: f32) -> PilotCommand {
         PilotCommand {
-            sequence_count: 1,
             throttle: ThrottleCommand::from_normalised(throttle),
             roll: RollCommand::from_normalised(roll),
             pitch: PitchCommand::from_normalised(pitch),
             yaw: YawCommand::from_normalised(yaw),
-            control_mode: ControlMode::Stabilized,
         }
     }
 
@@ -156,13 +155,6 @@ mod tests {
             &sent(0.5, -0.25, 0.75, -1.0),
             &echoed(0.5, -0.25, 0.75, -1.0),
         ));
-    }
-
-    #[test]
-    fn ignores_sequence_count() {
-        let mut e = echoed(0.5, -0.25, 0.75, -1.0);
-        e.sequence_count = 999;
-        assert!(commands_match(&sent(0.5, -0.25, 0.75, -1.0), &e));
     }
 
     #[test]

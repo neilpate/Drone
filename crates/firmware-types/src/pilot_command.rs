@@ -1,17 +1,15 @@
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-use crate::{ControlMode, PitchCommand, RollCommand, ThrottleCommand, YawCommand};
+use crate::{PitchCommand, RollCommand, ThrottleCommand, YawCommand};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct PilotCommand {
-    pub sequence_count: u32,
     pub throttle: ThrottleCommand,
     pub roll: RollCommand,
     pub pitch: PitchCommand,
     pub yaw: YawCommand,
-    pub control_mode: ControlMode,
 }
 
 impl PilotCommand {
@@ -20,12 +18,10 @@ impl PilotCommand {
     /// received, so a missing or dropped command holds the craft safe rather
     /// than acting on garbage.
     pub const ZERO: Self = Self {
-        sequence_count: 0,
         throttle: ThrottleCommand::ZERO,
         roll: RollCommand::ZERO,
         pitch: PitchCommand::ZERO,
         yaw: YawCommand::ZERO,
-        control_mode: ControlMode::Manual,
     };
 }
 
@@ -42,12 +38,10 @@ mod tests {
     #[test]
     fn postcard_round_trip() {
         let original = PilotCommand {
-            sequence_count: 12_345,
             throttle: ThrottleCommand::from_normalised(0.75),
             roll: RollCommand::from_normalised(-0.5),
             pitch: PitchCommand::from_normalised(0.25),
             yaw: YawCommand::from_normalised(-0.125),
-            control_mode: ControlMode::Manual,
         };
         let mut buf = [0u8; PilotCommand::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();

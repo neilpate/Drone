@@ -1,15 +1,17 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
-use firmware_types::{PilotCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry};
+use firmware_types::{Command, PilotCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry};
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::{pilot_command, telemetry};
+use crate::signals::{
+    control_mode_update, control_system_parameter_update, pilot_command, telemetry,
+};
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up
 
-async fn receive(radio: &mut Radio) -> Option<PilotCommand> {
+async fn receive(radio: &mut Radio) -> Option<Command> {
     let mut rx_packet = Packet::new();
 
     match with_timeout(RECEIVE_TIMEOUT, radio.receive(&mut rx_packet)).await {
@@ -53,6 +55,8 @@ pub async fn remote_link(mut radio: Radio) -> ! {
     defmt::info!("remote_link task: started");
 
     pilot_command::set(PilotCommand::default()); //Set the watch signal so that the link to the drone will be in a known state and not blocking
+    control_mode_update::set(firmware_types::ControlMode::Manual); //Set the watch signal so that the link to the drone will be in a known state and not blocking
+    control_system_parameter_update::set(firmware_types::ControlSystemParameters::default()); //Set the watch signal so that the link to the drone will be in a known state and not blocking
 
     let mut telemetry_receiver = telemetry::subscribe();
 
@@ -63,7 +67,19 @@ pub async fn remote_link(mut radio: Radio) -> ! {
             continue;
         };
 
-        pilot_command::set(command); //Publish the received command to any subscribers
+        // The message received over the radio link could be one of several types of commands, so we match on the enum to determine what to do with it.
+        // Most of the time it will be a PilotCommand
+        match command {
+            Command::PilotCommand(pilot_command) => {
+                pilot_command::set(pilot_command);
+            }
+            Command::ControlModeUpdate(control_mode) => {
+                control_mode_update::set(control_mode);
+            }
+            Command::ControlSystemParameterUpdate(control_system_parameters) => {
+                control_system_parameter_update::set(control_system_parameters);
+            }
+        }
 
         let telemetry_state = telemetry_receiver.get().await; //Get the latest telemetry state from the telemetry task
 

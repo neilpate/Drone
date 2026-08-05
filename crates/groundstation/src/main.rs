@@ -1,12 +1,11 @@
 //! Ground station: throttle + roll/pitch/yaw command sender + telemetry plotter.
 //!
-//! Sends the control values as a postcard + COBS framed
-//! `GroundstationCommand` over a serial port at 115 200 8N1, and receives
-//! postcard + COBS framed `TelemetryState` on the same port. A single I/O
-//! thread handles both directions (see `serial_io_thread`) and forwards each
-//! decoded `TelemetryState` to the UI thread, which appends it to a set of
-//! time series and draws them in a live plot. Each signal can be shown or
-//! hidden with a checkbox.
+//! Sends control values as postcard + COBS framed `Command` messages over a
+//! serial port at 115 200 8N1, and receives postcard + COBS framed `Telemetry`
+//! on the same port. A single I/O thread handles both directions (see
+//! `serial_io_thread`) and forwards each decoded `Telemetry` to the UI thread,
+//! which appends it to a set of time series and draws them in a live plot.
+//! Each signal can be shown or hidden with a checkbox.
 
 use std::collections::VecDeque;
 use std::fs::File;
@@ -18,9 +17,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use firmware_types::{
-    ControlMode, DroneState, GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES, GroundstationCommand,
-    PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry,
-    ThrottleCommand, YawCommand,
+    Command, ControlMode, DroneState, COMMAND_FRAME_MAX_SIZE_BYTES, PilotCommand, PitchCommand,
+    RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry, ThrottleCommand, YawCommand,
 };
 
 use groundstation::{
@@ -31,7 +29,7 @@ use eframe::egui;
 use egui_plot::{Corner, Legend, Line, Plot, PlotPoints};
 use gilrs::{Axis, Button, EventType, GamepadId, Gilrs};
 
-const MAX_SEND_BUFFER_SIZE: usize = GROUNDSTATION_COMMAND_FRAME_MAX_SIZE_BYTES;
+const MAX_SEND_BUFFER_SIZE: usize = COMMAND_FRAME_MAX_SIZE_BYTES;
 
 /// Maximum number of samples retained per signal (the last N frames).
 const MAX_POINTS: usize = 10_000;
@@ -135,7 +133,7 @@ struct App {
     roll: f32,
     pitch: f32,
     yaw: f32,
-    tx: Option<mpsc::Sender<GroundstationCommand>>,
+    tx: Option<mpsc::Sender<Command>>,
     telemetry_rx: Option<mpsc::Receiver<Telemetry>>,
     status: String,
     start: Instant,
@@ -143,7 +141,7 @@ struct App {
     last: Option<Telemetry>,
     /// Sent commands awaiting their echo in telemetry, with the send instant.
     /// Used to measure the end-to-end round-trip time.
-    pending: VecDeque<(Instant, GroundstationCommand)>,
+    pending: VecDeque<(Instant, Command)>,
     /// Most recent measured round-trip time, in milliseconds.
     last_rtt_ms: Option<f64>,
     /// Smoothed round-trip time (exponential moving average), in milliseconds.
@@ -246,15 +244,14 @@ impl App {
         app
     }
 
-    /// Build the command from the four current control values.
-    fn command(&self) -> GroundstationCommand {
-        GroundstationCommand {
+    /// Build the pilot command from the four current stick values.
+    fn command(&self) -> Command {
+        Command::PilotCommand(PilotCommand {
             throttle: ThrottleCommand::from_normalised(self.throttle),
             roll: RollCommand::from_normalised(self.roll),
             pitch: PitchCommand::from_normalised(self.pitch),
             yaw: YawCommand::from_normalised(self.yaw),
-            control_mode: self.control_mode,
-        }
+        })
     }
 
     /// Send the current command to the serial thread, if connected. Records
@@ -453,7 +450,7 @@ impl App {
     /// Open the serial port and start the I/O thread, wiring both the throttle
     /// command channel (UI -> thread) and the telemetry channel (thread -> UI).
     fn connect(&mut self, ctx: egui::Context) {
-        let (cmd_tx, cmd_rx) = mpsc::channel::<GroundstationCommand>();
+        let (cmd_tx, cmd_rx) = mpsc::channel::<Command>();
         let (telemetry_tx, telemetry_rx) = mpsc::channel::<Telemetry>();
 
         let port = match serialport::new(&self.port_name, 115_200)
@@ -527,6 +524,10 @@ impl App {
                         ControlMode::Stabilized => ControlMode::Manual,
                         ControlMode::Manual => ControlMode::Stabilized,
                     };
+                    // Mode changes are their own command type — send immediately.
+                    if let Some(tx) = &self.tx {
+                        let _ = tx.send(Command::ControlModeUpdate(self.control_mode));
+                    }
                     changed = true;
                 }
                 _ => {}
@@ -933,7 +934,7 @@ impl eframe::App for App {
 // Do both directions in a single thread to avoid needing to share the port between threads.
 fn serial_io_thread(
     mut port: Box<dyn serialport::SerialPort>,
-    rx: mpsc::Receiver<GroundstationCommand>,
+    rx: mpsc::Receiver<Command>,
     telemetry_tx: mpsc::Sender<Telemetry>,
     ctx: egui::Context,
 ) {

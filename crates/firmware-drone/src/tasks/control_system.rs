@@ -1,7 +1,7 @@
 use firmware_drone_core::control_system;
 use firmware_types::{ControlMode, ControlSystemParameters, ControllerDemand};
 
-use crate::signals::{attitude, controller_demand, imu_data, pilot_command};
+use crate::signals::{attitude, control_mode_update, controller_demand, imu_data, pilot_command};
 
 #[embassy_executor::task]
 pub async fn control_system() -> ! {
@@ -10,13 +10,15 @@ pub async fn control_system() -> ! {
     let mut attitude_receiver = attitude::subscribe();
     let mut pilot_command_receiver = pilot_command::subscribe();
     let mut imu_receiver = imu_data::subscribe();
+    let mut control_mode_receiver = control_mode_update::subscribe();
 
     loop {
         let attitude = attitude_receiver.changed().await;
         let pilot_command = pilot_command_receiver.get().await;
         let imu_data = imu_receiver.get().await;
+        let control_mode = control_mode_receiver.get().await;
 
-        match pilot_command.control_mode {
+        match control_mode {
             ControlMode::Manual => {
                 // In manual mode, the controller demand is simply the pilot command.
 

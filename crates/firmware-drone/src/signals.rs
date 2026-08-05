@@ -1,4 +1,6 @@
 pub mod attitude;
+pub mod control_mode_update;
+pub mod control_system_parameter_update;
 pub mod controller_demand;
 pub mod cpu_load;
 pub mod imu_data;

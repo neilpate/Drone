@@ -1,25 +1,23 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
-use firmware_types::{PilotCommand, Telemetry};
+use firmware_types::{Command, Telemetry};
 use postcard::experimental::max_size::MaxSize;
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::{
-    control_mode_command, pitch_command, roll_command, telemetry, throttle_command, yaw_command,
-};
+use crate::signals::{command, telemetry};
 
-const MAX_SEND_BUFFER_SIZE: usize = PilotCommand::POSTCARD_MAX_SIZE;
+const MAX_SEND_BUFFER_SIZE: usize = Command::POSTCARD_MAX_SIZE;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(8); //Needs to be shorter than the LOOP_PERIOD
 
-async fn send(radio: &mut Radio, state: PilotCommand) -> Result<(), radio::Error> {
+async fn send(radio: &mut Radio, state: Command) -> Result<(), radio::Error> {
     let mut scratch = [0u8; MAX_SEND_BUFFER_SIZE]; //Working space for serialization
 
     //bytes_to_send is a subslice of scratch which contains the serialized PilotCommand
     let bytes_to_send =
-        postcard::to_slice(&state, &mut scratch).expect("scratch is large enough for PilotCommand");
+        postcard::to_slice(&state, &mut scratch).expect("scratch is not large enough for Command");
 
     let mut tx_packet = Packet::new();
 
@@ -63,30 +61,14 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
     radio.set_channel(radio_link::CHANNEL);
 
-    let mut throttle_command_receiver = throttle_command::subscribe();
-    let mut roll_command_receiver = roll_command::subscribe();
-    let mut pitch_command_receiver = pitch_command::subscribe();
-    let mut yaw_command_receiver = yaw_command::subscribe();
-    let mut control_mode_command_receiver = control_mode_command::subscribe();
+    let mut command_receiver = command::subscribe();
 
     loop {
         ticker.next().await; // Wait for the next tick before sending the next control state
 
-        let throttle = throttle_command_receiver.get().await;
-        let pitch = pitch_command_receiver.get().await;
-        let roll = roll_command_receiver.get().await;
-        let yaw = yaw_command_receiver.get().await;
-        let control_mode = control_mode_command_receiver.get().await;
+        let command = command_receiver.get().await;
 
-        let state = PilotCommand {
-            sequence_count,
-            throttle,
-            roll,
-            pitch,
-            yaw,
-            control_mode,
-        };
-        if let Err(e) = send(&mut radio, state).await {
+        if let Err(e) = send(&mut radio, command).await {
             defmt::error!("drone_link transmit: error: {:?}", e);
             continue;
         }

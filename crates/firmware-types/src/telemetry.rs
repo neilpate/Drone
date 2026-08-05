@@ -24,7 +24,7 @@ pub const FRAME_MAX_SIZE_BYTES: usize =
 mod tests {
     use super::*;
     use crate::{
-        Acceleration, AngularRate, ControlMode, ImuData, PitchCommand, RollCommand, Temperature,
+        Acceleration, AngularRate, ImuData, PitchCommand, RollCommand, Temperature,
         ThrottleCommand, YawCommand,
     };
 
@@ -45,12 +45,10 @@ mod tests {
             },
             drone_state: DroneState::Armed,
             pilot_command: PilotCommand {
-                sequence_count: 7,
                 throttle: ThrottleCommand::from_normalised(0.5),
                 roll: RollCommand::from_normalised(-0.5),
                 pitch: PitchCommand::from_normalised(0.25),
                 yaw: YawCommand::from_normalised(-0.125),
-                control_mode: ControlMode::Manual,
             },
             attitude: Attitude::from_degrees(0.0, 0.0),
             cpu_load: CpuLoad::from_percentage(50.0),
