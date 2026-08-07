@@ -3,9 +3,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{Command, PilotCommand};
 
+pub const DESTINATION_ADDRESS: u32 = 0xDEADBEEF; // Arbitrary value to identify the drone on the radio link
+
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct RadioMessage {
+    pub destination_address: u32,
     pub sequence_count: u32,
     pub command: Command,
 }
@@ -16,6 +19,7 @@ impl RadioMessage {
     /// received, so a missing or dropped command holds the craft safe rather
     /// than acting on garbage.
     pub const ZERO: Self = Self {
+        destination_address: DESTINATION_ADDRESS,
         sequence_count: 0,
         command: Command::PilotCommand(PilotCommand::ZERO),
     };
@@ -35,6 +39,7 @@ mod tests {
     #[test]
     fn postcard_round_trip() {
         let original = RadioMessage {
+            destination_address: 0x12345678,
             sequence_count: 12_345,
             command: Command::PilotCommand(PilotCommand {
                 throttle: ThrottleCommand::from_normalised(0.75),

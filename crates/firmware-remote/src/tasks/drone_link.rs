@@ -1,23 +1,23 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
-use firmware_types::{Command, Telemetry};
+use firmware_types::{RADIO_MESSAGE_DESTINATION_ADDRESS, RadioMessage, Telemetry};
 use postcard::experimental::max_size::MaxSize;
 
 use crate::board::Radio;
 use crate::radio_link;
 use crate::signals::{command, telemetry};
 
-const MAX_SEND_BUFFER_SIZE: usize = Command::POSTCARD_MAX_SIZE;
+const MAX_SEND_BUFFER_SIZE: usize = RadioMessage::POSTCARD_MAX_SIZE;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(8); //Needs to be shorter than the LOOP_PERIOD
 
-async fn send(radio: &mut Radio, state: Command) -> Result<(), radio::Error> {
+async fn send(radio: &mut Radio, state: RadioMessage) -> Result<(), radio::Error> {
     let mut scratch = [0u8; MAX_SEND_BUFFER_SIZE]; //Working space for serialization
 
-    //bytes_to_send is a subslice of scratch which contains the serialized PilotCommand
-    let bytes_to_send =
-        postcard::to_slice(&state, &mut scratch).expect("scratch is not large enough for Command");
+    //bytes_to_send is a subslice of scratch which contains the serialized RadioMessage
+    let bytes_to_send = postcard::to_slice(&state, &mut scratch)
+        .expect("scratch is not large enough for RadioMessage");
 
     let mut tx_packet = Packet::new();
 
@@ -33,7 +33,7 @@ async fn receive(radio: &mut Radio) -> Option<Telemetry> {
         // Outer match is for the timeout; inner match is for the radio receive result
         Ok(Ok(())) => {}
         Ok(Err(e)) => {
-            defmt::warn!("drone_link receive: error: {:?}", e);
+            defmt::trace!("drone_link receive: error: {:?}", e);
             return None;
         }
         Err(_) => {
@@ -45,7 +45,7 @@ async fn receive(radio: &mut Radio) -> Option<Telemetry> {
     match postcard::from_bytes(&rx_packet) {
         Ok(telemetry) => Some(telemetry),
         Err(e) => {
-            defmt::warn!("postcard decode error: {:?}", e);
+            defmt::trace!("postcard decode error: {:?}", e);
             None
         }
     }
@@ -68,7 +68,13 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
         let command = command_receiver.get().await;
 
-        if let Err(e) = send(&mut radio, command).await {
+        let radio_message = RadioMessage {
+            destination_address: RADIO_MESSAGE_DESTINATION_ADDRESS,
+            sequence_count,
+            command,
+        };
+
+        if let Err(e) = send(&mut radio, radio_message).await {
             defmt::error!("drone_link transmit: error: {:?}", e);
             continue;
         }

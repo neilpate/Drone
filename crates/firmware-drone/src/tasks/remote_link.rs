@@ -1,7 +1,9 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
-use firmware_types::{Command, PilotCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry};
+use firmware_types::{
+    Command, PilotCommand, RadioMessage, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry,
+};
 
 use crate::board::Radio;
 use crate::radio_link;
@@ -11,14 +13,14 @@ use crate::signals::{
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up
 
-async fn receive(radio: &mut Radio) -> Option<Command> {
+async fn receive(radio: &mut Radio) -> Option<RadioMessage> {
     let mut rx_packet = Packet::new();
 
     match with_timeout(RECEIVE_TIMEOUT, radio.receive(&mut rx_packet)).await {
         // Outer match is for the timeout; inner match is for the radio receive result
         Ok(Ok(())) => {} //Received a packet successfully within the timeout
         Ok(Err(e)) => {
-            defmt::warn!("remote_link receive: error: {:?}", e);
+            defmt::trace!("remote_link receive: error: {:?}", e);
             return None;
         }
         Err(_) => {
@@ -28,9 +30,9 @@ async fn receive(radio: &mut Radio) -> Option<Command> {
     }
 
     match postcard::from_bytes(&rx_packet) {
-        Ok(control_state) => Some(control_state),
+        Ok(radio_message) => Some(radio_message),
         Err(e) => {
-            defmt::warn!("postcard decode error: {:?}", e);
+            defmt::trace!("postcard decode error: {:?}", e);
             None
         }
     }
@@ -63,13 +65,21 @@ pub async fn remote_link(mut radio: Radio) -> ! {
     radio.set_channel(radio_link::CHANNEL);
 
     loop {
-        let Some(command) = receive(&mut radio).await else {
+        let Some(radio_message) = receive(&mut radio).await else {
             continue;
         };
 
+        if radio_message.destination_address != firmware_types::RADIO_MESSAGE_DESTINATION_ADDRESS {
+            defmt::trace!(
+                "remote_link: received message with unexpected destination address: 0x{:08X}",
+                radio_message.destination_address
+            );
+            continue;
+        }
+
         // The message received over the radio link could be one of several types of commands, so we match on the enum to determine what to do with it.
         // Most of the time it will be a PilotCommand
-        match command {
+        match radio_message.command {
             Command::PilotCommand(pilot_command) => {
                 // defmt::debug!("remote link: pilot_command={:?}", pilot_command);
                 pilot_command::set(pilot_command);

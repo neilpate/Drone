@@ -40,6 +40,7 @@ pub use motor_command::MotorCommand;
 pub use pilot_command::PilotCommand;
 pub use pitch_angle::PitchAngle;
 pub use pitch_command::PitchCommand;
+pub use radio_message::DESTINATION_ADDRESS as RADIO_MESSAGE_DESTINATION_ADDRESS;
 pub use radio_message::RadioMessage;
 pub use remote_state::RemoteState;
 pub use roll_angle::RollAngle;
