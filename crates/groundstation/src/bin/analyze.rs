@@ -22,8 +22,11 @@ const ACTIVE_THROTTLE: f64 = 0.05;
 
 /// A parsed column-oriented view of the TSV: name -> values, with one entry per
 /// data row. Missing/blank cells parse as NaN so per-column stats can skip them.
+/// Every cell is also retained as a string so categorical fields (drone_state,
+/// control_mode) can be used to filter rows.
 struct Log {
     columns: HashMap<String, Vec<f64>>,
+    strings: HashMap<String, Vec<String>>,
     n: usize,
 }
 
@@ -36,6 +39,8 @@ impl Log {
 
         let mut columns: HashMap<String, Vec<f64>> =
             names.iter().map(|n| (n.to_string(), Vec::new())).collect();
+        let mut strings: HashMap<String, Vec<String>> =
+            names.iter().map(|n| (n.to_string(), Vec::new())).collect();
 
         let mut n = 0;
         for line in lines {
@@ -44,15 +49,18 @@ impl Log {
             }
             let cells: Vec<&str> = line.split('\t').collect();
             for (i, name) in names.iter().enumerate() {
-                let v = cells
-                    .get(i)
-                    .and_then(|c| c.trim().parse::<f64>().ok())
-                    .unwrap_or(f64::NAN);
+                let cell = cells.get(i).map(|c| c.trim()).unwrap_or("");
+                let v = cell.parse::<f64>().unwrap_or(f64::NAN);
                 columns.get_mut(*name).unwrap().push(v);
+                strings.get_mut(*name).unwrap().push(cell.to_string());
             }
             n += 1;
         }
-        Ok(Self { columns, n })
+        Ok(Self {
+            columns,
+            strings,
+            n,
+        })
     }
 
     /// The whole column as a slice, or an empty slice if the name is absent.
@@ -60,10 +68,12 @@ impl Log {
         self.columns.get(name).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
-    /// The string form of a column for categorical fields (e.g. drone_state),
-    /// re-read from the raw file is overkill; instead we bucket by the numeric
-    /// code the ground station emits — but drone_state is a `{:?}` string, so we
-    /// keep a parallel string column loader for it below.
+    /// The string form of a column, or an empty slice if the name is absent.
+    fn col_str(&self, name: &str) -> &[String] {
+        self.strings.get(name).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    /// True if a numeric column of that name is present.
     fn has(&self, name: &str) -> bool {
         self.columns.contains_key(name)
     }
@@ -160,19 +170,39 @@ fn main() -> ExitCode {
         }
     };
 
-    // drone_state is a categorical `{:?}` string; reload just that column as text.
-    let state_counts = load_state_counts(&path);
+    // drone_state and control_mode are categorical `{:?}` strings; count them.
+    let state_counts = count_categorical(log.col_str("drone_state"));
+    let mode_counts = count_categorical(log.col_str("control_mode"));
 
     let t = log.col("t_s");
     let throttle = log.col("throttle");
+    let state = log.col_str("drone_state");
+    let mode = log.col_str("control_mode");
+    let have_mode = log
+        .strings
+        .get("control_mode")
+        .is_some_and(|v| !v.is_empty());
 
-    // Segment into active vs idle by throttle.
-    let active: Vec<usize> = (0..log.n)
-        .filter(|&i| throttle.get(i).copied().unwrap_or(0.0) > ACTIVE_THROTTLE)
-        .collect();
+    // The analysis window is genuine closed-loop flight: throttle up, Armed, and
+    // (if the column exists) Stabilized. Mixing in Manual or failsafe samples
+    // would blend open- and closed-loop behaviour and make the stats meaningless.
+    let is_closed_loop = |i: usize| -> bool {
+        let thr_ok = throttle.get(i).copied().unwrap_or(0.0) > ACTIVE_THROTTLE;
+        let armed = state.get(i).map(|s| s == "Armed").unwrap_or(true);
+        let stab = !have_mode || mode.get(i).map(|m| m == "Stabilized").unwrap_or(true);
+        thr_ok && armed && stab
+    };
+    let active: Vec<usize> = (0..log.n).filter(|&i| is_closed_loop(i)).collect();
     let idle: Vec<usize> = (0..log.n)
         .filter(|&i| throttle.get(i).copied().unwrap_or(0.0) <= ACTIVE_THROTTLE)
         .collect();
+    // Throttle-up samples that were excluded from analysis because they were
+    // Manual or in a failsafe state - reported so a muddied capture is obvious.
+    let excluded_active = (0..log.n)
+        .filter(|&i| {
+            throttle.get(i).copied().unwrap_or(0.0) > ACTIVE_THROTTLE && !is_closed_loop(i)
+        })
+        .count();
 
     let duration = if log.n >= 2 { t[log.n - 1] - t[0] } else { 0.0 };
     let mean_dt_ms = if log.n >= 2 {
@@ -196,11 +226,40 @@ fn main() -> ExitCode {
         print!("  {name}={count}");
     }
     println!();
+    if mode_counts.is_empty() {
+        println!("control_mode: (not logged - old capture; cannot confirm the loop was closed)");
+    } else {
+        print!("control_mode:");
+        for (name, count) in &mode_counts {
+            print!("  {name}={count}");
+        }
+        println!();
+        // A capture dominated by Manual is open-loop and useless for tuning; say so loudly.
+        let total: usize = mode_counts.iter().map(|(_, c)| c).sum();
+        let manual = mode_counts
+            .iter()
+            .find(|(n, _)| n == "Manual")
+            .map(|(_, c)| *c)
+            .unwrap_or(0);
+        if total > 0 && manual * 2 >= total {
+            println!(
+                "  WARNING: {:.0}% of samples are Manual (open-loop). The controller was not \
+                 running for these - not a valid tuning capture.",
+                100.0 * manual as f64 / total as f64
+            );
+        }
+    }
     println!(
-        "throttle max={thr_max:.3}  active samples={} (>{ACTIVE_THROTTLE})  idle samples={}",
+        "throttle max={thr_max:.3}  closed-loop active samples={} (throttle>{ACTIVE_THROTTLE}, Armed{})  idle samples={}",
         active.len(),
+        if have_mode { ", Stabilized" } else { "" },
         idle.len()
     );
+    if excluded_active > 0 {
+        println!(
+            "  note: {excluded_active} throttle-up samples excluded from analysis (Manual or failsafe)"
+        );
+    }
 
     if active.is_empty() {
         println!("\nNo active-throttle samples; nothing to analyse. Was this an idle capture?");
@@ -394,27 +453,13 @@ fn print_motor_asymmetry(m1: f64, m2: f64, m3: f64, m4: f64) {
     );
 }
 
-/// drone_state is written as a `{:?}` string, so bucket it by re-reading the
-/// file and counting the categorical column directly.
-fn load_state_counts(path: &str) -> Vec<(String, usize)> {
-    let Ok(text) = fs::read_to_string(path) else {
-        return Vec::new();
-    };
-    let mut lines = text.lines();
-    let Some(header) = lines.next() else {
-        return Vec::new();
-    };
-    let names: Vec<&str> = header.split('\t').collect();
-    let Some(state_idx) = names.iter().position(|n| *n == "drone_state") else {
-        return Vec::new();
-    };
+/// Count the values of an already-loaded categorical column. Returns
+/// (value, count) sorted most-frequent first; empty if the column is empty.
+fn count_categorical(values: &[String]) -> Vec<(String, usize)> {
     let mut counts: HashMap<String, usize> = HashMap::new();
-    for line in lines {
-        if line.trim().is_empty() {
-            continue;
-        }
-        if let Some(cell) = line.split('\t').nth(state_idx) {
-            *counts.entry(cell.to_string()).or_insert(0) += 1;
+    for v in values {
+        if !v.is_empty() {
+            *counts.entry(v.clone()).or_insert(0) += 1;
         }
     }
     let mut v: Vec<(String, usize)> = counts.into_iter().collect();

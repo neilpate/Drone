@@ -41,6 +41,8 @@ pub async fn control_system() -> ! {
         imu_data.angular_rate_y = AngularRate::from_degrees_per_second(gy);
         imu_data.angular_rate_z = AngularRate::from_degrees_per_second(gz);
 
+        imu_data::set_processed(imu_data);
+
         match control_mode {
             ControlMode::Manual => {
                 // In manual mode, the controller demand is simply the pilot command.

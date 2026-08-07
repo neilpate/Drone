@@ -12,6 +12,8 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/neilpate/Drone"
 rust-version = "1.95"
 publish      = false
+# With two binaries (gs, analyze) `cargo run` is ambiguous; default to the GUI.
+default-run  = "gs"
 
 [[bin]]
 name = "gs"

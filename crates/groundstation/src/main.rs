@@ -123,6 +123,9 @@ const SERIES_MOTOR_1: usize = 21;
 const SERIES_MOTOR_2: usize = 22;
 const SERIES_MOTOR_3: usize = 23;
 const SERIES_MOTOR_4: usize = 24;
+const SERIES_GYRO_FX: usize = 25;
+const SERIES_GYRO_FY: usize = 26;
+const SERIES_GYRO_FZ: usize = 27;
 
 /// Maximum number of rows in one telemetry-table column before wrapping into
 /// the next column.
@@ -215,6 +218,21 @@ impl Default for App {
                 Series::new("Motor 2 (0..1)", egui::Color32::from_rgb(120, 220, 140)),
                 Series::new("Motor 3 (0..1)", egui::Color32::from_rgb(120, 180, 255)),
                 Series::new("Motor 4 (0..1)", egui::Color32::from_rgb(230, 180, 80)),
+                Series::new(
+                    "Gyro X filtered (dps)",
+                    egui::Color32::from_rgb(255, 210, 130),
+                )
+                .hidden(),
+                Series::new(
+                    "Gyro Y filtered (dps)",
+                    egui::Color32::from_rgb(210, 255, 210),
+                )
+                .hidden(),
+                Series::new(
+                    "Gyro Z filtered (dps)",
+                    egui::Color32::from_rgb(210, 210, 255),
+                )
+                .hidden(),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -310,6 +328,30 @@ impl App {
                 t,
                 telemetry.sensors.imu.angular_rate_z.as_degrees_per_second() as f64,
             );
+            self.series[SERIES_GYRO_FX].push(
+                t,
+                telemetry
+                    .sensors_processed
+                    .imu
+                    .angular_rate_x
+                    .as_degrees_per_second() as f64,
+            );
+            self.series[SERIES_GYRO_FY].push(
+                t,
+                telemetry
+                    .sensors_processed
+                    .imu
+                    .angular_rate_y
+                    .as_degrees_per_second() as f64,
+            );
+            self.series[SERIES_GYRO_FZ].push(
+                t,
+                telemetry
+                    .sensors_processed
+                    .imu
+                    .angular_rate_z
+                    .as_degrees_per_second() as f64,
+            );
             self.series[SERIES_ATTITUDE_ROLL].push(t, telemetry.attitude.roll.as_degrees() as f64);
             self.series[SERIES_ATTITUDE_PITCH]
                 .push(t, telemetry.attitude.pitch.as_degrees() as f64);
@@ -350,9 +392,10 @@ impl App {
         match File::create(&name) {
             Ok(file) => {
                 let mut writer = BufWriter::new(file);
-                let header = "t_s\tsequence\tdrone_state\tthrottle\troll\tpitch\tyaw\t\
+                let header = "t_s\tsequence\tdrone_state\tcontrol_mode\tthrottle\troll\tpitch\tyaw\t\
                      temperature_c\tcpu_load_pct\trtt_ms\tavg_rtt_ms\t\
                      accel_x_g\taccel_y_g\taccel_z_g\tgyro_x_dps\tgyro_y_dps\tgyro_z_dps\t\
+                     gyro_fx_dps\tgyro_fy_dps\tgyro_fz_dps\t\
                      attitude_roll_deg\tattitude_pitch_deg\t\
                      demand_roll\tdemand_pitch\tdemand_yaw\t\
                      motor1\tmotor2\tmotor3\tmotor4";
@@ -393,14 +436,16 @@ impl App {
         let opt = |v: Option<f64>| v.map_or_else(String::new, |x| format!("{x:.3}"));
         let wrote = writeln!(
             writer,
-            "{t:.3}\t{seq}\t{state:?}\t{thr:.6}\t{roll:.6}\t{pitch:.6}\t{yaw:.6}\t\
+            "{t:.3}\t{seq}\t{state:?}\t{mode:?}\t{thr:.6}\t{roll:.6}\t{pitch:.6}\t{yaw:.6}\t\
              {temp:.4}\t{cpu:.4}\t{rtt}\t{avg}\t\
              {ax:.6}\t{ay:.6}\t{az:.6}\t{gx:.4}\t{gy:.4}\t{gz:.4}\t\
+             {gfx:.4}\t{gfy:.4}\t{gfz:.4}\t\
              {att_roll:.4}\t{att_pitch:.4}\t\
              {dem_roll:.6}\t{dem_pitch:.6}\t{dem_yaw:.6}\t\
              {m1:.6}\t{m2:.6}\t{m3:.6}\t{m4:.6}",
             seq = telemetry.sequence_number,
             state = telemetry.drone_state,
+            mode = telemetry.control_mode,
             thr = telemetry.pilot_command.throttle.as_normalised(),
             roll = telemetry.pilot_command.roll.as_normalised(),
             pitch = telemetry.pilot_command.pitch.as_normalised(),
@@ -415,6 +460,21 @@ impl App {
             gx = telemetry.sensors.imu.angular_rate_x.as_degrees_per_second(),
             gy = telemetry.sensors.imu.angular_rate_y.as_degrees_per_second(),
             gz = telemetry.sensors.imu.angular_rate_z.as_degrees_per_second(),
+            gfx = telemetry
+                .sensors_processed
+                .imu
+                .angular_rate_x
+                .as_degrees_per_second(),
+            gfy = telemetry
+                .sensors_processed
+                .imu
+                .angular_rate_y
+                .as_degrees_per_second(),
+            gfz = telemetry
+                .sensors_processed
+                .imu
+                .angular_rate_z
+                .as_degrees_per_second(),
             att_roll = telemetry.attitude.roll.as_degrees(),
             att_pitch = telemetry.attitude.pitch.as_degrees(),
             dem_roll = telemetry.controller_demand.roll.as_normalised(),
@@ -562,29 +622,29 @@ impl App {
                 .show(ui, |ui| {
                     ui.label("kp_roll");
                     ui.add(
-                        egui::Slider::new(&mut self.params.kp_roll, 0.0..=5.0).fixed_decimals(3),
+                        egui::Slider::new(&mut self.params.kp_roll, 0.0..=0.5).fixed_decimals(3),
                     );
                     ui.end_row();
                     ui.label("kd_roll");
                     ui.add(
-                        egui::Slider::new(&mut self.params.kd_roll, 0.0..=2.0).fixed_decimals(3),
+                        egui::Slider::new(&mut self.params.kd_roll, 0.0..=0.1).fixed_decimals(3),
                     );
                     ui.end_row();
                     ui.label("kp_pitch");
                     ui.add(
-                        egui::Slider::new(&mut self.params.kp_pitch, 0.0..=5.0).fixed_decimals(3),
+                        egui::Slider::new(&mut self.params.kp_pitch, 0.0..=0.5).fixed_decimals(3),
                     );
                     ui.end_row();
                     ui.label("kd_pitch");
                     ui.add(
-                        egui::Slider::new(&mut self.params.kd_pitch, 0.0..=2.0).fixed_decimals(3),
+                        egui::Slider::new(&mut self.params.kd_pitch, 0.0..=0.1).fixed_decimals(3),
                     );
                     ui.end_row();
                     ui.label("kp_yaw");
-                    ui.add(egui::Slider::new(&mut self.params.kp_yaw, 0.0..=5.0).fixed_decimals(3));
+                    ui.add(egui::Slider::new(&mut self.params.kp_yaw, 0.0..=0.5).fixed_decimals(3));
                     ui.end_row();
                     ui.label("kd_yaw");
-                    ui.add(egui::Slider::new(&mut self.params.kd_yaw, 0.0..=2.0).fixed_decimals(3));
+                    ui.add(egui::Slider::new(&mut self.params.kd_yaw, 0.0..=0.1).fixed_decimals(3));
                     ui.end_row();
                     ui.label("max_tilt_deg");
                     ui.add(
@@ -638,7 +698,7 @@ impl App {
         // formatted current value). Built up front so the loop below only
         // borrows `self.series`.
         let dash = || "\u{2014}".to_string();
-        let rows: [(&str, usize, String); 25] = [
+        let rows: [(&str, usize, String); 28] = [
             (
                 "Sequence",
                 SERIES_SEQUENCE,
@@ -747,6 +807,45 @@ impl App {
                     format!(
                         "{:+.1} dps",
                         t.sensors.imu.angular_rate_z.as_degrees_per_second()
+                    )
+                }),
+            ),
+            (
+                "Gyro X filt",
+                SERIES_GYRO_FX,
+                last.map_or_else(dash, |t| {
+                    format!(
+                        "{:+.1} dps",
+                        t.sensors_processed
+                            .imu
+                            .angular_rate_x
+                            .as_degrees_per_second()
+                    )
+                }),
+            ),
+            (
+                "Gyro Y filt",
+                SERIES_GYRO_FY,
+                last.map_or_else(dash, |t| {
+                    format!(
+                        "{:+.1} dps",
+                        t.sensors_processed
+                            .imu
+                            .angular_rate_y
+                            .as_degrees_per_second()
+                    )
+                }),
+            ),
+            (
+                "Gyro Z filt",
+                SERIES_GYRO_FZ,
+                last.map_or_else(dash, |t| {
+                    format!(
+                        "{:+.1} dps",
+                        t.sensors_processed
+                            .imu
+                            .angular_rate_z
+                            .as_degrees_per_second()
                     )
                 }),
             ),
@@ -946,6 +1045,30 @@ impl eframe::App for App {
                         };
                         ui.colored_label(color, label);
                         ui.label("(triangle to toggle)");
+
+                        // Show the mode the DRONE reports in telemetry, distinct from the
+                        // commanded mode above. A mismatch means a ControlModeUpdate has not
+                        // taken effect yet - critical to catch, since a Manual capture looks
+                        // deceptively calm and wastes a tuning run.
+                        if let Some(t) = &self.last {
+                            let (drone_label, drone_color) = match t.control_mode {
+                                ControlMode::Stabilized => (
+                                    "drone: Stabilized",
+                                    egui::Color32::from_rgb(80, 200, 120),
+                                ),
+                                ControlMode::Manual => {
+                                    ("drone: Manual", egui::Color32::from_rgb(230, 150, 60))
+                                }
+                            };
+                            ui.separator();
+                            ui.colored_label(drone_color, drone_label);
+                            if t.control_mode != self.control_mode {
+                                ui.colored_label(
+                                    egui::Color32::from_rgb(230, 60, 60),
+                                    "⚠ MISMATCH",
+                                );
+                            }
+                        }
                     });
 
                     ui.add_space(4.0);

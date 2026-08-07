@@ -1,19 +1,24 @@
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
-use crate::{Attitude, ControllerDemand, CpuLoad, DroneState, MotorCommand, PilotCommand, Sensors};
+use crate::{
+    Attitude, ControlMode, ControllerDemand, CpuLoad, DroneState, MotorCommand, PilotCommand,
+    Sensors,
+};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct Telemetry {
     pub sequence_number: u32,
     pub sensors: Sensors,
+    pub sensors_processed: Sensors,
     pub drone_state: DroneState,
     pub pilot_command: PilotCommand,
     pub attitude: Attitude,
     pub cpu_load: CpuLoad,
     pub controller_demand: ControllerDemand,
     pub motor_command: MotorCommand,
+    pub control_mode: ControlMode,
 }
 
 // The maximum size of a `Telemetry` frame, in bytes, when serialized with `postcard`.
@@ -43,6 +48,17 @@ mod tests {
                     angular_rate_z: AngularRate::from_degrees_per_second(0.0),
                 },
             },
+            sensors_processed: Sensors {
+                temperature: Temperature::from_celsius(25.0),
+                imu: ImuData {
+                    acceleration_x: Acceleration::from_g(0.0),
+                    acceleration_y: Acceleration::from_g(0.0),
+                    acceleration_z: Acceleration::from_g(0.0),
+                    angular_rate_x: AngularRate::from_degrees_per_second(0.0),
+                    angular_rate_y: AngularRate::from_degrees_per_second(0.0),
+                    angular_rate_z: AngularRate::from_degrees_per_second(0.0),
+                },
+            },
             drone_state: DroneState::Armed,
             pilot_command: PilotCommand {
                 throttle: ThrottleCommand::from_normalised(0.5),
@@ -54,6 +70,7 @@ mod tests {
             cpu_load: CpuLoad::from_percentage(50.0),
             controller_demand: ControllerDemand::ZERO,
             motor_command: MotorCommand::ZERO,
+            control_mode: ControlMode::Manual,
         };
         let mut buf = [0u8; Telemetry::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();
