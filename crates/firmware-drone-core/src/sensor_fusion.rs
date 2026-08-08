@@ -23,7 +23,7 @@ impl AttitudeEstimator {
     /// airframe motion coupled into the accelerometer does not distort the
     /// estimate at the control frequency (which otherwise phase-lags the fed-back
     /// angle and can drive a limit cycle).
-    const ALPHA: f32 = 0.995;
+    const ALPHA: f32 = 0.998;
 
     pub fn new() -> Self {
         Self {
@@ -177,6 +177,16 @@ mod tests {
         assert!(out.roll.as_degrees().abs() < 1e-3);
     }
 
+    /// Steps for the accelerometer to pull a still estimate to within `tol`
+    /// degrees of a `target`-degree angle. With the gyro still, each step leaves
+    /// a residual of `ALPHA` times the previous, so after `n` steps the residual
+    /// is `target * ALPHA^n`; solve `target * ALPHA^n = tol` for `n`. Deriving
+    /// this from `ALPHA` keeps the convergence tests correct when the crossover
+    /// is retuned instead of breaking on a hard-coded iteration count.
+    fn steps_to_converge(target: f32, tol: f32) -> usize {
+        ((tol / target).ln() / AttitudeEstimator::ALPHA.ln()).ceil() as usize + 50
+    }
+
     #[test]
     fn converges_to_accel_roll_right_side_down() {
         // A steady +30 deg right roll with no gyro: the blend must converge there
@@ -184,7 +194,7 @@ mod tests {
         let sample = imu(accel_for(30.0, 0.0), STILL);
         let mut e = running(0.0, 0.0);
         let mut out = Attitude::default();
-        for _ in 0..1000 {
+        for _ in 0..steps_to_converge(30.0, 0.4) {
             out = e.update(sample, 0.01);
         }
         assert!((out.roll.as_degrees() - 30.0).abs() < 0.5);
@@ -196,7 +206,7 @@ mod tests {
         let sample = imu(accel_for(0.0, 20.0), STILL);
         let mut e = running(0.0, 0.0);
         let mut out = Attitude::default();
-        for _ in 0..1000 {
+        for _ in 0..steps_to_converge(20.0, 0.4) {
             out = e.update(sample, 0.01);
         }
         assert!((out.pitch.as_degrees() - 20.0).abs() < 0.5);
