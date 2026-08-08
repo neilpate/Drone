@@ -26,11 +26,11 @@ impl Default for ControlSystemParameters {
         Self {
             kp_roll: 0.2,
             kd_roll: 0.01,
-            ki_roll: 0.0,
+            ki_roll: 0.02,
 
             kp_pitch: 0.2,
             kd_pitch: 0.01,
-            ki_pitch: 0.0,
+            ki_pitch: 0.02,
 
             kp_yaw: 0.3,
             kd_yaw: 0.0,
