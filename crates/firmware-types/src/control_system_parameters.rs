@@ -6,10 +6,13 @@ use serde::{Deserialize, Serialize};
 pub struct ControlSystemParameters {
     pub kp_roll: f32,
     pub kd_roll: f32,
+    pub ki_roll: f32,
     pub kp_pitch: f32,
     pub kd_pitch: f32,
+    pub ki_pitch: f32,
     pub kp_yaw: f32,
     pub kd_yaw: f32,
+    pub ki_yaw: f32,
 
     pub max_tilt_degrees: f32,
     pub max_tilt_rate_degrees_per_second: f32,
@@ -23,10 +26,16 @@ impl Default for ControlSystemParameters {
         Self {
             kp_roll: 0.2,
             kd_roll: 0.01,
+            ki_roll: 0.0,
+
             kp_pitch: 0.2,
             kd_pitch: 0.01,
+            ki_pitch: 0.0,
+
             kp_yaw: 0.3,
             kd_yaw: 0.0,
+            ki_yaw: 0.0,
+
             max_tilt_degrees: 25.0,
             max_tilt_rate_degrees_per_second: 400.0,
             max_yaw_rate_degrees_per_second: 180.0,
@@ -43,10 +52,13 @@ mod tests {
         let original = ControlSystemParameters {
             kp_roll: 0.4,
             kd_roll: 0.0,
+            ki_roll: 0.0,
             kp_pitch: 0.3,
             kd_pitch: 0.0,
+            ki_pitch: 0.0,
             kp_yaw: 0.0,
             kd_yaw: 0.0,
+            ki_yaw: 0.0,
             max_tilt_degrees: 30.0,
             max_tilt_rate_degrees_per_second: 20.0,
             max_yaw_rate_degrees_per_second: 20.0,
