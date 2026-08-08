@@ -2,26 +2,38 @@ use embassy_time::{Duration, Ticker, Timer};
 
 use crate::board;
 use crate::signals::imu_data;
-use firmware_types::{Acceleration, ImuData};
+use firmware_types::{Acceleration, AngularRate, ImuData};
 
 const LOOP_PERIOD_MS: u64 = 1; // Loop period in milliseconds
 
 struct ImuCalibration {
-    x_offset: Acceleration,
-    y_offset: Acceleration,
+    accel_x_offset: Acceleration,
+    accel_y_offset: Acceleration,
+    gyro_x_offset: AngularRate,
+    gyro_y_offset: AngularRate,
+    gyro_z_offset: AngularRate,
 }
 
 async fn calibrate_imu(imu: &mut board::Imu) -> ImuCalibration {
     const CALIBRATION_SAMPLES: usize = 100;
-    let mut x_sum = 0.0;
-    let mut y_sum = 0.0;
+    let mut accel_x_sum = 0.0;
+    let mut accel_y_sum = 0.0;
+
+    let mut gyro_x_sum = 0.0;
+    let mut gyro_y_sum = 0.0;
+    let mut gyro_z_sum = 0.0;
 
     let mut collected = 0;
     while collected < CALIBRATION_SAMPLES {
         match imu.read_all().await {
             Ok(d) => {
-                x_sum += d.acceleration_x.as_g();
-                y_sum += d.acceleration_y.as_g();
+                accel_x_sum += d.acceleration_x.as_g();
+                accel_y_sum += d.acceleration_y.as_g();
+
+                gyro_x_sum += d.angular_rate_x.as_degrees_per_second();
+                gyro_y_sum += d.angular_rate_y.as_degrees_per_second();
+                gyro_z_sum += d.angular_rate_z.as_degrees_per_second();
+
                 collected += 1;
             }
             Err(e) => defmt::warn!("imu calibration read failed, retrying: {:?}", e),
@@ -30,8 +42,17 @@ async fn calibrate_imu(imu: &mut board::Imu) -> ImuCalibration {
     }
 
     ImuCalibration {
-        x_offset: Acceleration::from_g(x_sum / CALIBRATION_SAMPLES as f32),
-        y_offset: Acceleration::from_g(y_sum / CALIBRATION_SAMPLES as f32),
+        accel_x_offset: Acceleration::from_g(accel_x_sum / CALIBRATION_SAMPLES as f32),
+        accel_y_offset: Acceleration::from_g(accel_y_sum / CALIBRATION_SAMPLES as f32),
+        gyro_x_offset: AngularRate::from_degrees_per_second(
+            gyro_x_sum / CALIBRATION_SAMPLES as f32,
+        ),
+        gyro_y_offset: AngularRate::from_degrees_per_second(
+            gyro_y_sum / CALIBRATION_SAMPLES as f32,
+        ),
+        gyro_z_offset: AngularRate::from_degrees_per_second(
+            gyro_z_sum / CALIBRATION_SAMPLES as f32,
+        ),
     }
 }
 
@@ -82,10 +103,12 @@ pub async fn imu(mut imu: board::Imu) -> ! {
         match raw_imu_data {
             Ok(data) => {
                 let corrected_imu_data = ImuData {
-                    acceleration_x: data.acceleration_x - calibration.x_offset,
-
-                    acceleration_y: data.acceleration_y - calibration.y_offset,
-                    ..data // Keep the other fields (like acceleration_z and angular rates) unchanged
+                    acceleration_x: data.acceleration_x - calibration.accel_x_offset,
+                    acceleration_y: data.acceleration_y - calibration.accel_y_offset,
+                    acceleration_z: data.acceleration_z,
+                    angular_rate_x: data.angular_rate_x - calibration.gyro_x_offset,
+                    angular_rate_y: data.angular_rate_y - calibration.gyro_y_offset,
+                    angular_rate_z: data.angular_rate_z - calibration.gyro_z_offset,
                 };
 
                 imu_data::set(corrected_imu_data); // Update the shared signal with the latest IMU data
