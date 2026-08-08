@@ -24,7 +24,7 @@ impl ControlSystemParameters {}
 impl Default for ControlSystemParameters {
     fn default() -> Self {
         Self {
-            kp_roll: 0.2,
+            kp_roll: 0.1,
             kd_roll: 0.01,
             ki_roll: 0.02,
 
