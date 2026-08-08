@@ -164,6 +164,10 @@ struct App {
     log_path: Option<String>,
     /// Number of telemetry rows written to the current log file.
     log_rows: u64,
+    /// When true, incoming telemetry is still drained and logged, but the plot
+    /// series are frozen so a region can be box-zoomed and inspected without new
+    /// data rescaling the view.
+    paused: bool,
 }
 
 impl Default for App {
@@ -246,6 +250,7 @@ impl Default for App {
             log_file: None,
             log_path: None,
             log_rows: 0,
+            paused: false,
         }
     }
 }
@@ -303,78 +308,91 @@ impl App {
         }
         for telemetry in samples {
             let t = self.start.elapsed().as_secs_f64();
-            self.series[SERIES_THROTTLE]
-                .push(t, telemetry.pilot_command.throttle.as_normalised() as f64);
-            self.series[SERIES_ROLL].push(t, telemetry.pilot_command.roll.as_normalised() as f64);
-            self.series[SERIES_PITCH].push(t, telemetry.pilot_command.pitch.as_normalised() as f64);
-            self.series[SERIES_YAW].push(t, telemetry.pilot_command.yaw.as_normalised() as f64);
-            self.series[SERIES_DRONE_STATE].push(t, drone_state_code(telemetry.drone_state));
-            self.series[SERIES_SEQUENCE].push(t, telemetry.sequence_number as f64);
-            self.series[SERIES_TEMPERATURE]
-                .push(t, telemetry.sensors.temperature.as_celsius() as f64);
-            self.series[SERIES_CPU_LOAD].push(t, telemetry.cpu_load.as_percentage() as f64);
-            self.series[SERIES_ACCEL_X].push(t, telemetry.sensors.imu.acceleration_x.as_g() as f64);
-            self.series[SERIES_ACCEL_Y].push(t, telemetry.sensors.imu.acceleration_y.as_g() as f64);
-            self.series[SERIES_ACCEL_Z].push(t, telemetry.sensors.imu.acceleration_z.as_g() as f64);
-            self.series[SERIES_GYRO_X].push(
-                t,
-                telemetry.sensors.imu.angular_rate_x.as_degrees_per_second() as f64,
-            );
-            self.series[SERIES_GYRO_Y].push(
-                t,
-                telemetry.sensors.imu.angular_rate_y.as_degrees_per_second() as f64,
-            );
-            self.series[SERIES_GYRO_Z].push(
-                t,
-                telemetry.sensors.imu.angular_rate_z.as_degrees_per_second() as f64,
-            );
-            self.series[SERIES_GYRO_FX].push(
-                t,
-                telemetry
-                    .sensors_processed
-                    .imu
-                    .angular_rate_x
-                    .as_degrees_per_second() as f64,
-            );
-            self.series[SERIES_GYRO_FY].push(
-                t,
-                telemetry
-                    .sensors_processed
-                    .imu
-                    .angular_rate_y
-                    .as_degrees_per_second() as f64,
-            );
-            self.series[SERIES_GYRO_FZ].push(
-                t,
-                telemetry
-                    .sensors_processed
-                    .imu
-                    .angular_rate_z
-                    .as_degrees_per_second() as f64,
-            );
-            self.series[SERIES_ATTITUDE_ROLL].push(t, telemetry.attitude.roll.as_degrees() as f64);
-            self.series[SERIES_ATTITUDE_PITCH]
-                .push(t, telemetry.attitude.pitch.as_degrees() as f64);
-            self.series[SERIES_DEMAND_ROLL]
-                .push(t, telemetry.controller_demand.roll.as_normalised() as f64);
-            self.series[SERIES_DEMAND_PITCH]
-                .push(t, telemetry.controller_demand.pitch.as_normalised() as f64);
-            self.series[SERIES_DEMAND_YAW]
-                .push(t, telemetry.controller_demand.yaw.as_normalised() as f64);
-            self.series[SERIES_MOTOR_1]
-                .push(t, telemetry.motor_command.motor1.as_normalised() as f64);
-            self.series[SERIES_MOTOR_2]
-                .push(t, telemetry.motor_command.motor2.as_normalised() as f64);
-            self.series[SERIES_MOTOR_3]
-                .push(t, telemetry.motor_command.motor3.as_normalised() as f64);
-            self.series[SERIES_MOTOR_4]
-                .push(t, telemetry.motor_command.motor4.as_normalised() as f64);
+            // While paused, keep draining, logging, and updating the live
+            // readouts, but freeze the plot series so a box-zoom on the frozen
+            // snapshot stays stable instead of being rescaled by new data.
+            if !self.paused {
+                self.series[SERIES_THROTTLE]
+                    .push(t, telemetry.pilot_command.throttle.as_normalised() as f64);
+                self.series[SERIES_ROLL]
+                    .push(t, telemetry.pilot_command.roll.as_normalised() as f64);
+                self.series[SERIES_PITCH]
+                    .push(t, telemetry.pilot_command.pitch.as_normalised() as f64);
+                self.series[SERIES_YAW].push(t, telemetry.pilot_command.yaw.as_normalised() as f64);
+                self.series[SERIES_DRONE_STATE].push(t, drone_state_code(telemetry.drone_state));
+                self.series[SERIES_SEQUENCE].push(t, telemetry.sequence_number as f64);
+                self.series[SERIES_TEMPERATURE]
+                    .push(t, telemetry.sensors.temperature.as_celsius() as f64);
+                self.series[SERIES_CPU_LOAD].push(t, telemetry.cpu_load.as_percentage() as f64);
+                self.series[SERIES_ACCEL_X]
+                    .push(t, telemetry.sensors.imu.acceleration_x.as_g() as f64);
+                self.series[SERIES_ACCEL_Y]
+                    .push(t, telemetry.sensors.imu.acceleration_y.as_g() as f64);
+                self.series[SERIES_ACCEL_Z]
+                    .push(t, telemetry.sensors.imu.acceleration_z.as_g() as f64);
+                self.series[SERIES_GYRO_X].push(
+                    t,
+                    telemetry.sensors.imu.angular_rate_x.as_degrees_per_second() as f64,
+                );
+                self.series[SERIES_GYRO_Y].push(
+                    t,
+                    telemetry.sensors.imu.angular_rate_y.as_degrees_per_second() as f64,
+                );
+                self.series[SERIES_GYRO_Z].push(
+                    t,
+                    telemetry.sensors.imu.angular_rate_z.as_degrees_per_second() as f64,
+                );
+                self.series[SERIES_GYRO_FX].push(
+                    t,
+                    telemetry
+                        .sensors_processed
+                        .imu
+                        .angular_rate_x
+                        .as_degrees_per_second() as f64,
+                );
+                self.series[SERIES_GYRO_FY].push(
+                    t,
+                    telemetry
+                        .sensors_processed
+                        .imu
+                        .angular_rate_y
+                        .as_degrees_per_second() as f64,
+                );
+                self.series[SERIES_GYRO_FZ].push(
+                    t,
+                    telemetry
+                        .sensors_processed
+                        .imu
+                        .angular_rate_z
+                        .as_degrees_per_second() as f64,
+                );
+                self.series[SERIES_ATTITUDE_ROLL]
+                    .push(t, telemetry.attitude.roll.as_degrees() as f64);
+                self.series[SERIES_ATTITUDE_PITCH]
+                    .push(t, telemetry.attitude.pitch.as_degrees() as f64);
+                self.series[SERIES_DEMAND_ROLL]
+                    .push(t, telemetry.controller_demand.roll.as_normalised() as f64);
+                self.series[SERIES_DEMAND_PITCH]
+                    .push(t, telemetry.controller_demand.pitch.as_normalised() as f64);
+                self.series[SERIES_DEMAND_YAW]
+                    .push(t, telemetry.controller_demand.yaw.as_normalised() as f64);
+                self.series[SERIES_MOTOR_1]
+                    .push(t, telemetry.motor_command.motor1.as_normalised() as f64);
+                self.series[SERIES_MOTOR_2]
+                    .push(t, telemetry.motor_command.motor2.as_normalised() as f64);
+                self.series[SERIES_MOTOR_3]
+                    .push(t, telemetry.motor_command.motor3.as_normalised() as f64);
+                self.series[SERIES_MOTOR_4]
+                    .push(t, telemetry.motor_command.motor4.as_normalised() as f64);
+            } // end: plot series frozen while paused
             self.match_round_trip(&telemetry.pilot_command);
-            if let Some(rtt) = self.last_rtt_ms {
-                self.series[SERIES_RTT].push(t, rtt);
-            }
-            if let Some(avg) = self.avg_rtt_ms {
-                self.series[SERIES_AVG_RTT].push(t, avg);
+            if !self.paused {
+                if let Some(rtt) = self.last_rtt_ms {
+                    self.series[SERIES_RTT].push(t, rtt);
+                }
+                if let Some(avg) = self.avg_rtt_ms {
+                    self.series[SERIES_AVG_RTT].push(t, avg);
+                }
             }
             self.log_row(t, &telemetry);
             self.last = Some(telemetry);
@@ -398,7 +416,9 @@ impl App {
                      gyro_fx_dps\tgyro_fy_dps\tgyro_fz_dps\t\
                      attitude_roll_deg\tattitude_pitch_deg\t\
                      demand_roll\tdemand_pitch\tdemand_yaw\t\
-                     motor1\tmotor2\tmotor3\tmotor4";
+                     motor1\tmotor2\tmotor3\tmotor4\t\
+                     kp_roll\tki_roll\tkd_roll\tkp_pitch\tki_pitch\tkd_pitch\t\
+                     kp_yaw\tki_yaw\tkd_yaw";
                 if let Err(e) = writeln!(writer, "{header}") {
                     self.status = format!("failed to write log header: {e}");
                     return;
@@ -430,6 +450,7 @@ impl App {
     fn log_row(&mut self, t: f64, telemetry: &Telemetry) {
         let rtt = self.last_rtt_ms;
         let avg = self.avg_rtt_ms;
+        let p = self.params;
         let Some(writer) = self.log_file.as_mut() else {
             return;
         };
@@ -442,7 +463,9 @@ impl App {
              {gfx:.4}\t{gfy:.4}\t{gfz:.4}\t\
              {att_roll:.4}\t{att_pitch:.4}\t\
              {dem_roll:.6}\t{dem_pitch:.6}\t{dem_yaw:.6}\t\
-             {m1:.6}\t{m2:.6}\t{m3:.6}\t{m4:.6}",
+             {m1:.6}\t{m2:.6}\t{m3:.6}\t{m4:.6}\t\
+             {kpr:.4}\t{kir:.4}\t{kdr:.4}\t{kpp:.4}\t{kip:.4}\t{kdp:.4}\t\
+             {kpy:.4}\t{kiy:.4}\t{kdy:.4}",
             seq = telemetry.sequence_number,
             state = telemetry.drone_state,
             mode = telemetry.control_mode,
@@ -484,6 +507,15 @@ impl App {
             m2 = telemetry.motor_command.motor2.as_normalised(),
             m3 = telemetry.motor_command.motor3.as_normalised(),
             m4 = telemetry.motor_command.motor4.as_normalised(),
+            kpr = p.kp_roll,
+            kir = p.ki_roll,
+            kdr = p.kd_roll,
+            kpp = p.kp_pitch,
+            kip = p.ki_pitch,
+            kdp = p.kd_pitch,
+            kpy = p.kp_yaw,
+            kiy = p.ki_yaw,
+            kdy = p.kd_yaw,
         );
         if wrote.is_ok() {
             self.log_rows += 1;
@@ -946,6 +978,7 @@ impl App {
 
             ui.add_space(4.0);
             ui.horizontal(|ui| {
+                ui.toggle_value(&mut self.paused, "Pause");
                 if ui.button("Clear plot").clicked() {
                     for series in &mut self.series {
                         series.points.clear();
@@ -1125,9 +1158,16 @@ impl eframe::App for App {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            if self.paused {
+                ui.label(
+                    "PAUSED - right-drag to box-zoom into a region, double-click to reset, \
+                     scroll to zoom, left-drag to pan.",
+                );
+            }
             Plot::new("telemetry_plot")
                 .legend(Legend::default().position(Corner::LeftTop))
                 .x_axis_label("time (s)")
+                .allow_boxed_zoom(true)
                 .show(ui, |plot_ui| {
                     for series in &self.series {
                         if series.visible && !series.points.is_empty() {
