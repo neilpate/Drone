@@ -16,7 +16,7 @@ pub async fn control_system() -> ! {
     let mut control_mode_receiver = control_mode_update::subscribe();
     let mut parameters_update_receiver = control_system_parameter_update::subscribe();
 
-    const CUTOFF_FREQUENCY_HZ: f32 = 100.0; // Cutoff frequency for the low-pass filter
+    const CUTOFF_FREQUENCY_HZ: f32 = 50.0; // Cutoff frequency for the low-pass filter
     const SAMPLE_PERIOD_S: f32 = 0.001; // Sample period in seconds (1 ms)
 
     let mut gx_filtered = filter::Filter::new(CUTOFF_FREQUENCY_HZ, SAMPLE_PERIOD_S);
