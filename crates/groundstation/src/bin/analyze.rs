@@ -236,9 +236,9 @@ fn dominant_frequency(t: &[f64], y: &[f64], idx: &[usize]) -> Option<(f64, f64)>
 /// Diagnostic use: angle is the time-integral of rate, and integration adds a
 /// -90 deg phase, so a rate signal should lead its angle by +90 deg (they are
 /// in quadrature, not antiphase). A reading near +-180 deg means the attitude
-/// estimate carries an extra ~quarter-cycle of lag at the oscillation frequency
-/// - which turns proportional feedback into positive feedback and can drive the
-/// very limit cycle we are chasing.
+/// estimate carries an extra ~quarter-cycle of lag at the oscillation
+/// frequency, which turns proportional feedback into positive feedback and can
+/// drive the very limit cycle we are chasing.
 fn phase_between(t: &[f64], lead: &[f64], lag: &[f64], idx: &[usize], f: f64) -> Option<f64> {
     let pts: Vec<(f64, f64, f64)> = idx
         .iter()
@@ -511,7 +511,7 @@ fn main() -> ExitCode {
     // throttle chop with the actual airborne time. Isolate the longest sustained
     // high-throttle window as the most likely real flight and report it on its
     // own, so hover behaviour is not averaged together with ground transients.
-    match longest_flight_segment(throttle, &is_closed_loop, log.n) {
+    match longest_flight_segment(throttle, is_closed_loop, log.n) {
         Some(flight) => {
             let span = t[*flight.last().unwrap()] - t[flight[0]];
             let tag = if span < MIN_FLIGHT_S {
