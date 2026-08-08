@@ -16,6 +16,15 @@ pub struct AttitudeEstimator {
 }
 
 impl AttitudeEstimator {
+    /// Complementary-filter coefficient: the fraction of each step's estimate
+    /// carried by the gyro prediction, the remainder coming from the
+    /// accelerometer. With a ~1 ms step this places the gyro/accel crossover
+    /// near 0.8 Hz - deliberately well below the attitude-control band so that
+    /// airframe motion coupled into the accelerometer does not distort the
+    /// estimate at the control frequency (which otherwise phase-lags the fed-back
+    /// angle and can drive a limit cycle).
+    const ALPHA: f32 = 0.995;
+
     pub fn new() -> Self {
         Self {
             initialised: false,
@@ -48,7 +57,7 @@ impl AttitudeEstimator {
             return attitude;
         }
 
-        let alpha = 0.98; // Complementary filter coefficient
+        let alpha = Self::ALPHA;
 
         let roll_pred = self.prev_attitude.roll.as_degrees()
             + imu_data.angular_rate_x.as_degrees_per_second() * dt;
@@ -147,24 +156,24 @@ mod tests {
     #[test]
     fn accel_correction_pulls_estimate_toward_level() {
         // Estimate says 10 deg roll, accel says level, gyro still. One step bleeds
-        // (1 - alpha) = 2% of the error out: 0.98*10 + 0.02*0 = 9.8.
+        // (1 - alpha) of the error out: alpha*10 + (1-alpha)*0 = alpha*10.
         let out = running(10.0, 0.0).update(imu(accel_for(0.0, 0.0), STILL), 0.01);
-        assert!((out.roll.as_degrees() - 9.8).abs() < 0.05);
+        assert!((out.roll.as_degrees() - AttitudeEstimator::ALPHA * 10.0).abs() < 0.05);
     }
 
     #[test]
     fn positive_roll_rate_raises_roll_only() {
         // +100 deg/s about X for 0.1 s = +10 deg gyro prediction; accel level so
-        // the correction is zero (0.98*10 = 9.8). Pitch must not move (isolation).
+        // the correction is zero (alpha*10). Pitch must not move (isolation).
         let out = running(0.0, 0.0).update(imu(accel_for(0.0, 0.0), (100.0, 0.0, 0.0)), 0.1);
-        assert!((out.roll.as_degrees() - 9.8).abs() < 0.05);
+        assert!((out.roll.as_degrees() - AttitudeEstimator::ALPHA * 10.0).abs() < 0.05);
         assert!(out.pitch.as_degrees().abs() < 1e-3);
     }
 
     #[test]
     fn positive_pitch_rate_raises_pitch_only() {
         let out = running(0.0, 0.0).update(imu(accel_for(0.0, 0.0), (0.0, 100.0, 0.0)), 0.1);
-        assert!((out.pitch.as_degrees() - 9.8).abs() < 0.05);
+        assert!((out.pitch.as_degrees() - AttitudeEstimator::ALPHA * 10.0).abs() < 0.05);
         assert!(out.roll.as_degrees().abs() < 1e-3);
     }
 
