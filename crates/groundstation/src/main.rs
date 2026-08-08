@@ -630,6 +630,11 @@ impl App {
                         egui::Slider::new(&mut self.params.kd_roll, 0.0..=0.1).fixed_decimals(3),
                     );
                     ui.end_row();
+                    ui.label("ki_roll");
+                    ui.add(
+                        egui::Slider::new(&mut self.params.ki_roll, 0.0..=0.5).fixed_decimals(3),
+                    );
+                    ui.end_row();
                     ui.label("kp_pitch");
                     ui.add(
                         egui::Slider::new(&mut self.params.kp_pitch, 0.0..=0.5).fixed_decimals(3),
@@ -638,6 +643,11 @@ impl App {
                     ui.label("kd_pitch");
                     ui.add(
                         egui::Slider::new(&mut self.params.kd_pitch, 0.0..=0.1).fixed_decimals(3),
+                    );
+                    ui.end_row();
+                    ui.label("ki_pitch");
+                    ui.add(
+                        egui::Slider::new(&mut self.params.ki_pitch, 0.0..=0.5).fixed_decimals(3),
                     );
                     ui.end_row();
                     ui.label("kp_yaw");
