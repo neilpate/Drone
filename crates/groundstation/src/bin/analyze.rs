@@ -505,50 +505,153 @@ fn main() -> ExitCode {
     print_stat("motor4 (front-left)", &m4, "");
     print_motor_asymmetry(m1.mean, m2.mean, m3.mean, m4.mean);
 
+    report_gyro_and_oscillation(&log, t, &active);
+
+    // The whole active phase blends ground handling, aborted attempts, and the
+    // throttle chop with the actual airborne time. Isolate the longest sustained
+    // high-throttle window as the most likely real flight and report it on its
+    // own, so hover behaviour is not averaged together with ground transients.
+    match longest_flight_segment(throttle, &is_closed_loop, log.n) {
+        Some(flight) => {
+            let span = t[*flight.last().unwrap()] - t[flight[0]];
+            let tag = if span < MIN_FLIGHT_S {
+                " (brief hop)"
+            } else {
+                ""
+            };
+            println!(
+                "\n--- FLIGHT SEGMENT{tag} ({:.2}s, n={}, t={:.1}..{:.1}s, throttle>{}) ---",
+                span,
+                flight.len(),
+                t[flight[0]],
+                t[*flight.last().unwrap()],
+                FLIGHT_THROTTLE
+            );
+            println!("Attitude (deg):");
+            print_stat(
+                "attitude_roll",
+                &stats_over(log.col("attitude_roll_deg"), &flight),
+                "deg",
+            );
+            print_stat(
+                "attitude_pitch",
+                &stats_over(log.col("attitude_pitch_deg"), &flight),
+                "deg",
+            );
+            let rd = slope_per_s(t, log.col("attitude_roll_deg"), &flight);
+            let pd = slope_per_s(t, log.col("attitude_pitch_deg"), &flight);
+            println!(
+                "Attitude drift:  roll {rd:+.2} deg/s ({}),  pitch {pd:+.2} deg/s ({})",
+                drift_dir_roll(rd),
+                drift_dir_pitch(pd)
+            );
+            let m1 = stats_over(log.col("motor1"), &flight);
+            let m2 = stats_over(log.col("motor2"), &flight);
+            let m3 = stats_over(log.col("motor3"), &flight);
+            let m4 = stats_over(log.col("motor4"), &flight);
+            print_motor_asymmetry(m1.mean, m2.mean, m3.mean, m4.mean);
+            report_gyro_and_oscillation(&log, t, &flight);
+        }
+        None => {
+            println!(
+                "\nNo flight segment (throttle>{FLIGHT_THROTTLE}, >={MIN_FLIGHT_SAMPLES} samples) \
+                 detected - likely all ground handling."
+            );
+        }
+    }
+
+    ExitCode::SUCCESS
+}
+
+/// Throttle above which a sample is considered part of a flight (rather than
+/// ground idle or spool-up). Chosen well above `ACTIVE_THROTTLE` and below a
+/// typical hover throttle.
+const FLIGHT_THROTTLE: f64 = 0.25;
+/// Minimum duration of a sustained high-throttle window for it to be treated as
+/// a solid flight rather than a brief hop (below this it is still reported, just
+/// tagged, since a short window's oscillation stats are unreliable).
+const MIN_FLIGHT_S: f64 = 1.5;
+/// Minimum sample count for a flight window to be worth reporting at all.
+const MIN_FLIGHT_SAMPLES: usize = 20;
+
+/// The longest contiguous run of closed-loop samples with throttle above
+/// `FLIGHT_THROTTLE`, provided it has at least `MIN_FLIGHT_SAMPLES` samples.
+/// Without an altitude signal this is the best proxy for "actually airborne": a
+/// sustained high-throttle stretch, as opposed to the brief spool-ups and chops
+/// of ground handling that otherwise get averaged into the active-phase stats.
+fn longest_flight_segment<F: Fn(usize) -> bool>(
+    throttle: &[f64],
+    is_closed_loop: F,
+    n: usize,
+) -> Option<Vec<usize>> {
+    let mut best: Vec<usize> = Vec::new();
+    let mut cur: Vec<usize> = Vec::new();
+    for i in 0..n {
+        if throttle.get(i).copied().unwrap_or(0.0) > FLIGHT_THROTTLE && is_closed_loop(i) {
+            cur.push(i);
+        } else if !cur.is_empty() {
+            if cur.len() > best.len() {
+                best = std::mem::take(&mut cur);
+            } else {
+                cur.clear();
+            }
+        }
+    }
+    if cur.len() > best.len() {
+        best = cur;
+    }
+    if best.len() < MIN_FLIGHT_SAMPLES {
+        return None;
+    }
+    Some(best)
+}
+
+/// Effective sample rate (Hz) over a set of indices, from the first/last
+/// timestamp - so the Nyquist note is correct for a sub-window, not just the
+/// whole capture.
+fn window_sample_hz(t: &[f64], idx: &[usize]) -> f64 {
+    if idx.len() < 2 {
+        return f64::NAN;
+    }
+    let span = t[*idx.last().unwrap()] - t[idx[0]];
+    if span <= 0.0 {
+        return f64::NAN;
+    }
+    (idx.len() - 1) as f64 / span
+}
+
+/// Gyro statistics, the dominant-oscillation periodogram, and the rate-vs-angle
+/// phase over a set of sample indices - shared by the active-phase and
+/// flight-segment reports so both windows are characterised identically.
+fn report_gyro_and_oscillation(log: &Log, t: &[f64], idx: &[usize]) {
     if log.has("gyro_fx_dps") {
-        println!("Gyro raw vs filtered (dps), active phase:");
-        print_stat(
-            "gyro_x raw",
-            &stats_over(log.col("gyro_x_dps"), &active),
-            "dps",
-        );
+        println!("Gyro raw vs filtered (dps):");
+        print_stat("gyro_x raw", &stats_over(log.col("gyro_x_dps"), idx), "dps");
         print_stat(
             "gyro_x filt",
-            &stats_over(log.col("gyro_fx_dps"), &active),
+            &stats_over(log.col("gyro_fx_dps"), idx),
             "dps",
         );
-        print_stat(
-            "gyro_y raw",
-            &stats_over(log.col("gyro_y_dps"), &active),
-            "dps",
-        );
+        print_stat("gyro_y raw", &stats_over(log.col("gyro_y_dps"), idx), "dps");
         print_stat(
             "gyro_y filt",
-            &stats_over(log.col("gyro_fy_dps"), &active),
+            &stats_over(log.col("gyro_fy_dps"), idx),
             "dps",
         );
     }
 
-    // Frequency content: distinguishes a fast P/D limit cycle (small angle, big
-    // rate) from a slow trim wander. Read from the gyro (where a fast buzz is
-    // loudest) and the attitude (amplitude in degrees).
     println!("Dominant oscillation (detrended periodogram, 1 Hz..Nyquist, capped 30 Hz):");
-    let sample_hz = if mean_dt_ms > 0.0 {
-        1000.0 / mean_dt_ms
-    } else {
-        f64::NAN
-    };
+    let sample_hz = window_sample_hz(t, idx);
     println!(
         "  NOTE: telemetry ~{:.0} Hz -> Nyquist ~{:.0} Hz. A peak near that ceiling is unreliable \
          (true oscillation may be higher and aliased). Log gyro at the loop rate to resolve it.",
         sample_hz,
         sample_hz / 2.0
     );
-    let osc =
-        |label: &str, col: &str, unit: &str| match dominant_frequency(t, log.col(col), &active) {
-            Some((f, amp)) => println!("  {label:<20} {f:>6.2} Hz  ~{amp:.1} {unit} amplitude"),
-            None => println!("  {label:<20} (insufficient data)"),
-        };
+    let osc = |label: &str, col: &str, unit: &str| match dominant_frequency(t, log.col(col), idx) {
+        Some((f, amp)) => println!("  {label:<20} {f:>6.2} Hz  ~{amp:.1} {unit} amplitude"),
+        None => println!("  {label:<20} (insufficient data)"),
+    };
     if log.has("gyro_fx_dps") {
         osc("gyro_x filt", "gyro_fx_dps", "dps");
         osc("gyro_y filt", "gyro_fy_dps", "dps");
@@ -556,14 +659,9 @@ fn main() -> ExitCode {
     osc("attitude_roll", "attitude_roll_deg", "deg");
     osc("attitude_pitch", "attitude_pitch_deg", "deg");
 
-    // Rate-vs-angle phase at the roll/pitch oscillation frequency. Expect the
-    // rate (gyro) to lead the angle (attitude) by +90 deg. A value near +-180
-    // deg flags an over-lagged attitude estimate driving the oscillation. Only
-    // meaningful when there is an actual oscillation: measuring the phase of
-    // noise gives a meaningless number, so gate on a minimum amplitude.
     const PHASE_MIN_AMP_DPS: f64 = 4.0;
     if log.has("gyro_fx_dps") {
-        if let Some((f, amp)) = dominant_frequency(t, log.col("gyro_fx_dps"), &active) {
+        if let Some((f, amp)) = dominant_frequency(t, log.col("gyro_fx_dps"), idx) {
             if amp < PHASE_MIN_AMP_DPS {
                 println!(
                     "  phase: roll calm ({amp:.1} dps < {PHASE_MIN_AMP_DPS:.0}) - no coherent \
@@ -573,7 +671,7 @@ fn main() -> ExitCode {
                 t,
                 log.col("gyro_fx_dps"),
                 log.col("attitude_roll_deg"),
-                &active,
+                idx,
                 f,
             ) {
                 println!(
@@ -582,7 +680,7 @@ fn main() -> ExitCode {
                 );
             }
         }
-        if let Some((f, amp)) = dominant_frequency(t, log.col("gyro_fy_dps"), &active) {
+        if let Some((f, amp)) = dominant_frequency(t, log.col("gyro_fy_dps"), idx) {
             if amp < PHASE_MIN_AMP_DPS {
                 println!(
                     "  phase: pitch calm ({amp:.1} dps < {PHASE_MIN_AMP_DPS:.0}) - no coherent \
@@ -592,7 +690,7 @@ fn main() -> ExitCode {
                 t,
                 log.col("gyro_fy_dps"),
                 log.col("attitude_pitch_deg"),
-                &active,
+                idx,
                 f,
             ) {
                 println!(
@@ -602,8 +700,6 @@ fn main() -> ExitCode {
             }
         }
     }
-
-    ExitCode::SUCCESS
 }
 
 /// +roll = right-side-down (ADR 0021). Describe which way a roll drift tips.
