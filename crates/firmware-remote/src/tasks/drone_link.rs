@@ -1,7 +1,9 @@
 use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, Ticker, with_timeout};
-use firmware_types::{RADIO_MESSAGE_DESTINATION_ADDRESS, RadioMessage, Telemetry};
+use firmware_types::{
+    Command, ControlMode, RADIO_MESSAGE_DESTINATION_ADDRESS, RadioMessage, Telemetry,
+};
 use postcard::experimental::max_size::MaxSize;
 
 use crate::board::Radio;
@@ -63,15 +65,35 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
     let mut command_receiver = command::subscribe();
 
+    let mut last_mode_command = Command::ControlModeUpdate(ControlMode::Manual);
+
     loop {
         ticker.next().await; // Wait for the next tick before sending the next control state
 
         let command = command_receiver.get().await;
 
-        let radio_message = RadioMessage {
-            destination_address: RADIO_MESSAGE_DESTINATION_ADDRESS,
-            sequence_count,
-            command,
+        match command {
+            Command::ControlModeUpdate(_) => {
+                last_mode_command = command;
+            }
+            Command::PilotCommand(_) | Command::ControlSystemParameterUpdate(_) => {
+                // Do nothing; we will send the last mode command along with the pilot command
+            }
+        }
+
+        let radio_message = if sequence_count.is_multiple_of(25) {
+            //Periodically send the last mode command to ensure the drone is in the correct mode
+            RadioMessage {
+                destination_address: RADIO_MESSAGE_DESTINATION_ADDRESS,
+                sequence_count,
+                command: last_mode_command,
+            }
+        } else {
+            RadioMessage {
+                destination_address: RADIO_MESSAGE_DESTINATION_ADDRESS,
+                sequence_count,
+                command,
+            }
         };
 
         if let Err(e) = send(&mut radio, radio_message).await {
