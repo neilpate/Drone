@@ -142,6 +142,136 @@ fn slope_per_s(t: &[f64], y: &[f64], idx: &[usize]) -> f64 {
     if den == 0.0 { f64::NAN } else { num / den }
 }
 
+/// Estimate the dominant oscillation in a signal over the given sample indices.
+///
+/// The amplitude statistics (sd) can't tell a slow wander from a fast buzz, and
+/// a small-amplitude high-frequency limit cycle is invisible in the angle sd
+/// while dominating the gyro. This computes a periodogram to read the actual
+/// frequency: a naive DFT evaluated at the real (jittery) sample timestamps, on
+/// the linearly-detrended, Hann-windowed signal, scanned over a fixed grid up
+/// to Nyquist (capped at 30 Hz). Detrending removes the slow drift so its
+/// low-frequency leakage doesn't swamp the fast peak we're hunting.
+///
+/// Returns `(peak_frequency_hz, peak_amplitude)` where amplitude is the
+/// approximate zero-to-peak of the dominant sinusoid, in the signal's units.
+fn dominant_frequency(t: &[f64], y: &[f64], idx: &[usize]) -> Option<(f64, f64)> {
+    let pts: Vec<(f64, f64)> = idx
+        .iter()
+        .filter_map(|&i| Some((*t.get(i)?, *y.get(i)?)))
+        .filter(|(a, b)| !a.is_nan() && !b.is_nan())
+        .collect();
+    let n = pts.len();
+    if n < 16 {
+        return None;
+    }
+    let nf = n as f64;
+
+    // Linear detrend: subtract the least-squares line so a steady drift doesn't
+    // pile power at DC and leak into the low-frequency bins.
+    let mt = pts.iter().map(|(a, _)| a).sum::<f64>() / nf;
+    let my = pts.iter().map(|(_, b)| b).sum::<f64>() / nf;
+    let mut num = 0.0;
+    let mut den = 0.0;
+    for (a, b) in &pts {
+        num += (a - mt) * (b - my);
+        den += (a - mt) * (a - mt);
+    }
+    let slope = if den == 0.0 { 0.0 } else { num / den };
+    let intercept = my - slope * mt;
+
+    let span = pts[n - 1].0 - pts[0].0;
+    if span <= 0.0 {
+        return None;
+    }
+    let t0 = pts[0].0;
+
+    // Detrend and apply a Hann window (reduces spectral leakage from the finite,
+    // non-integer-period record).
+    let mut xs: Vec<(f64, f64)> = Vec::with_capacity(n);
+    let mut wsum = 0.0;
+    for (k, (a, b)) in pts.iter().enumerate() {
+        let detr = b - (intercept + slope * a);
+        let w = 0.5 - 0.5 * (2.0 * std::f64::consts::PI * k as f64 / (nf - 1.0)).cos();
+        wsum += w;
+        xs.push((*a, detr * w));
+    }
+
+    let mean_dt = span / (nf - 1.0);
+    let f_nyquist = 0.5 / mean_dt;
+    let f_min = 1.0;
+    let f_max = f_nyquist.min(30.0);
+    if f_max <= f_min {
+        return None;
+    }
+
+    let step = 0.25;
+    let mut best_f = f_min;
+    let mut best_power = -1.0;
+    let mut f = f_min;
+    while f <= f_max {
+        let mut re = 0.0;
+        let mut im = 0.0;
+        for (a, x) in &xs {
+            let phase = 2.0 * std::f64::consts::PI * f * (a - t0);
+            re += x * phase.cos();
+            im -= x * phase.sin();
+        }
+        let power = re * re + im * im;
+        if power > best_power {
+            best_power = power;
+            best_f = f;
+        }
+        f += step;
+    }
+
+    // Coherent-gain correction for the Hann window: A ~= 2*|X| / sum(w).
+    let amplitude = 2.0 * best_power.sqrt() / wsum;
+    Some((best_f, amplitude))
+}
+
+/// Phase (in degrees) by which `lead` leads `lag` at frequency `f`, over the
+/// given sample indices. Computed from the cross-spectrum:
+/// `arg(DFT(lead) * conj(DFT(lag)))`, both mean-removed and Hann-windowed.
+///
+/// Diagnostic use: angle is the time-integral of rate, and integration adds a
+/// -90 deg phase, so a rate signal should lead its angle by +90 deg (they are
+/// in quadrature, not antiphase). A reading near +-180 deg means the attitude
+/// estimate carries an extra ~quarter-cycle of lag at the oscillation frequency
+/// - which turns proportional feedback into positive feedback and can drive the
+/// very limit cycle we are chasing.
+fn phase_between(t: &[f64], lead: &[f64], lag: &[f64], idx: &[usize], f: f64) -> Option<f64> {
+    let pts: Vec<(f64, f64, f64)> = idx
+        .iter()
+        .filter_map(|&i| Some((*t.get(i)?, *lead.get(i)?, *lag.get(i)?)))
+        .filter(|(a, b, c)| !a.is_nan() && !b.is_nan() && !c.is_nan())
+        .collect();
+    let n = pts.len();
+    if n < 16 {
+        return None;
+    }
+    let nf = n as f64;
+    let mean_lead = pts.iter().map(|(_, b, _)| b).sum::<f64>() / nf;
+    let mean_lag = pts.iter().map(|(_, _, c)| c).sum::<f64>() / nf;
+    let t0 = pts[0].0;
+
+    let (mut lead_re, mut lead_im, mut lag_re, mut lag_im) = (0.0, 0.0, 0.0, 0.0);
+    for (k, (a, b, c)) in pts.iter().enumerate() {
+        let w = 0.5 - 0.5 * (2.0 * std::f64::consts::PI * k as f64 / (nf - 1.0)).cos();
+        let phase = 2.0 * std::f64::consts::PI * f * (a - t0);
+        let (cs, sn) = (phase.cos(), phase.sin());
+        let lv = (b - mean_lead) * w;
+        let mv = (c - mean_lag) * w;
+        lead_re += lv * cs;
+        lead_im -= lv * sn;
+        lag_re += mv * cs;
+        lag_im -= mv * sn;
+    }
+    // cross = lead * conj(lag)
+    let cross_re = lead_re * lag_re + lead_im * lag_im;
+    let cross_im = lead_im * lag_re - lead_re * lag_im;
+    Some(cross_im.atan2(cross_re).to_degrees())
+}
+
 fn print_stat(label: &str, s: &Stats, unit: &str) {
     if s.n == 0 {
         println!("  {label:<20} (no data)");
@@ -273,6 +403,40 @@ fn main() -> ExitCode {
         active.len()
     );
 
+    // Gains in force during the capture (logged per-row by the ground station).
+    // If a gain was tuned live mid-capture, the varied range is shown.
+    if log.has("kp_roll") {
+        let g = |name: &str| -> String {
+            let s = stats_over(log.col(name), &active);
+            if s.n == 0 {
+                "n/a".to_string()
+            } else if (s.max - s.min).abs() < 1e-9 {
+                format!("{:.4}", s.mean)
+            } else {
+                format!("{:.4} (varied {:.4}..{:.4})", s.mean, s.min, s.max)
+            }
+        };
+        println!("Gains (as logged):");
+        println!(
+            "  roll  kp={}  ki={}  kd={}",
+            g("kp_roll"),
+            g("ki_roll"),
+            g("kd_roll")
+        );
+        println!(
+            "  pitch kp={}  ki={}  kd={}",
+            g("kp_pitch"),
+            g("ki_pitch"),
+            g("kd_pitch")
+        );
+        println!(
+            "  yaw   kp={}  ki={}  kd={}",
+            g("kp_yaw"),
+            g("ki_yaw"),
+            g("kd_yaw")
+        );
+    }
+
     println!("Attitude (deg):");
     print_stat(
         "attitude_roll",
@@ -363,6 +527,80 @@ fn main() -> ExitCode {
             &stats_over(log.col("gyro_fy_dps"), &active),
             "dps",
         );
+    }
+
+    // Frequency content: distinguishes a fast P/D limit cycle (small angle, big
+    // rate) from a slow trim wander. Read from the gyro (where a fast buzz is
+    // loudest) and the attitude (amplitude in degrees).
+    println!("Dominant oscillation (detrended periodogram, 1 Hz..Nyquist, capped 30 Hz):");
+    let sample_hz = if mean_dt_ms > 0.0 {
+        1000.0 / mean_dt_ms
+    } else {
+        f64::NAN
+    };
+    println!(
+        "  NOTE: telemetry ~{:.0} Hz -> Nyquist ~{:.0} Hz. A peak near that ceiling is unreliable \
+         (true oscillation may be higher and aliased). Log gyro at the loop rate to resolve it.",
+        sample_hz,
+        sample_hz / 2.0
+    );
+    let osc =
+        |label: &str, col: &str, unit: &str| match dominant_frequency(t, log.col(col), &active) {
+            Some((f, amp)) => println!("  {label:<20} {f:>6.2} Hz  ~{amp:.1} {unit} amplitude"),
+            None => println!("  {label:<20} (insufficient data)"),
+        };
+    if log.has("gyro_fx_dps") {
+        osc("gyro_x filt", "gyro_fx_dps", "dps");
+        osc("gyro_y filt", "gyro_fy_dps", "dps");
+    }
+    osc("attitude_roll", "attitude_roll_deg", "deg");
+    osc("attitude_pitch", "attitude_pitch_deg", "deg");
+
+    // Rate-vs-angle phase at the roll/pitch oscillation frequency. Expect the
+    // rate (gyro) to lead the angle (attitude) by +90 deg. A value near +-180
+    // deg flags an over-lagged attitude estimate driving the oscillation. Only
+    // meaningful when there is an actual oscillation: measuring the phase of
+    // noise gives a meaningless number, so gate on a minimum amplitude.
+    const PHASE_MIN_AMP_DPS: f64 = 4.0;
+    if log.has("gyro_fx_dps") {
+        if let Some((f, amp)) = dominant_frequency(t, log.col("gyro_fx_dps"), &active) {
+            if amp < PHASE_MIN_AMP_DPS {
+                println!(
+                    "  phase: roll calm ({amp:.1} dps < {PHASE_MIN_AMP_DPS:.0}) - no coherent \
+                     oscillation, phase not meaningful"
+                );
+            } else if let Some(ph) = phase_between(
+                t,
+                log.col("gyro_fx_dps"),
+                log.col("attitude_roll_deg"),
+                &active,
+                f,
+            ) {
+                println!(
+                    "  phase: roll rate leads roll angle by {ph:+.0} deg at {f:.2} Hz \
+                     (expect +90; ~+-180 => estimator lag)"
+                );
+            }
+        }
+        if let Some((f, amp)) = dominant_frequency(t, log.col("gyro_fy_dps"), &active) {
+            if amp < PHASE_MIN_AMP_DPS {
+                println!(
+                    "  phase: pitch calm ({amp:.1} dps < {PHASE_MIN_AMP_DPS:.0}) - no coherent \
+                     oscillation, phase not meaningful"
+                );
+            } else if let Some(ph) = phase_between(
+                t,
+                log.col("gyro_fy_dps"),
+                log.col("attitude_pitch_deg"),
+                &active,
+                f,
+            ) {
+                println!(
+                    "  phase: pitch rate leads pitch angle by {ph:+.0} deg at {f:.2} Hz \
+                     (expect +90; ~+-180 => estimator lag)"
+                );
+            }
+        }
     }
 
     ExitCode::SUCCESS
