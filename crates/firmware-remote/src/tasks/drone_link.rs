@@ -8,7 +8,7 @@ use postcard::experimental::max_size::MaxSize;
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::{command, telemetry};
+use crate::signals::{command, reset_imu, telemetry};
 
 const MAX_SEND_BUFFER_SIZE: usize = RadioMessage::POSTCARD_MAX_SIZE;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
@@ -72,28 +72,31 @@ pub async fn drone_link(mut radio: Radio) -> ! {
 
         let command = command_receiver.get().await;
 
-        match command {
-            Command::ControlModeUpdate(_) => {
-                last_mode_command = command;
-            }
-            Command::PilotCommand(_) | Command::ControlSystemParameterUpdate(_) => {
-                // Do nothing; we will send the last mode command along with the pilot command
-            }
+        if let Command::ControlModeUpdate(_) = command {
+            last_mode_command = command;
         }
 
-        let radio_message = if sequence_count.is_multiple_of(25) {
-            //Periodically send the last mode command to ensure the drone is in the correct mode
-            RadioMessage {
-                destination_address: RADIO_MESSAGE_DESTINATION_ADDRESS,
-                sequence_count,
-                command: last_mode_command,
-            }
+        // Every 25th tick re-send the last mode command so a missed mode change
+        // self-heals over the lossy link.
+        let is_heartbeat = sequence_count.is_multiple_of(25);
+
+        // A pending IMU reset takes priority for this tick. It arrives via a
+        // dedicated Signal (see signals::reset_imu) that latches until consumed,
+        // so — unlike routing it through the streaming `command` Watch — the
+        // high-rate pilot stream cannot clobber the edge before we sample it.
+        // `take` consumes it, so it is forwarded exactly once.
+        let command_to_send = if reset_imu::take() {
+            Command::ResetImuCalibration
+        } else if is_heartbeat {
+            last_mode_command
         } else {
-            RadioMessage {
-                destination_address: RADIO_MESSAGE_DESTINATION_ADDRESS,
-                sequence_count,
-                command,
-            }
+            command
+        };
+
+        let radio_message = RadioMessage {
+            destination_address: RADIO_MESSAGE_DESTINATION_ADDRESS,
+            sequence_count,
+            command: command_to_send,
         };
 
         if let Err(e) = send(&mut radio, radio_message).await {

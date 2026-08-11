@@ -996,6 +996,20 @@ impl App {
                 if self.log_file.is_some() {
                     ui.label(format!("{} rows", self.log_rows));
                 }
+
+                // Zero IMU: trigger an on-drone accel/gyro recalibration. Guarded
+                // to Disarmed only, since calibration assumes the craft is level
+                // and still — recalibrating in flight would capture garbage offsets.
+                let disarmed =
+                    matches!(self.last.map(|t| t.drone_state), Some(DroneState::Disarmed));
+                if ui
+                    .add_enabled(disarmed, egui::Button::new("Zero IMU"))
+                    .on_hover_text("Recalibrate the IMU accel/gyro offsets (Disarmed only)")
+                    .clicked()
+                    && let Some(tx) = &self.tx
+                {
+                    let _ = tx.send(Command::ResetImuCalibration);
+                }
             });
         });
     }

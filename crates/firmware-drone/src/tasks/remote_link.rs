@@ -8,7 +8,7 @@ use firmware_types::{
 use crate::board::Radio;
 use crate::radio_link;
 use crate::signals::{
-    control_mode_update, control_system_parameter_update, pilot_command, telemetry,
+    control_mode_update, control_system_parameter_update, imu_calibrate, pilot_command, telemetry,
 };
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up
@@ -92,6 +92,10 @@ pub async fn remote_link(mut radio: Radio) -> ! {
                 // defmt::debug!("remote link: parameters={:?}", control_system_parameters);
 
                 control_system_parameter_update::set(control_system_parameters);
+            }
+
+            Command::ResetImuCalibration => {
+                imu_calibrate::set(true);
             }
         }
 

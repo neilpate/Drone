@@ -90,13 +90,30 @@ pub async fn imu(mut imu: board::Imu) -> ! {
         Err(e) => defmt::error!("imu configuration failed: {:?}", e),
     }
 
+    let mut imu_calibrate_receiver = crate::signals::imu_calibrate::subscribe();
+
     Timer::after(Duration::from_millis(100)).await; // Give the IMU some time to stabilize after configuration
 
-    let calibration = calibrate_imu(&mut imu).await;
+    let mut calibration = calibrate_imu(&mut imu).await;
 
     let mut ticker = Ticker::every(Duration::from_millis(LOOP_PERIOD_MS));
 
     loop {
+        let calibrate = imu_calibrate_receiver.get().await;
+        if calibrate {
+            defmt::info!("imu calibration requested");
+            calibration = calibrate_imu(&mut imu).await;
+            defmt::info!(
+                "imu calibration complete: accel_x_offset={:?}, accel_y_offset={:?}, gyro_x_offset={:?}, gyro_y_offset={:?}, gyro_z_offset={:?}",
+                calibration.accel_x_offset,
+                calibration.accel_y_offset,
+                calibration.gyro_x_offset,
+                calibration.gyro_y_offset,
+                calibration.gyro_z_offset
+            );
+            crate::signals::imu_calibrate::set(false); // Reset the calibration request signal
+        }
+
         ticker.next().await; // Adjust the delay as needed
         let raw_imu_data = imu.read_all().await; // Read all IMU data (accelerometer, gyroscope, etc.)
 

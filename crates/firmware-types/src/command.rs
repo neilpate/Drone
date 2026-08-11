@@ -9,6 +9,7 @@ pub enum Command {
     PilotCommand(PilotCommand),
     ControlSystemParameterUpdate(ControlSystemParameters),
     ControlModeUpdate(ControlMode),
+    ResetImuCalibration,
 }
 
 // The maximum size of a `Command` frame, in bytes, when serialized with `postcard`.
