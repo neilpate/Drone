@@ -15,12 +15,15 @@ use defmt_rtt as _;
 use embassy_executor::{InterruptExecutor, Spawner};
 use embassy_nrf::interrupt;
 use embassy_nrf::interrupt::{InterruptExt, Priority};
+use firmware_types::CpuLoad;
 use panic_probe as _;
 
 mod board;
 mod radio_link;
 mod signals;
 mod tasks;
+
+use crate::signals::cpu_load;
 
 static EXEC: InterruptExecutor = InterruptExecutor::new();
 #[interrupt]
@@ -29,12 +32,12 @@ unsafe fn SWI0_EGU0() {
 }
 
 #[embassy_executor::main]
-async fn main(thread_mode_spawner: Spawner) {
+async fn main(_thread_mode_spawner: Spawner) {
     let board = board::Board::new();
 
     defmt::info!("firmware-drone on {}: boot ", board::NAME);
 
-    let calibration_baseline = tasks::load_profiler::calibrate();
+    let _calibration_baseline = tasks::load_profiler::calibrate();
 
     interrupt::SWI0_EGU0.set_priority(Priority::P6);
     let high_priority_spawner = EXEC.start(interrupt::SWI0_EGU0);
@@ -50,5 +53,9 @@ async fn main(thread_mode_spawner: Spawner) {
     high_priority_spawner.must_spawn(tasks::control_system::control_system());
     high_priority_spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator());
 
-    thread_mode_spawner.must_spawn(tasks::load_profiler::load_profiler(calibration_baseline));
+    // Not going to use the load profiler
+    // thread_mode_spawner.must_spawn(tasks::load_profiler::load_profiler(calibration_baseline));
+
+    // Just set this so the telemetry does not block
+    cpu_load::set(CpuLoad::from_percentage(0.0));
 }
