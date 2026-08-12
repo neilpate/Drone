@@ -53,9 +53,10 @@ async fn main(_thread_mode_spawner: Spawner) {
     high_priority_spawner.must_spawn(tasks::control_system::control_system());
     high_priority_spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator());
 
-    // Not going to use the load profiler
-    // thread_mode_spawner.must_spawn(tasks::load_profiler::load_profiler(calibration_baseline));
-
-    // Just set this so the telemetry does not block
+    // Seed cpu_load so the telemetry aggregator never blocks on first-publish.
+    // Harmless when the profiler runs (it overwrites this 0%); keeps telemetry
+    // alive when the profiler is disabled.
     cpu_load::set(CpuLoad::from_percentage(0.0));
+
+    // thread_mode_spawner.must_spawn(tasks::load_profiler::load_profiler(calibration_baseline));
 }

@@ -92,6 +92,11 @@ pub async fn imu(mut imu: board::Imu) -> ! {
 
     let mut imu_calibrate_receiver = crate::signals::imu_calibrate::subscribe();
 
+    // Seed the calibrate watch so the loop's `get().await` never blocks on
+    // first-publish. Without this, on a fresh boot (before any Zero IMU press)
+    // the read loop parks on the very first `get()` and the IMU never updates.
+    crate::signals::imu_calibrate::set(false);
+
     Timer::after(Duration::from_millis(100)).await; // Give the IMU some time to stabilize after configuration
 
     let mut calibration = calibrate_imu(&mut imu).await;
