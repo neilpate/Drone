@@ -13,9 +13,31 @@ pub enum Event {
     Tick,
 }
 
-pub const LINK_LOSS_TICKS: u16 = 10;
-pub const RAMP_TICKS: u16 = 50;
-const MAX_NO_THROTTLE_TICKS: u64 = 100_000;
+/// Supervisor tick period. Single source of truth for the loop cadence: the
+/// task builds its `Ticker` from this too (see `tasks::supervisor`), so core
+/// and task can never disagree. Drives the tick-counted thresholds (link loss,
+/// ramp), which advance once per `Event::Tick`.
+pub const TICK_PERIOD_MS: u64 = 1;
+
+/// Remote command cadence. The arm-gesture and idle counters advance once per
+/// received `Event::Command`, not per tick, so their thresholds are counted in
+/// command periods, not tick periods. The remote transmits at ~100 Hz (see
+/// `remote_link`); update this if that rate changes.
+const COMMAND_PERIOD_MS: u64 = 10;
+
+// Timeouts in real time. Tick-driven thresholds divide by TICK_PERIOD_MS;
+// command-driven thresholds by COMMAND_PERIOD_MS, so both stay fixed in
+// wall-clock terms if either cadence changes.
+const LINK_LOSS_TIMEOUT_MS: u64 = 100;
+const RAMP_DURATION_MS: u64 = 500;
+const ARM_GESTURE_HOLD_MS: u64 = 500;
+const MAX_NO_THROTTLE_MS: u64 = 100_000;
+
+pub const LINK_LOSS_TICKS: u16 = (LINK_LOSS_TIMEOUT_MS / TICK_PERIOD_MS) as u16;
+pub const RAMP_TICKS: u16 = (RAMP_DURATION_MS / TICK_PERIOD_MS) as u16;
+
+const ARM_GESTURE_COMMANDS: u16 = (ARM_GESTURE_HOLD_MS / COMMAND_PERIOD_MS) as u16;
+const IDLE_DISARM_COMMANDS: u16 = (MAX_NO_THROTTLE_MS / COMMAND_PERIOD_MS) as u16;
 
 #[derive(PartialEq, Debug)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
@@ -49,12 +71,6 @@ impl Supervisor {
             gesture_detection_ticks: 0,
             no_throttle_ticks: 0,
         }
-    }
-
-    fn ticks_to_ms(ticks: u16) -> u64 {
-        // Convert ticks to milliseconds. Each tick is 10ms, so multiply by 10.
-
-        ticks as u64 * 10
     }
 
     pub fn step(&mut self, event: Event, controller_demand: ControllerDemand) -> Output {
@@ -118,8 +134,8 @@ impl Supervisor {
 
                     self.gesture_detection_ticks = self.gesture_detection_ticks.saturating_add(1);
 
-                    // Gesture needs to be held for > 500ms for it to be considered detected
-                    if Self::ticks_to_ms(self.gesture_detection_ticks) >= 500 {
+                    // Gesture must be held for the full hold time, counted in received commands
+                    if self.gesture_detection_ticks >= ARM_GESTURE_COMMANDS {
                         self.arm_gesture_detected = true;
                     }
                 } else {
@@ -171,10 +187,10 @@ impl Supervisor {
                 } else {
                     self.no_throttle_ticks = self.no_throttle_ticks.saturating_add(1);
 
-                    // If we have not received any kind of active throttle command for 100 s then transition to disarmed.
+                    // If we have not received any kind of active throttle command for the idle timeout then transition to disarmed.
                     // This is a safety feature to prevent the drone from being armed for long periods of time without any active throttle command.
 
-                    if Self::ticks_to_ms(self.no_throttle_ticks) >= MAX_NO_THROTTLE_TICKS {
+                    if self.no_throttle_ticks >= IDLE_DISARM_COMMANDS {
                         self.state = DroneState::Disarmed;
                         self.no_throttle_ticks = 0;
                         motor_command = MotorCommand::ZERO; // Ensure motors are stopped when disarming
@@ -316,16 +332,19 @@ mod tests {
         v
     }
 
+    /// Number of gesture-hold commands required to arm.
+    const ARM_GESTURE_TICKS: u16 = super::ARM_GESTURE_COMMANDS;
+
     /// Drive a fresh `Supervisor` through the full arm sequence, leaving it in
     /// `DroneState::Armed` with the link-loss counter at zero.
     ///
     /// Sequence:
     ///   1. One `Tick` — Initialising → Disarmed.
-    ///   2. 50 commands: throttle=0, yaw=1.0 — gesture window fills.
+    ///   2. `ARM_GESTURE_TICKS` commands: throttle=0, yaw=1.0 — gesture window fills.
     ///   3. One command: throttle=0, yaw=0 — arm fires.
     fn arm_supervisor(s: &mut Supervisor) {
         s.step(Event::Tick, ControllerDemand::ZERO);
-        for _ in 0..50 {
+        for _ in 0..ARM_GESTURE_TICKS {
             s.step(cmd_yaw(0.0, 1.0), ControllerDemand::ZERO);
         }
         s.step(cmd(0.0), ControllerDemand::ZERO);
@@ -358,7 +377,7 @@ mod tests {
         // controller demand at that instant.
         let mut s = Supervisor::new();
         s.step(Event::Tick, ControllerDemand::ZERO);
-        for _ in 0..50 {
+        for _ in 0..ARM_GESTURE_TICKS {
             s.step(cmd_yaw(0.0, 1.0), ControllerDemand::ZERO);
         }
         let demand = ControllerDemand {
@@ -632,9 +651,8 @@ mod tests {
         assert_eq!(collective(out.motor_command), 0.5);
     }
 
-    /// Number of zero-throttle commands required to trigger the idle auto-disarm,
-    /// derived from the module-level `MAX_NO_THROTTLE_TICKS` threshold.
-    const IDLE_DISARM_TICKS: u16 = (super::MAX_NO_THROTTLE_TICKS / 10) as u16;
+    /// Number of zero-throttle commands required to trigger the idle auto-disarm.
+    const IDLE_DISARM_TICKS: u16 = super::IDLE_DISARM_COMMANDS;
 
     #[test]
     fn armed_auto_disarms_after_idle_timeout() {

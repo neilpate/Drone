@@ -1,11 +1,11 @@
 use embassy_futures::select::{Either, select};
 use embassy_time::{Duration, Ticker};
-use firmware_drone_core::supervisor_core::{Event, Supervisor};
+use firmware_drone_core::supervisor_core::{Event, Supervisor, TICK_PERIOD_MS};
 use firmware_types::{DroneState, MotorCommand};
 
 use crate::signals::{controller_demand, motor_command, pilot_command, status};
 
-const TIMEOUT_PERIOD: Duration = Duration::from_millis(10);
+const TIMEOUT_PERIOD: Duration = Duration::from_millis(TICK_PERIOD_MS);
 
 #[embassy_executor::task]
 pub async fn supervisor() -> ! {
