@@ -391,6 +391,22 @@ fn main() -> ExitCode {
         );
     }
 
+    // Controller demand-vs-model check. Runs on all Stabilized samples
+    // regardless of throttle, so a zero-throttle bench capture (hand-held
+    // attitude sweep) is still validated even though it has no flight segment.
+    let stabilized: Vec<usize> = if have_mode {
+        (0..log.n)
+            .filter(|&i| mode.get(i).map(|m| m == "Stabilized").unwrap_or(false))
+            .collect()
+    } else {
+        (0..log.n).collect()
+    };
+    report_demand_tracking(&log, &stabilized);
+
+    // Rest/drift diagnosis over the whole capture: separates a static estimator
+    // offset from a time-growing gyro-bias drift. Useful on an idle/at-rest log.
+    report_rest_drift(&log, t, &(0..log.n).collect::<Vec<_>>());
+
     if active.is_empty() {
         println!("\nNo active-throttle samples; nothing to analyse. Was this an idle capture?");
         return ExitCode::SUCCESS;
@@ -700,6 +716,338 @@ fn report_gyro_and_oscillation(log: &Log, t: &[f64], idx: &[usize]) {
             }
         }
     }
+}
+
+/// Scaling parameters of the control law (firmware-drone-core, ADR 0024) that
+/// are NOT logged per row, so the reconstruction assumes the firmware defaults
+/// (`ControlSystemParameters::default()`). Only kp/ki/kd are logged; if these
+/// setpoint scalings are ever tuned live they would need logging too.
+const MODEL_MAX_TILT_DEG: f64 = 25.0;
+const MODEL_MAX_TILT_RATE_DPS: f64 = 400.0;
+const MODEL_MAX_YAW_RATE_DPS: f64 = 180.0;
+
+/// Pearson correlation of two equal-length series, skipping any pair where
+/// either value is NaN.
+fn pearson(xs: &[f64], ys: &[f64]) -> f64 {
+    let pairs: Vec<(f64, f64)> = xs
+        .iter()
+        .zip(ys.iter())
+        .filter(|(a, b)| !a.is_nan() && !b.is_nan())
+        .map(|(a, b)| (*a, *b))
+        .collect();
+    let n = pairs.len();
+    if n < 2 {
+        return f64::NAN;
+    }
+    let nf = n as f64;
+    let mx = pairs.iter().map(|(a, _)| a).sum::<f64>() / nf;
+    let my = pairs.iter().map(|(_, b)| b).sum::<f64>() / nf;
+    let (mut num, mut sx, mut sy) = (0.0, 0.0, 0.0);
+    for (a, b) in &pairs {
+        let (dx, dy) = (a - mx, b - my);
+        num += dx * dy;
+        sx += dx * dx;
+        sy += dy * dy;
+    }
+    if sx == 0.0 || sy == 0.0 {
+        return f64::NAN;
+    }
+    num / (sx * sy).sqrt()
+}
+
+/// RMS and mean of `(logged - model)` over equal-length series, skipping NaN.
+fn residual(model: &[f64], logged: &[f64]) -> (f64, f64) {
+    let (mut sse, mut sum, mut n) = (0.0, 0.0, 0.0);
+    for (m, l) in model.iter().zip(logged.iter()) {
+        if m.is_nan() || l.is_nan() {
+            continue;
+        }
+        let e = l - m;
+        sse += e * e;
+        sum += e;
+        n += 1.0;
+    }
+    if n == 0.0 {
+        (f64::NAN, f64::NAN)
+    } else {
+        ((sse / n).sqrt(), sum / n)
+    }
+}
+
+/// Reconstruct the Stabilized-mode controller demand from logged attitude,
+/// filtered gyro, sticks and per-row gains, and compare it to the logged
+/// demand. Validates the estimator -> error -> PD path independently of
+/// throttle, so it works on a zero-throttle bench capture (hand-held attitude
+/// sweep) where the flight-segment analysis has nothing to chew on.
+///
+/// Model per axis (firmware-drone-core::control_system, ADR 0024):
+///   roll/pitch:  err = (stick*MAX_TILT - angle)/MAX_TILT
+///                demand = kp*err - kd*gyro_filt/MAX_TILT_RATE
+///   yaw:         demand = kp*(stick*MAX_YAW_RATE - gyro_filt_z)/MAX_YAW_RATE
+/// The integral is omitted: it is reset to zero whenever throttle is zero, and
+/// otherwise surfaces as a non-zero mean residual (so a large mean_resid on a
+/// throttle-up capture is the I contribution, not a modelling error).
+fn report_demand_tracking(log: &Log, idx: &[usize]) {
+    let required = [
+        "attitude_roll_deg",
+        "attitude_pitch_deg",
+        "gyro_fx_dps",
+        "gyro_fy_dps",
+        "gyro_fz_dps",
+        "demand_roll",
+        "demand_pitch",
+        "demand_yaw",
+        "roll",
+        "pitch",
+        "yaw",
+        "kp_roll",
+        "kd_roll",
+        "kp_pitch",
+        "kd_pitch",
+        "kp_yaw",
+    ];
+    if let Some(missing) = required.iter().find(|c| !log.has(c)) {
+        println!("\nDemand-vs-model check skipped: missing column '{missing}'.");
+        return;
+    }
+    if idx.is_empty() {
+        println!("\nDemand-vs-model check skipped: no Stabilized samples.");
+        return;
+    }
+
+    let pick = |name: &str| -> Vec<f64> {
+        let c = log.col(name);
+        idx.iter()
+            .map(|&i| c.get(i).copied().unwrap_or(f64::NAN))
+            .collect()
+    };
+    let (att_roll, att_pitch) = (pick("attitude_roll_deg"), pick("attitude_pitch_deg"));
+    let (gfx, gfy, gfz) = (
+        pick("gyro_fx_dps"),
+        pick("gyro_fy_dps"),
+        pick("gyro_fz_dps"),
+    );
+    let (d_roll, d_pitch, d_yaw) = (
+        pick("demand_roll"),
+        pick("demand_pitch"),
+        pick("demand_yaw"),
+    );
+    let (s_roll, s_pitch, s_yaw) = (pick("roll"), pick("pitch"), pick("yaw"));
+    let (kp_roll, kd_roll) = (pick("kp_roll"), pick("kd_roll"));
+    let (kp_pitch, kd_pitch) = (pick("kp_pitch"), pick("kd_pitch"));
+    let kp_yaw = pick("kp_yaw");
+
+    let m = idx.len();
+    // Split each axis into its P and D contributions separately so the D-term
+    // can be isolated and checked on its own (empirical D = logged demand - P).
+    let mut p_roll = vec![f64::NAN; m];
+    let mut d_roll_model = vec![f64::NAN; m];
+    let mut p_pitch = vec![f64::NAN; m];
+    let mut d_pitch_model = vec![f64::NAN; m];
+    let mut model_roll = vec![f64::NAN; m];
+    let mut model_pitch = vec![f64::NAN; m];
+    let mut model_yaw = vec![f64::NAN; m];
+    let mut emp_d_roll = vec![f64::NAN; m];
+    let mut emp_d_pitch = vec![f64::NAN; m];
+    for k in 0..m {
+        let err_r = (s_roll[k] * MODEL_MAX_TILT_DEG - att_roll[k]) / MODEL_MAX_TILT_DEG;
+        p_roll[k] = kp_roll[k] * err_r;
+        d_roll_model[k] = -kd_roll[k] * gfx[k] / MODEL_MAX_TILT_RATE_DPS;
+        model_roll[k] = p_roll[k] + d_roll_model[k];
+        emp_d_roll[k] = d_roll[k] - p_roll[k];
+
+        let err_p = (s_pitch[k] * MODEL_MAX_TILT_DEG - att_pitch[k]) / MODEL_MAX_TILT_DEG;
+        p_pitch[k] = kp_pitch[k] * err_p;
+        d_pitch_model[k] = -kd_pitch[k] * gfy[k] / MODEL_MAX_TILT_RATE_DPS;
+        model_pitch[k] = p_pitch[k] + d_pitch_model[k];
+        emp_d_pitch[k] = d_pitch[k] - p_pitch[k];
+
+        model_yaw[k] =
+            kp_yaw[k] * (s_yaw[k] * MODEL_MAX_YAW_RATE_DPS - gfz[k]) / MODEL_MAX_YAW_RATE_DPS;
+    }
+    let allk: Vec<usize> = (0..m).collect();
+
+    println!("\n--- CONTROLLER DEMAND vs MODEL (Stabilized, n={m}) ---");
+    println!(
+        "Reconstructs P+D demand from attitude, filtered gyro, sticks and per-row gains \
+         (integral omitted: zero at zero-throttle, else shows as mean residual)."
+    );
+    println!(
+        "Assumes max_tilt={MODEL_MAX_TILT_DEG:.0}deg, max_tilt_rate={MODEL_MAX_TILT_RATE_DPS:.0}dps, \
+         max_yaw_rate={MODEL_MAX_YAW_RATE_DPS:.0}dps (not logged)."
+    );
+    println!("Demand vs attitude (expect strong NEGATIVE - demand opposes tilt to self-level):");
+    println!(
+        "  roll  corr={:+.4}    pitch corr={:+.4}",
+        pearson(&att_roll, &d_roll),
+        pearson(&att_pitch, &d_pitch)
+    );
+    println!(
+        "Demand vs reconstructed P+D model (corr ~ +1 and small rms => controller matches spec):"
+    );
+    let (rr, mr) = residual(&model_roll, &d_roll);
+    let (rp, mp) = residual(&model_pitch, &d_pitch);
+    let (ry, my) = residual(&model_yaw, &d_yaw);
+    println!(
+        "  roll   corr={:+.4}  rms_resid={rr:.6}  mean_resid={mr:+.6}",
+        pearson(&model_roll, &d_roll)
+    );
+    println!(
+        "  pitch  corr={:+.4}  rms_resid={rp:.6}  mean_resid={mp:+.6}",
+        pearson(&model_pitch, &d_pitch)
+    );
+    println!(
+        "  yaw    corr={:+.4}  rms_resid={ry:.6}  mean_resid={my:+.6}",
+        pearson(&model_yaw, &d_yaw)
+    );
+
+    // D-term isolation: empirical D = logged demand - reconstructed P. Because P
+    // is reconstructed exactly, this must equal the modeled D (-kd*gyro/max_rate)
+    // to f32 rounding - a pure-maths identity, so corr should be +1.0000 and the
+    // residual ~1e-6. The contribution stats show how much work D is doing.
+    println!(
+        "D-term isolation (empirical D = logged demand - reconstructed P; expect corr +1.0000, rms ~0):"
+    );
+    let (drr, dmr) = residual(&d_roll_model, &emp_d_roll);
+    let (drp, dmp) = residual(&d_pitch_model, &emp_d_pitch);
+    let ds_roll = stats_over(&d_roll_model, &allk);
+    let ds_pitch = stats_over(&d_pitch_model, &allk);
+    println!(
+        "  roll   corr={:+.4}  rms_resid={drr:.6}  mean_resid={dmr:+.6}   D contribution: mean={:+.4} sd={:.4} min={:+.4} max={:+.4}",
+        pearson(&d_roll_model, &emp_d_roll),
+        ds_roll.mean,
+        ds_roll.sd,
+        ds_roll.min,
+        ds_roll.max
+    );
+    println!(
+        "  pitch  corr={:+.4}  rms_resid={drp:.6}  mean_resid={dmp:+.6}   D contribution: mean={:+.4} sd={:.4} min={:+.4} max={:+.4}",
+        pearson(&d_pitch_model, &emp_d_pitch),
+        ds_pitch.mean,
+        ds_pitch.sd,
+        ds_pitch.min,
+        ds_pitch.max
+    );
+}
+
+/// Least-squares slope of paired (x, y) samples, skipping NaN pairs. Like
+/// `slope_per_s` but for two already-reduced series rather than indexed columns.
+fn slope_xy(xs: &[f64], ys: &[f64]) -> f64 {
+    let pts: Vec<(f64, f64)> = xs
+        .iter()
+        .zip(ys.iter())
+        .filter(|(a, b)| !a.is_nan() && !b.is_nan())
+        .map(|(a, b)| (*a, *b))
+        .collect();
+    let n = pts.len();
+    if n < 2 {
+        return f64::NAN;
+    }
+    let nf = n as f64;
+    let mx = pts.iter().map(|(a, _)| a).sum::<f64>() / nf;
+    let my = pts.iter().map(|(_, b)| b).sum::<f64>() / nf;
+    let (mut num, mut den) = (0.0, 0.0);
+    for (a, b) in &pts {
+        num += (a - mx) * (b - my);
+        den += (a - mx) * (a - mx);
+    }
+    if den == 0.0 { f64::NAN } else { num / den }
+}
+
+/// Rest / drift diagnosis: compare the attitude estimate against the
+/// accelerometer's own gravity-derived angle and the raw gyro bias, to
+/// distinguish a static estimator offset from a time-growing drift. At rest the
+/// accel angle is the truth reference (roll/pitch are gravity-observable); if
+/// the estimate walks away from a stationary accel angle, gyro bias is leaking
+/// into the filter. Accel angle uses the firmware conventions (sensor_fusion):
+/// roll = atan2(-ay, -az), pitch = atan2(ax, hypot(ay, az)).
+fn report_rest_drift(log: &Log, t: &[f64], idx: &[usize]) {
+    let required = [
+        "accel_x_g",
+        "accel_y_g",
+        "accel_z_g",
+        "gyro_x_dps",
+        "gyro_y_dps",
+        "gyro_z_dps",
+        "attitude_roll_deg",
+        "attitude_pitch_deg",
+    ];
+    if let Some(missing) = required.iter().find(|c| !log.has(c)) {
+        println!("\nRest-drift diagnosis skipped: missing column '{missing}'.");
+        return;
+    }
+    if idx.len() < 2 {
+        return;
+    }
+    let (ax, ay, az) = (
+        log.col("accel_x_g"),
+        log.col("accel_y_g"),
+        log.col("accel_z_g"),
+    );
+    let mut roll_acc = vec![f64::NAN; idx.len()];
+    let mut pitch_acc = vec![f64::NAN; idx.len()];
+    let mut tv = vec![f64::NAN; idx.len()];
+    for (k, &i) in idx.iter().enumerate() {
+        let (x, y, z) = (
+            ax.get(i).copied().unwrap_or(f64::NAN),
+            ay.get(i).copied().unwrap_or(f64::NAN),
+            az.get(i).copied().unwrap_or(f64::NAN),
+        );
+        roll_acc[k] = (-y).atan2(-z).to_degrees();
+        pitch_acc[k] = x.atan2((y * y + z * z).sqrt()).to_degrees();
+        tv[k] = t.get(i).copied().unwrap_or(f64::NAN);
+    }
+
+    let gbx = stats_over(log.col("gyro_x_dps"), idx);
+    let gby = stats_over(log.col("gyro_y_dps"), idx);
+    let gbz = stats_over(log.col("gyro_z_dps"), idx);
+    let est_roll = stats_over(log.col("attitude_roll_deg"), idx);
+    let est_pitch = stats_over(log.col("attitude_pitch_deg"), idx);
+    let est_roll_drift = slope_per_s(t, log.col("attitude_roll_deg"), idx);
+    let est_pitch_drift = slope_per_s(t, log.col("attitude_pitch_deg"), idx);
+    let acc_roll_drift = slope_xy(&tv, &roll_acc);
+    let acc_pitch_drift = slope_xy(&tv, &pitch_acc);
+    let mean_acc_roll = roll_acc.iter().filter(|v| !v.is_nan()).sum::<f64>()
+        / roll_acc.iter().filter(|v| !v.is_nan()).count().max(1) as f64;
+    let mean_acc_pitch = pitch_acc.iter().filter(|v| !v.is_nan()).sum::<f64>()
+        / pitch_acc.iter().filter(|v| !v.is_nan()).count().max(1) as f64;
+
+    println!("\n--- REST / DRIFT DIAGNOSIS (n={}) ---", idx.len());
+    println!("Raw gyro bias (mean at rest = residual after calibration):");
+    println!(
+        "  gyro_x {:+.3} dps   gyro_y {:+.3} dps   gyro_z {:+.3} dps",
+        gbx.mean, gby.mean, gbz.mean
+    );
+    println!("Estimate vs accel-derived angle (accel is the truth reference at rest):");
+    println!(
+        "  roll  est mean={:+.2} deg  accel mean={:+.2} deg  (offset {:+.2})",
+        est_roll.mean,
+        mean_acc_roll,
+        est_roll.mean - mean_acc_roll
+    );
+    println!(
+        "  pitch est mean={:+.2} deg  accel mean={:+.2} deg  (offset {:+.2})",
+        est_pitch.mean,
+        mean_acc_pitch,
+        est_pitch.mean - mean_acc_pitch
+    );
+    println!("Drift (least-squares slope over the window):");
+    println!("  roll  est {est_roll_drift:+.3} deg/s   accel {acc_roll_drift:+.3} deg/s");
+    println!("  pitch est {est_pitch_drift:+.3} deg/s   accel {acc_pitch_drift:+.3} deg/s");
+    if log.has("temperature_c") {
+        let temp = stats_over(log.col("temperature_c"), idx);
+        println!(
+            "  temperature: {:.1}..{:.1} C (delta {:+.1})",
+            temp.min,
+            temp.max,
+            temp.max - temp.min
+        );
+    }
+    println!(
+        "  Reading: accel drift ~0 but estimate drifting => gyro bias leaking (re-zero is only a \
+         temporary fix; needs online bias estimation). Estimate offset with ~0 drift => static \
+         calibration/mounting offset (re-zero on a truly level surface)."
+    );
 }
 
 /// +roll = right-side-down (ADR 0021). Describe which way a roll drift tips.
