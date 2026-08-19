@@ -1,0 +1,91 @@
+(kicad_symbol_lib (version 20241209) (generator "kicad_symbol_editor") (generator_version "10.0") 
+
+(symbol "BBC_microbit_v2" (exclude_from_sim no) (in_bom yes) (on_board yes) (in_pos_files yes) (duplicate_pin_numbers_are_jumpers no) 
+
+(property "Reference" "U" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Value" "BBC_microbit_v2" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Footprint" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Datasheet" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Description" "BBC micro:bit v2 Flight Controller Breakout (nRF52833)" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) (embedded_fonts no) 
+
+(symbol "BBC_microbit_v2_1_1" (pin power_in line (at -15.24 10.16 0) (length 2.54) (name "5V_IN" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27))))) (pin power_out line (at -15.24 5.08 0) (length 2.54) (name "3V3_OUT" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27))))) (pin power_in line (at -15.24 0.0 0) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27))))) (pin output line (at 15.24 10.16 180) (length 2.54) (name "P0.02_M1_PWM" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27))))) (pin output line (at 15.24 7.62 180) (length 2.54) (name "P0.12_M2_PWM" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27))))) (pin output line (at 15.24 5.08 180) (length 2.54) (name "P0.09_M3_PWM" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27))))) (pin output line (at 15.24 2.54 180) (length 2.54) (name "P0.10_M4_PWM" (effects (font (size 1.27 1.27)))) (number "7" (effects (font (size 1.27 1.27))))) (pin output line (at 15.24 -2.54 180) (length 2.54) (name "P0.17_SPI_SCK" (effects (font (size 1.27 1.27)))) (number "8" (effects (font (size 1.27 1.27))))) (pin input line (at 15.24 -5.08 180) (length 2.54) (name "P0.01_SPI_MISO" (effects (font (size 1.27 1.27)))) (number "9" (effects (font (size 1.27 1.27))))) (pin output line (at 15.24 -7.62 180) (length 2.54) (name "P0.13_SPI_MOSI" (effects (font (size 1.27 1.27)))) (number "10" (effects (font (size 1.27 1.27))))) (pin output line (at 15.24 -10.16 180) (length 2.54) (name "P1.02_IMU_CS" (effects (font (size 1.27 1.27)))) (number "11" (effects (font (size 1.27 1.27)))))) 
+
+(symbol "BBC_microbit_v2_0_1" 
+
+(rectangle (start -12.7 12.7) (end 12.7 -12.7) (stroke (width 0.0) (type default)) (fill (type none))))) 
+
+(symbol "ICM42688P_Breakout" (exclude_from_sim no) (in_bom yes) (on_board yes) (in_pos_files yes) (duplicate_pin_numbers_are_jumpers no) 
+
+(property "Reference" "U" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Value" "ICM42688P_Breakout" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Footprint" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Datasheet" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Description" "ICM-42688-P 6-DOF IMU Breakout Module (SPI)" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) (embedded_fonts no) 
+
+(symbol "ICM42688P_Breakout_1_1" (pin power_in line (at -10.16 7.62 0) (length 2.54) (name "VDD" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27))))) (pin power_in line (at -10.16 5.08 0) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27))))) (pin input line (at -10.16 2.54 0) (length 2.54) (name "CS" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27))))) (pin input line (at -10.16 0.0 0) (length 2.54) (name "SCK" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27))))) (pin input line (at -10.16 -2.54 0) (length 2.54) (name "SDI_MOSI" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27))))) (pin output line (at -10.16 -5.08 0) (length 2.54) (name "SDO_MISO" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27)))))) 
+
+(symbol "ICM42688P_Breakout_0_1" 
+
+(rectangle (start -7.62 10.16) (end 7.62 -7.62) (stroke (width 0.0) (type default)) (fill (type none))))) 
+
+(symbol "Blueson_A1_4in1_ESC" (exclude_from_sim no) (in_bom yes) (on_board yes) (in_pos_files yes) (duplicate_pin_numbers_are_jumpers no) 
+
+(property "Reference" "U" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Value" "Blueson_A1_4in1_ESC" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Footprint" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Datasheet" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Description" "Sequre Blueson A1 65A 6S 4-in-1 ESC (AM32)" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) (embedded_fonts no) 
+
+(symbol "Blueson_A1_4in1_ESC_1_1" (pin power_in line (at -12.7 10.16 0) (length 2.54) (name "VBAT" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27))))) (pin power_in line (at -12.7 7.62 0) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27))))) (pin input line (at -12.7 2.54 0) (length 2.54) (name "PWM_M1" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27))))) (pin input line (at -12.7 0.0 0) (length 2.54) (name "PWM_M2" (effects (font (size 1.27 1.27)))) (number "4" (effects (font (size 1.27 1.27))))) (pin input line (at -12.7 -2.54 0) (length 2.54) (name "PWM_M3" (effects (font (size 1.27 1.27)))) (number "5" (effects (font (size 1.27 1.27))))) (pin input line (at -12.7 -5.08 0) (length 2.54) (name "PWM_M4" (effects (font (size 1.27 1.27)))) (number "6" (effects (font (size 1.27 1.27))))) (pin passive line (at 12.7 10.16 180) (length 2.54) (name "M1_OUT" (effects (font (size 1.27 1.27)))) (number "7" (effects (font (size 1.27 1.27))))) (pin passive line (at 12.7 7.62 180) (length 2.54) (name "M2_OUT" (effects (font (size 1.27 1.27)))) (number "8" (effects (font (size 1.27 1.27))))) (pin passive line (at 12.7 5.08 180) (length 2.54) (name "M3_OUT" (effects (font (size 1.27 1.27)))) (number "9" (effects (font (size 1.27 1.27))))) (pin passive line (at 12.7 2.54 180) (length 2.54) (name "M4_OUT" (effects (font (size 1.27 1.27)))) (number "10" (effects (font (size 1.27 1.27)))))) 
+
+(symbol "Blueson_A1_4in1_ESC_0_1" 
+
+(rectangle (start -10.16 12.7) (end 10.16 -7.62) (stroke (width 0.0) (type default)) (fill (type none))))) 
+
+(symbol "BEC_5V_StepDown" (exclude_from_sim no) (in_bom yes) (on_board yes) (in_pos_files yes) (duplicate_pin_numbers_are_jumpers no) 
+
+(property "Reference" "U" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Value" "BEC_5V_StepDown" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Footprint" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Datasheet" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Description" "4S to 5V Step-Down Switching BEC" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) (embedded_fonts no) 
+
+(symbol "BEC_5V_StepDown_1_1" (pin power_in line (at -10.16 2.54 0) (length 2.54) (name "VIN" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27))))) (pin power_in line (at -10.16 -2.54 0) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27))))) (pin power_out line (at 10.16 0.0 180) (length 2.54) (name "+5V_OUT" (effects (font (size 1.27 1.27)))) (number "3" (effects (font (size 1.27 1.27)))))) 
+
+(symbol "BEC_5V_StepDown_0_1" 
+
+(rectangle (start -7.62 5.08) (end 7.62 -5.08) (stroke (width 0.0) (type default)) (fill (type none))))) 
+
+(symbol "Battery_4S_XT30" (exclude_from_sim no) (in_bom yes) (on_board yes) (in_pos_files yes) (duplicate_pin_numbers_are_jumpers no) 
+
+(property "Reference" "BT" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Value" "Battery_4S_XT30" (at 0 0 0) (show_name no) (do_not_autoplace no) (effects (font (size 1.27 1.27)))) 
+
+(property "Footprint" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Datasheet" "" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) 
+
+(property "Description" "CNHL MiniStar 4S 650mAh 70C LiPo Battery (XT30U)" (at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes) (effects (font (size 1.27 1.27)))) (embedded_fonts no) 
+
+(symbol "Battery_4S_XT30_1_1" (pin power_out line (at 10.16 2.54 180) (length 2.54) (name "+14.8V" (effects (font (size 1.27 1.27)))) (number "1" (effects (font (size 1.27 1.27))))) (pin power_out line (at 10.16 -2.54 180) (length 2.54) (name "GND" (effects (font (size 1.27 1.27)))) (number "2" (effects (font (size 1.27 1.27)))))) 
+
+(symbol "Battery_4S_XT30_0_1" 
+
+(rectangle (start -7.62 5.08) (end 7.62 -5.08) (stroke (width 0.0) (type default)) (fill (type none))))))

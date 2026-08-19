@@ -46,3 +46,15 @@ ehthumbs.db
 *~
 
 .git-commit-msg.tmp
+
+# KiCad — commit source (.kicad_pro / .kicad_sch / .kicad_pcb / .kicad_sym /
+# sym-lib-table); ignore per-user state, autosave, backups, and lock files.
+*.kicad_prl
+*.lck
+*-backups/
+fp-info-cache
+\#auto_saved_files\#
+
+# CopperPilot (AI schematic tool) working directory — scratch scripts, ERC
+# reports, and PNG renders. Not a repo deliverable.
+.copperpilot/

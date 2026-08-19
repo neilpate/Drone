@@ -1,0 +1,10 @@
+(sym_lib_table
+  (version 7)
+  (lib
+    (name "drone_fc_v2_symbols")
+    (type "KiCad")
+    (uri "${KIPRJMOD}/drone_fc_v2_symbols.kicad_sym")
+    (options "")
+    (descr "Drone Flight Controller v2 custom symbol library")
+  )
+)
