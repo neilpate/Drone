@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="560" viewBox="0 0 880 560" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="880" height="560" fill="#ffffff"/>
+  <text x="30" y="34" font-size="22" font-weight="bold" fill="#1a1a1a">DShot bit encoding &amp; frame layout</text>
+  <text x="30" y="56" font-size="13" fill="#555">Pulse-width, return-to-zero: every bit starts with a rising edge; the HIGH duration encodes 0 vs 1. Line idles LOW between frames.</text>
+
+  <!-- Section A: the two bit primitives -->
+  <text x="30" y="90" font-size="16" font-weight="bold" fill="#1a1a1a">1. One bit = one pulse</text>
+
+  <!-- logic 1 -->
+  <polyline points="80,170 80,120 200,120 200,170 240,170" fill="none" stroke="#1565c0" stroke-width="2.5"/>
+  <line x1="80" y1="185" x2="240" y2="185" stroke="#999" stroke-width="1"/>
+  <line x1="80" y1="181" x2="80" y2="189" stroke="#999" stroke-width="1"/>
+  <line x1="240" y1="181" x2="240" y2="189" stroke="#999" stroke-width="1"/>
+  <text x="160" y="201" font-size="12" fill="#666" text-anchor="middle">bit period T</text>
+  <text x="140" y="112" font-size="12" fill="#1565c0" text-anchor="middle">HIGH 75% of T</text>
+  <text x="160" y="223" font-size="14" font-weight="bold" fill="#1565c0" text-anchor="middle">Logic 1</text>
+
+  <!-- logic 0 -->
+  <polyline points="400,170 400,120 460,120 460,170 560,170" fill="none" stroke="#c62828" stroke-width="2.5"/>
+  <line x1="400" y1="185" x2="560" y2="185" stroke="#999" stroke-width="1"/>
+  <line x1="400" y1="181" x2="400" y2="189" stroke="#999" stroke-width="1"/>
+  <line x1="560" y1="181" x2="560" y2="189" stroke="#999" stroke-width="1"/>
+  <text x="480" y="201" font-size="12" fill="#666" text-anchor="middle">bit period T</text>
+  <text x="430" y="112" font-size="12" fill="#c62828" text-anchor="middle">HIGH 37.5%</text>
+  <text x="480" y="223" font-size="14" font-weight="bold" fill="#c62828" text-anchor="middle">Logic 0</text>
+
+  <text x="610" y="140" font-size="13" fill="#333">DShot300: T = 3.33 us</text>
+  <text x="610" y="160" font-size="13" fill="#333">DShot600: T = 1.67 us</text>
+
+  <!-- Section B: a full 16-bit frame -->
+  <text x="30" y="262" font-size="16" font-weight="bold" fill="#1a1a1a">2. A full 16-bit frame (example: throttle 1046)</text>
+
+  <!-- bit value labels -->
+  <g font-size="13" fill="#333" text-anchor="middle">
+    <text x="84" y="300">1</text><text x="132" y="300">0</text><text x="180" y="300">0</text><text x="228" y="300">0</text>
+    <text x="276" y="300">0</text><text x="324" y="300">0</text><text x="372" y="300">1</text><text x="420" y="300">0</text>
+    <text x="468" y="300">1</text><text x="516" y="300">1</text><text x="564" y="300">0</text><text x="612" y="300">0</text>
+    <text x="660" y="300">0</text><text x="708" y="300">1</text><text x="756" y="300">1</text><text x="804" y="300">0</text>
+  </g>
+
+  <!-- waveform for bits 1000 0010 1100 0110 (slot=48, high y=310, low y=350) -->
+  <polyline fill="none" stroke="#1a1a1a" stroke-width="2" points="60,350 60,310 96,310 96,350 108,350 108,310 126,310 126,350 156,350 156,310 174,310 174,350 204,350 204,310 222,310 222,350 252,350 252,310 270,310 270,350 300,350 300,310 318,310 318,350 348,350 348,310 384,310 384,350 396,350 396,310 414,310 414,350 444,350 444,310 480,310 480,350 492,350 492,310 528,310 528,350 540,350 540,310 558,310 558,350 588,350 588,310 606,310 606,350 636,350 636,310 654,310 654,350 684,350 684,310 720,310 720,350 732,350 732,310 768,310 768,350 780,350 780,310 798,310 798,350 828,350"/>
+
+  <!-- field grouping bar -->
+  <rect x="60" y="372" width="528" height="30" fill="#bbdefb" stroke="#1565c0" stroke-width="1"/>
+  <rect x="588" y="372" width="48" height="30" fill="#ffe0b2" stroke="#e65100" stroke-width="1"/>
+  <rect x="636" y="372" width="192" height="30" fill="#c8e6c9" stroke="#2e7d32" stroke-width="1"/>
+  <text x="324" y="392" font-size="13" fill="#0d47a1" text-anchor="middle">11-bit throttle = 1046</text>
+  <text x="612" y="392" font-size="11" fill="#e65100" text-anchor="middle">telem</text>
+  <text x="732" y="392" font-size="13" fill="#1b5e20" text-anchor="middle">4-bit CRC = 0x6</text>
+
+  <!-- Section C: worked example -->
+  <text x="30" y="452" font-size="16" font-weight="bold" fill="#1a1a1a">3. Building the frame</text>
+  <g font-family="Consolas, monospace" font-size="14" fill="#222">
+    <text x="30" y="478">value  v = (throttle &lt;&lt; 1) | telem = (1046 &lt;&lt; 1) | 0 = 0x82C</text>
+    <text x="30" y="500">CRC      = (v ^ (v &gt;&gt; 4) ^ (v &gt;&gt; 8)) &amp; 0xF        = 0x6</text>
+    <text x="30" y="522">frame    = (v &lt;&lt; 4) | CRC = 0x82C6 = 1000 0010 1100 0110</text>
+  </g>
+  <text x="30" y="548" font-size="12" fill="#888">throttle 0 = stop/disarm, 48..2047 = throttle, 1..47 = special commands. Sent MSB first.</text>
+</svg>
