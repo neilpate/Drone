@@ -131,6 +131,7 @@ impl StatusLed {
     }
 }
 
+#[cfg(not(feature = "motor-dshot"))]
 pub struct Motors {
     // Kept alive so its `Drop` (which resets the output pins) never runs. The
     // waveform is generated entirely by EasyDMA looping over `MOTOR_DUTIES`;
@@ -174,6 +175,7 @@ pub struct Motors {
 /// confirmed props-off on the bench; the mixer's yaw sign depends on them (see
 /// ADR 0023 and the pin map above). The order matches `MotorCommand`'s
 /// `motor1..motor4` fields, which [`Motors::set_all_motors`] writes here in turn.
+#[cfg(not(feature = "motor-dshot"))]
 static MOTOR_DUTIES: [AtomicU16; 4] = [
     AtomicU16::new(Motors::PERIOD_TICKS),
     AtomicU16::new(Motors::PERIOD_TICKS),
@@ -181,6 +183,7 @@ static MOTOR_DUTIES: [AtomicU16; 4] = [
     AtomicU16::new(Motors::PERIOD_TICKS),
 ];
 
+#[cfg(not(feature = "motor-dshot"))]
 impl Motors {
     /// ESC frame rate. 400 Hz is the practical ceiling for standard 1-2 ms
     /// servo PWM (2 ms pulse plus a low gap); see the Blueson A1 / AM32 notes.
@@ -273,6 +276,152 @@ impl Motors {
         MOTOR_DUTIES[1].store(motor2_off_ticks, Ordering::Relaxed);
         MOTOR_DUTIES[2].store(motor3_off_ticks, Ordering::Relaxed);
         MOTOR_DUTIES[3].store(motor4_off_ticks, Ordering::Relaxed);
+    }
+}
+
+/// DShot frame construction lives in the host-tested core crate.
+#[cfg(feature = "motor-dshot")]
+use firmware_drone_core::dshot;
+
+/// DShot300 motor driver (Cargo feature `motor-dshot`).
+///
+/// Compile-time alternative to the analog-PWM [`Motors`] above. Reuses PWM0 +
+/// EasyDMA but plays a *digital DShot300* bitstream instead of a servo pulse:
+/// each PWM period is one DShot bit, the 16-bit frame is followed by a low
+/// inter-frame gap, and the whole loop repeats forever so the ESC sees a
+/// continuous frame stream (a DShot ESC disarms if the signal stops). Throttle
+/// updates rewrite the frame words in place; a torn frame simply fails its CRC
+/// at the ESC and is dropped, so no double-buffering is needed.
+///
+/// VERIFY ON A LOGIC ANALYSER AT BRING-UP: this reuses the PWM driver's proven
+/// "off-ticks" word convention (`word = BIT_TICKS - high_ticks`), giving each
+/// bit a HIGH pulse of `high_ticks`. DShot needs that pulse at the START of the
+/// bit period (a rising edge at each bit boundary). If a scope shows it inverted
+/// (high at the end of the bit), flip the one line in [`Motors::word`].
+#[cfg(feature = "motor-dshot")]
+pub struct Motors {
+    // Kept alive so its `Drop` never runs; the waveform is generated entirely by
+    // EasyDMA looping over `DSHOT_WORDS`. Same kept-alive convention as the PWM
+    // driver and `StatusLed::_row`.
+    _pwm: pwm::SequencePwm<'static, peripherals::PWM0>,
+}
+
+/// Looped DShot sequence: `FRAME_BITS` bit-periods then `GAP_PERIODS` low
+/// periods, four interleaved channel words per period (Individual load). Written
+/// in place by [`Motors::set_all_motors`], read continuously by EasyDMA. Init to
+/// the all-low word; [`Motors::new`] then lays STOP frames over the bit region.
+#[cfg(feature = "motor-dshot")]
+static DSHOT_WORDS: [AtomicU16; Motors::SEQ_LEN] =
+    [const { AtomicU16::new(Motors::BIT_TICKS) }; Motors::SEQ_LEN];
+
+#[cfg(feature = "motor-dshot")]
+impl Motors {
+    /// PWM clock: Div1 -> 16 MHz (1 tick = 62.5 ns).
+    const CLOCK_HZ: u32 = 16_000_000;
+    /// DShot300 bit rate.
+    const DSHOT_HZ: u32 = 300_000;
+    /// One DShot bit period, in PWM ticks (COUNTERTOP). 16 MHz / 300 kHz ~= 53.
+    const BIT_TICKS: u16 = (Self::CLOCK_HZ / Self::DSHOT_HZ) as u16;
+    /// High-time of a `1` bit: ~75% of the bit period.
+    const ONE_HIGH: u16 = 40; // 0.75 * BIT_TICKS (53)
+    /// High-time of a `0` bit: ~37.5% of the bit period.
+    const ZERO_HIGH: u16 = 20; // 0.375 * BIT_TICKS (53)
+    /// Bits per DShot frame.
+    const FRAME_BITS: usize = 16;
+    /// Low periods after each frame: gives the ESC an inter-frame gap and sets
+    /// the frame rate (one loop = `BIT_TICKS * (FRAME_BITS + GAP_PERIODS)` ticks,
+    /// ~4.7 kHz here). Tune if an ESC dislikes the rate.
+    const GAP_PERIODS: usize = 48;
+    /// Total PWM periods per loop.
+    const PERIODS: usize = Self::FRAME_BITS + Self::GAP_PERIODS;
+    /// Sequence length: four channel words per period (Individual load).
+    const SEQ_LEN: usize = Self::PERIODS * 4;
+
+    pub fn new(
+        peripherals: peripherals::PWM0,
+        motor1: impl Pin,
+        motor2: impl Pin,
+        motor3: impl Pin,
+        motor4: impl Pin,
+    ) -> Self {
+        let mut config = pwm::Config::default();
+        config.prescaler = pwm::Prescaler::Div1; // 16 MHz: 1 tick = 62.5 ns
+        config.max_duty = Self::BIT_TICKS; // COUNTERTOP: one DShot bit period
+        config.sequence_load = pwm::SequenceLoad::Individual; // 4 words/period
+        config.counter_mode = pwm::CounterMode::Up;
+
+        let mut pwm =
+            pwm::SequencePwm::new_4ch(peripherals, motor1, motor2, motor3, motor4, config).unwrap();
+
+        // Lay STOP frames over the bit region so the ESC sees valid DShot from
+        // boot; the gap periods keep their low init value.
+        for channel in 0..4 {
+            Self::write_frame(channel, dshot::STOP);
+        }
+
+        // SAFETY: as in the PWM driver -- `AtomicU16` is layout-compatible with
+        // `u16`; this `&[u16]` is only live until the sequencer is forgotten,
+        // after which the sole accessors are the DMA pointer and the atomic
+        // stores in `write_frame`, so no live `&[u16]` aliases the mutated memory.
+        let words: &[u16] =
+            unsafe { core::slice::from_raw_parts(DSHOT_WORDS.as_ptr().cast(), Self::SEQ_LEN) };
+
+        // Loop the frame+gap forever; the hardware `loopsdone -> seqstart0` short
+        // re-triggers with no CPU involvement, so the ESC gets a continuous
+        // stream and `set_all_motors` never waits on the peripheral.
+        let sequencer = pwm::SingleSequencer::new(&mut pwm, words, pwm::SequenceConfig::default());
+        sequencer.start(pwm::SingleSequenceMode::Infinite).unwrap();
+        core::mem::forget(sequencer);
+
+        Self { _pwm: pwm }
+    }
+
+    // API symmetry / failsafe path: drive every motor to STOP (continuous STOP
+    // frames -> motors off).
+    #[expect(dead_code)]
+    pub fn disable(&mut self) {
+        for channel in 0..4 {
+            Self::write_frame(channel, dshot::STOP);
+        }
+    }
+
+    pub fn set_all_motors(&mut self, command: MotorCommand) {
+        Self::write_frame(0, Self::frame_for(command.motor1));
+        Self::write_frame(1, Self::frame_for(command.motor2));
+        Self::write_frame(2, Self::frame_for(command.motor3));
+        Self::write_frame(3, Self::frame_for(command.motor4));
+    }
+
+    /// Zero throttle maps to STOP (motor off), preserving the invariant that a
+    /// zero command never spins a motor; any positive throttle maps into the
+    /// 48..2047 DShot throttle band.
+    fn frame_for(throttle: ThrottleCommand) -> u16 {
+        let normalised = throttle.as_normalised();
+        if normalised <= 0.0 {
+            dshot::STOP
+        } else {
+            dshot::throttle_frame(normalised, false)
+        }
+    }
+
+    /// PWM compare word for a bit's high-time, in the PWM driver's "off-ticks"
+    /// convention. Single point to flip if a scope shows inverted polarity.
+    fn word(high_ticks: u16) -> u16 {
+        Self::BIT_TICKS - high_ticks
+    }
+
+    /// Write the 16 bit-words of `frame` for `channel` into the looped buffer,
+    /// MSB first. Leaves the inter-frame gap periods untouched.
+    fn write_frame(channel: usize, frame: u16) {
+        for bit in 0..Self::FRAME_BITS {
+            let is_one = ((frame >> (15 - bit)) & 1) == 1;
+            let high = if is_one {
+                Self::ONE_HIGH
+            } else {
+                Self::ZERO_HIGH
+            };
+            DSHOT_WORDS[bit * 4 + channel].store(Self::word(high), Ordering::Relaxed);
+        }
     }
 }
 

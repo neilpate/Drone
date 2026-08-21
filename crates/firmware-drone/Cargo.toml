@@ -23,6 +23,11 @@ doctest = false
 default = ["board-microbit-v2"]
 board-microbit-v2 = []
 
+# Motor output protocol. Default is analog servo PWM (400 Hz). Enable to switch
+# the micro:bit board's motor driver to digital DShot300 (both drivers are kept
+# in the tree; this selects which one `board::Motors` resolves to).
+motor-dshot = []
+
 [dependencies]
 firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
 
