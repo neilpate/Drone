@@ -31,7 +31,8 @@ impl DShotTelemetry {
         crc == bytes[9]
     }
 
-    pub fn from_bytes(bytes: &[u8], motor_index: u8) -> Option<Self> {
+    // `_motor_index` is the parked round-robin slot; wired once per-motor RPM lands (ADR 0027).
+    pub fn from_bytes(bytes: &[u8], _motor_index: u8) -> Option<Self> {
         if bytes.len() != 10 {
             return None;
         }
