@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650" font-family="Segoe UI, Arial, sans-serif">
+  <rect x="0" y="0" width="900" height="650" fill="#ffffff"/>
+  <text x="30" y="34" font-size="22" font-weight="bold" fill="#1a1a1a">DShot ESC serial telemetry frame (KISS / BLHeli / AM32)</text>
+  <text x="30" y="56" font-size="13" fill="#555">10 bytes, ESC &#8594; FC only, sent once per telemetry request. UART 115200 8N1, line idles HIGH.</text>
+  <text x="30" y="74" font-size="13" fill="#c62828">No motor id, no sequence number, no start byte &#8212; the idle-HIGH gap and the CRC are the only framing.</text>
+
+  <!-- Section 1: byte map -->
+  <text x="30" y="110" font-size="16" font-weight="bold" fill="#1a1a1a">1. Byte layout (multi-byte fields are big-endian)</text>
+
+  <!-- byte index labels -->
+  <g font-size="12" fill="#888" text-anchor="middle">
+    <text x="96" y="140">byte 0</text><text x="168" y="140">1</text><text x="240" y="140">2</text>
+    <text x="312" y="140">3</text><text x="384" y="140">4</text><text x="456" y="140">5</text>
+    <text x="528" y="140">6</text><text x="600" y="140">7</text><text x="672" y="140">8</text><text x="744" y="140">9</text>
+  </g>
+
+  <!-- field group cells -->
+  <rect x="60"  y="150" width="72"  height="64" fill="#ffcdd2" stroke="#c62828" stroke-width="1"/>
+  <rect x="132" y="150" width="144" height="64" fill="#bbdefb" stroke="#1565c0" stroke-width="1"/>
+  <rect x="276" y="150" width="144" height="64" fill="#ffe0b2" stroke="#e65100" stroke-width="1"/>
+  <rect x="420" y="150" width="144" height="64" fill="#c8e6c9" stroke="#2e7d32" stroke-width="1"/>
+  <rect x="564" y="150" width="144" height="64" fill="#e1bee7" stroke="#6a1b9a" stroke-width="1"/>
+  <rect x="708" y="150" width="72"  height="64" fill="#eeeeee" stroke="#616161" stroke-width="1"/>
+
+  <!-- internal byte splits for the u16 fields -->
+  <g stroke="#ffffff" stroke-width="1">
+    <line x1="204" y1="150" x2="204" y2="214"/>
+    <line x1="348" y1="150" x2="348" y2="214"/>
+    <line x1="492" y1="150" x2="492" y2="214"/>
+    <line x1="636" y1="150" x2="636" y2="214"/>
+  </g>
+
+  <!-- field names + units -->
+  <g text-anchor="middle">
+    <text x="96"  y="180" font-size="13" font-weight="bold" fill="#b71c1c">TEMP</text>
+    <text x="96"  y="198" font-size="11" fill="#b71c1c">&#176;C</text>
+    <text x="204" y="180" font-size="13" font-weight="bold" fill="#0d47a1">VOLTAGE</text>
+    <text x="204" y="198" font-size="11" fill="#0d47a1">centi-V (&#247;100 = V)</text>
+    <text x="348" y="180" font-size="13" font-weight="bold" fill="#bf360c">CURRENT</text>
+    <text x="348" y="198" font-size="11" fill="#bf360c">centi-A (&#247;100 = A)</text>
+    <text x="492" y="180" font-size="13" font-weight="bold" fill="#1b5e20">CONSUMED</text>
+    <text x="492" y="198" font-size="11" fill="#1b5e20">mAh</text>
+    <text x="636" y="180" font-size="13" font-weight="bold" fill="#4a148c">eRPM</text>
+    <text x="636" y="198" font-size="11" fill="#4a148c">&#215;100 = electrical rpm</text>
+    <text x="744" y="180" font-size="13" font-weight="bold" fill="#424242">CRC8</text>
+    <text x="744" y="198" font-size="11" fill="#424242">poly 0x07</text>
+  </g>
+
+  <!-- type row -->
+  <g font-family="Consolas, monospace" font-size="11" fill="#666" text-anchor="middle">
+    <text x="96"  y="230">u8</text>
+    <text x="204" y="230">u16 (hi, lo)</text>
+    <text x="348" y="230">u16 (hi, lo)</text>
+    <text x="492" y="230">u16 (hi, lo)</text>
+    <text x="636" y="230">u16 (hi, lo)</text>
+    <text x="744" y="230">u8, over bytes 0..=8</text>
+  </g>
+
+  <!-- Section 2: worked example -->
+  <text x="30" y="272" font-size="16" font-weight="bold" fill="#1a1a1a">2. Worked example</text>
+
+  <!-- example hex bytes aligned under the cells -->
+  <g font-family="Consolas, monospace" font-size="15" fill="#111" text-anchor="middle">
+    <text x="96"  y="300">1F</text><text x="168" y="300">06</text><text x="240" y="300">31</text>
+    <text x="312" y="300">03</text><text x="384" y="300">52</text><text x="456" y="300">00</text>
+    <text x="528" y="300">D2</text><text x="600" y="300">05</text><text x="672" y="300">DC</text><text x="744" y="300">0C</text>
+  </g>
+
+  <g font-family="Consolas, monospace" font-size="14" fill="#222">
+    <text x="60" y="336">0x1F                 = 31            &#8594;  31 &#176;C</text>
+    <text x="60" y="358">0x06 0x31 = 0x0631   = 1585          &#8594;  15.85 V</text>
+    <text x="60" y="380">0x03 0x52 = 0x0352   = 850           &#8594;  8.50 A</text>
+    <text x="60" y="402">0x00 0xD2 = 0x00D2   = 210           &#8594;  210 mAh</text>
+    <text x="60" y="424">0x05 0xDC = 0x05DC   = 1500  x100    &#8594;  150000 eRPM  &#247;7pp &#8776; 21429 rpm</text>
+    <text x="60" y="446">0x0C                 = CRC8 over bytes 0..8  &#8594;  valid</text>
+  </g>
+
+  <!-- Section 3: one UART byte on the wire -->
+  <text x="30" y="488" font-size="16" font-weight="bold" fill="#1a1a1a">3. One byte on the wire (115200 8N1, LSB first, idle HIGH) &#8212; here byte 0 = 0x1F</text>
+
+  <!-- data bit value labels -->
+  <g font-family="Consolas, monospace" font-size="12" fill="#333" text-anchor="middle">
+    <text x="126" y="512" fill="#c62828">S</text>
+    <text x="178" y="512">1</text><text x="230" y="512">1</text><text x="282" y="512">1</text><text x="334" y="512">1</text>
+    <text x="386" y="512">1</text><text x="438" y="512">0</text><text x="490" y="512">0</text><text x="542" y="512">0</text>
+    <text x="594" y="512" fill="#2e7d32">P</text>
+  </g>
+
+  <!-- waveform: idle, START(0), d0..d7 = 1 1 1 1 1 0 0 0 (LSB first), STOP(1), idle -->
+  <polyline fill="none" stroke="#1a1a1a" stroke-width="2"
+    points="60,520 100,520 100,560 152,560 152,520 412,520 412,560 568,560 568,520 680,520"/>
+
+  <!-- bit boundary ticks -->
+  <g stroke="#ddd" stroke-width="1">
+    <line x1="100" y1="516" x2="100" y2="564"/><line x1="152" y1="516" x2="152" y2="564"/>
+    <line x1="204" y1="516" x2="204" y2="564"/><line x1="256" y1="516" x2="256" y2="564"/>
+    <line x1="308" y1="516" x2="308" y2="564"/><line x1="360" y1="516" x2="360" y2="564"/>
+    <line x1="412" y1="516" x2="412" y2="564"/><line x1="464" y1="516" x2="464" y2="564"/>
+    <line x1="516" y1="516" x2="516" y2="564"/><line x1="568" y1="516" x2="568" y2="564"/>
+    <line x1="620" y1="516" x2="620" y2="564"/>
+  </g>
+
+  <text x="126" y="584" font-size="11" fill="#c62828" text-anchor="middle">start</text>
+  <text x="594" y="584" font-size="11" fill="#2e7d32" text-anchor="middle">stop</text>
+  <text x="360" y="600" font-size="12" fill="#666" text-anchor="middle">1 bit &#8776; 8.68 &#181;s &#183; 10 bits/byte &#8776; 86.8 &#181;s &#183; full 10-byte frame &#8776; 0.87 ms</text>
+
+  <text x="30" y="634" font-size="12" fill="#888">After the frame the line returns idle-HIGH until the next telemetry request; that gap is the frame boundary. eRPM &#247; pole-pairs = mechanical rpm.</text>
+</svg>
