@@ -14,6 +14,7 @@ use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
+use embassy_nrf::uarte::{self, Baudrate, Parity, UarteRx};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
 use firmware_types::{Acceleration, AngularRate, ImuData, MotorCommand, ThrottleCommand};
 
@@ -24,11 +25,13 @@ pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
 
 pub type TemperatureSensor = temp::Temp<'static>;
 pub type Spim3 = spim::Spim<'static, peripherals::SPI3>;
+pub type UartRx = UarteRx<'static, peripherals::UARTE1>;
 
 bind_interrupts!(struct Irqs {
     RADIO => radio::InterruptHandler<peripherals::RADIO>;
     TEMP => temp::InterruptHandler;
     SPIM3 => spim::InterruptHandler<peripherals::SPI3>;
+    UARTE1 => uarte::InterruptHandler<peripherals::UARTE1>;
 });
 
 pub struct Board {
@@ -37,6 +40,7 @@ pub struct Board {
     pub radio: Radio,
     pub temperature_sensor: TemperatureSensor,
     pub imu: Imu,
+    pub esc_telemetry: ESCTelemetry,
 }
 
 // Pin map — BBC micro:bit v2 / nRF52833
@@ -51,6 +55,7 @@ pub struct Board {
 // | IMU MISO       | P0.01   | 14   | SPIM3      |                     |
 // | IMU MOSI       | P0.13   | 15   | SPIM3      |                     |
 // | IMU CS         | P1.02   | 16   | GPIO out   | manual, idle high   |
+// | ESC telem RX   | P0.26   | 19   | UARTE      | 115200 8N1, RX-only, I2C_EXT SCL pad |
 // | Status LED row | P0.21   | -    | GPIO out   | onboard 5x5 matrix  |
 // | Status LED col | P0.28   | -    | GPIO out   | onboard 5x5 matrix  |
 // | Radio          | -       | -    | RADIO      | internal, 802.15.4  |
@@ -87,25 +92,13 @@ impl Board {
         config.hfclk_source = HfclkSource::ExternalXtal;
         let p = embassy_nrf::init(config);
 
-        let mut spi_config = spim::Config::default();
-        spi_config.frequency = spim::Frequency::M1;
-        spi_config.mode = spim::MODE_0;
-
-        let imu_spi = Spim::new(p.SPI3, Irqs, p.P0_17, p.P0_01, p.P0_13, spi_config);
-        let imu_cs = Output::new(p.P1_02.degrade(), Level::High, OutputDrive::Standard);
-
         Self {
             status_led: StatusLed::new(p.P0_21, p.P0_28),
-            // Pin order is REVERSED on purpose to match the physical ESC wiring
-            // (P0.02 = rear-right .. P0.10 = front-left). See the "MOTOR WIRING"
-            // note in the pin map above. Do NOT sort these back to P0_10..P0_02.
             motors: Motors::new(p.PWM0, p.P0_02, p.P0_12, p.P0_09, p.P0_10),
             radio: Radio::new(p.RADIO, Irqs),
             temperature_sensor: TemperatureSensor::new(p.TEMP, Irqs),
-            imu: Imu {
-                spi: imu_spi,
-                cs: imu_cs,
-            },
+            imu: Imu::new(p.SPI3, p.P0_17, p.P0_01, p.P0_13, p.P1_02),
+            esc_telemetry: ESCTelemetry::new(p.UARTE1, p.P0_26),
         }
     }
 }
@@ -131,23 +124,51 @@ impl StatusLed {
     }
 }
 
-#[cfg(not(feature = "motor-dshot"))]
+pub struct ESCTelemetry {
+    esc_telemetry_rx: UartRx,
+}
+
+impl ESCTelemetry {
+    pub fn new(peripherals: peripherals::UARTE1, pin: impl Pin) -> Self {
+        let mut esc_telemetry_config = embassy_nrf::uarte::Config::default();
+        esc_telemetry_config.baudrate = Baudrate::BAUD115200;
+        esc_telemetry_config.parity = Parity::EXCLUDED;
+        let esc_telemetry_rx = UartRx::new(peripherals, Irqs, pin.degrade(), esc_telemetry_config);
+
+        Self { esc_telemetry_rx }
+    }
+}
+
+/// DShot frame construction lives in the host-tested core crate.
+use firmware_drone_core::dshot;
+
+/// DShot300 motor driver.
+///
+/// Drives PWM0 + EasyDMA with a *digital DShot300* bitstream: each PWM period is
+/// one DShot bit, the 16-bit frame is followed by a low inter-frame gap, and the
+/// whole loop repeats forever so the ESC sees a continuous frame stream (a DShot
+/// ESC disarms if the signal stops). Throttle updates rewrite the frame words in
+/// place; a torn frame simply fails its CRC at the ESC and is dropped, so no
+/// double-buffering is needed.
+///
+/// The looped buffer uses an "off-ticks" word convention (`word = BIT_TICKS -
+/// high_ticks`), giving each bit a HIGH pulse of `high_ticks` at the START of the
+/// bit period (a rising edge at each bit boundary). If a scope ever shows it
+/// inverted (high at the end of the bit), flip the one line in [`Motors::word`].
 pub struct Motors {
-    // Kept alive so its `Drop` (which resets the output pins) never runs. The
-    // waveform is generated entirely by EasyDMA looping over `MOTOR_DUTIES`;
-    // nothing in this struct is touched per period. Same kept-alive convention
-    // as `StatusLed::_row`.
+    // Kept alive so its `Drop` never runs; the waveform is generated entirely by
+    // EasyDMA looping over `DSHOT_WORDS`. Same kept-alive convention as
+    // `StatusLed::_row`.
     _pwm: pwm::SequencePwm<'static, peripherals::PWM0>,
 }
 
-/// Per-channel PWM compare values in "off-ticks" (0 = full on, `PERIOD_TICKS` =
-/// full off), read continuously by EasyDMA. Written by [`Motors::set_all_motors`]
-/// and picked up on the next PWM period. Interior mutability is required because
-/// the DMA loops over this buffer forever while the CPU updates it in place; see
-/// [`Motors::new`].
+/// Looped DShot sequence: `FRAME_BITS` bit-periods then `GAP_PERIODS` low
+/// periods, four interleaved channel words per period (Individual load). Written
+/// in place by [`Motors::set_all_motors`], read continuously by EasyDMA. Init to
+/// the all-low word; [`Motors::new`] then lays STOP frames over the bit region.
 ///
-/// The array index is the motor, in the Betaflight-style X layout (props-out
-/// rotation). Viewed from above, front between the two forward arms:
+/// The four channels map to the motors in the Betaflight-style X layout
+/// (props-out rotation). Viewed from above, front between the two forward arms:
 ///
 /// ```text
 ///           front
@@ -163,10 +184,10 @@ pub struct Motors {
 ///           rear
 /// ```
 ///
-/// - `[0]` = M1: ch0 / P0.02, rear-right, CCW
-/// - `[1]` = M2: ch1 / P0.12, front-right, CW
-/// - `[2]` = M3: ch2 / P0.09, rear-left, CW
-/// - `[3]` = M4: ch3 / P0.10, front-left, CCW
+/// - channel 0 = M1: P0.02, rear-right, CCW
+/// - channel 1 = M2: P0.12, front-right, CW
+/// - channel 2 = M3: P0.09, rear-left, CW
+/// - channel 3 = M4: P0.10, front-left, CCW
 ///
 /// NB: the pin order looks reversed on purpose -- see the "MOTOR WIRING" note
 /// in the pin map at the top of this module.
@@ -175,146 +196,9 @@ pub struct Motors {
 /// confirmed props-off on the bench; the mixer's yaw sign depends on them (see
 /// ADR 0023 and the pin map above). The order matches `MotorCommand`'s
 /// `motor1..motor4` fields, which [`Motors::set_all_motors`] writes here in turn.
-#[cfg(not(feature = "motor-dshot"))]
-static MOTOR_DUTIES: [AtomicU16; 4] = [
-    AtomicU16::new(Motors::PERIOD_TICKS),
-    AtomicU16::new(Motors::PERIOD_TICKS),
-    AtomicU16::new(Motors::PERIOD_TICKS),
-    AtomicU16::new(Motors::PERIOD_TICKS),
-];
-
-#[cfg(not(feature = "motor-dshot"))]
-impl Motors {
-    /// ESC frame rate. 400 Hz is the practical ceiling for standard 1-2 ms
-    /// servo PWM (2 ms pulse plus a low gap); see the Blueson A1 / AM32 notes.
-    const REFRESH_HZ: u32 = 400;
-
-    /// PWM tick rate. `Div16` -> 16 MHz / 16 = 1 MHz, so 1 tick = 1 us.
-    const TICK_HZ: u32 = 1_000_000;
-
-    /// PWM period (COUNTERTOP) in ticks: one frame at [`Self::REFRESH_HZ`].
-    const PERIOD_TICKS: u16 = (Self::TICK_HZ / Self::REFRESH_HZ) as u16;
-
-    /// ESC pulse endpoints, in ticks == microseconds (holds while 1 tick = 1 us).
-    const MIN_PULSE_TICKS: u16 = 1000; // 1 ms - idle / min throttle
-    const MAX_PULSE_TICKS: u16 = 2000; // 2 ms - full throttle
-
-    pub fn new(
-        peripherals: peripherals::PWM0,
-        motor1: impl Pin,
-        motor2: impl Pin,
-        motor3: impl Pin,
-        motor4: impl Pin,
-    ) -> Self {
-        let mut config = pwm::Config::default();
-        config.prescaler = pwm::Prescaler::Div16; // 16 MHz / 16 = 1 MHz (1 tick = 1 us)
-        config.max_duty = Self::PERIOD_TICKS; // COUNTERTOP: one frame at REFRESH_HZ
-        config.sequence_load = pwm::SequenceLoad::Individual; // 4 words/period, one compare per channel
-        config.counter_mode = pwm::CounterMode::Up;
-
-        let mut pwm =
-            pwm::SequencePwm::new_4ch(peripherals, motor1, motor2, motor3, motor4, config).unwrap();
-
-        // EasyDMA reads the compare values straight out of `MOTOR_DUTIES`. The
-        // driver wants a `&[u16]`; `AtomicU16` is layout-compatible with `u16`,
-        // so expose the buffer as a raw slice for the DMA pointer while we keep
-        // writing through the atomics. This `&[u16]` is only live until the
-        // sequencer is forgotten below; afterwards the only accessors are the
-        // hardware DMA pointer and the atomic stores in `set_throttle`, so no
-        // live `&[u16]` aliases the memory we mutate.
-        // SAFETY: the pointer is valid, aligned and spans exactly `len()` u16s.
-        let words: &[u16] = unsafe {
-            core::slice::from_raw_parts(MOTOR_DUTIES.as_ptr().cast(), MOTOR_DUTIES.len())
-        };
-
-        // Start the sequence looping forever. From here the hardware
-        // `loopsdone -> seqstart0` short re-triggers it every period with no CPU
-        // involvement, so `set_throttle` never has to wait on the peripheral.
-        let sequencer = pwm::SingleSequencer::new(&mut pwm, words, pwm::SequenceConfig::default());
-        sequencer.start(pwm::SingleSequenceMode::Infinite).unwrap();
-
-        // The sequencer only borrows `pwm`; drop it without stopping the running
-        // sequence so we can move `pwm` into the returned struct.
-        core::mem::forget(sequencer);
-
-        Self { _pwm: pwm }
-    }
-
-    // API symmetry / failsafe path: drive every channel to idle (full off).
-    #[expect(dead_code)]
-    pub fn disable(&mut self) {
-        for duty in &MOTOR_DUTIES {
-            duty.store(Self::PERIOD_TICKS, Ordering::Relaxed);
-        }
-    }
-
-    fn calc_off_ticks(throttle: ThrottleCommand) -> u16 {
-        // ESCs inherit the classic RC servo protocol: throttle is encoded in the
-        // *width* of the high pulse.
-        // 1 ms (MIN_PULSE_TICKS) = idle / min throttle
-        // 2 ms (MAX_PULSE_TICKS) = full throttle, and the
-        // 1-2 ms band in between maps linearly to 0..1. The pulse width is
-        // independent of the frame period (REFRESH_HZ); the rest of each frame is
-        // just low dead time the ESC ignores.
-        let span = f32::from(Self::MAX_PULSE_TICKS - Self::MIN_PULSE_TICKS);
-        let on_ticks = f32::from(Self::MIN_PULSE_TICKS) + throttle.as_normalised() * span;
-
-        // The compare value is "off-ticks": 0 = full on, PERIOD_TICKS = full off.
-        Self::PERIOD_TICKS - on_ticks as u16
-    }
-
-    pub fn set_all_motors(&mut self, command: MotorCommand) {
-        let motor1_off_ticks = Self::calc_off_ticks(command.motor1);
-        let motor2_off_ticks = Self::calc_off_ticks(command.motor2);
-        let motor3_off_ticks = Self::calc_off_ticks(command.motor3);
-        let motor4_off_ticks = Self::calc_off_ticks(command.motor4);
-
-        // There is no simple way to atomically update the buffer the EasyDMA is using
-        // The "proper" way to do this would be to use a double-buffered sequence, but that is not supported by the embassy-nrf PWM driver.
-        // Instead, we just update the values in the buffer directly. This is safe because the EasyDMA is reading the values in a loop, and the worst that can happen is that one of the motors gets a slightly incorrect value for one PWM period, which is not a big deal.
-        MOTOR_DUTIES[0].store(motor1_off_ticks, Ordering::Relaxed);
-        MOTOR_DUTIES[1].store(motor2_off_ticks, Ordering::Relaxed);
-        MOTOR_DUTIES[2].store(motor3_off_ticks, Ordering::Relaxed);
-        MOTOR_DUTIES[3].store(motor4_off_ticks, Ordering::Relaxed);
-    }
-}
-
-/// DShot frame construction lives in the host-tested core crate.
-#[cfg(feature = "motor-dshot")]
-use firmware_drone_core::dshot;
-
-/// DShot300 motor driver (Cargo feature `motor-dshot`).
-///
-/// Compile-time alternative to the analog-PWM [`Motors`] above. Reuses PWM0 +
-/// EasyDMA but plays a *digital DShot300* bitstream instead of a servo pulse:
-/// each PWM period is one DShot bit, the 16-bit frame is followed by a low
-/// inter-frame gap, and the whole loop repeats forever so the ESC sees a
-/// continuous frame stream (a DShot ESC disarms if the signal stops). Throttle
-/// updates rewrite the frame words in place; a torn frame simply fails its CRC
-/// at the ESC and is dropped, so no double-buffering is needed.
-///
-/// VERIFY ON A LOGIC ANALYSER AT BRING-UP: this reuses the PWM driver's proven
-/// "off-ticks" word convention (`word = BIT_TICKS - high_ticks`), giving each
-/// bit a HIGH pulse of `high_ticks`. DShot needs that pulse at the START of the
-/// bit period (a rising edge at each bit boundary). If a scope shows it inverted
-/// (high at the end of the bit), flip the one line in [`Motors::word`].
-#[cfg(feature = "motor-dshot")]
-pub struct Motors {
-    // Kept alive so its `Drop` never runs; the waveform is generated entirely by
-    // EasyDMA looping over `DSHOT_WORDS`. Same kept-alive convention as the PWM
-    // driver and `StatusLed::_row`.
-    _pwm: pwm::SequencePwm<'static, peripherals::PWM0>,
-}
-
-/// Looped DShot sequence: `FRAME_BITS` bit-periods then `GAP_PERIODS` low
-/// periods, four interleaved channel words per period (Individual load). Written
-/// in place by [`Motors::set_all_motors`], read continuously by EasyDMA. Init to
-/// the all-low word; [`Motors::new`] then lays STOP frames over the bit region.
-#[cfg(feature = "motor-dshot")]
 static DSHOT_WORDS: [AtomicU16; Motors::SEQ_LEN] =
     [const { AtomicU16::new(Motors::BIT_TICKS) }; Motors::SEQ_LEN];
 
-#[cfg(feature = "motor-dshot")]
 impl Motors {
     /// PWM clock: Div1 -> 16 MHz (1 tick = 62.5 ns).
     const CLOCK_HZ: u32 = 16_000_000;
@@ -400,7 +284,7 @@ impl Motors {
         if normalised <= 0.0 {
             dshot::STOP
         } else {
-            dshot::throttle_frame(normalised, false)
+            dshot::throttle_frame(normalised, true)
         }
     }
 
@@ -439,6 +323,23 @@ pub struct Imu {
 impl Imu {
     const ACCEL_LSB_PER_G: f32 = 2048.0; // ±16g  range
     const GYRO_LSB_PER_DPS: f32 = 16.4; // ±2000 degrees per second range
+
+    pub fn new(
+        spi: peripherals::SPI3,
+        sck: impl Pin,
+        miso: impl Pin,
+        mosi: impl Pin,
+        cs: impl Pin,
+    ) -> Self {
+        let mut spi_config = spim::Config::default();
+        spi_config.frequency = spim::Frequency::M1;
+        spi_config.mode = spim::MODE_0;
+
+        let spi = Spim::new(spi, Irqs, sck, miso, mosi, spi_config);
+        let cs = Output::new(cs.degrade(), Level::High, OutputDrive::Standard);
+
+        Self { spi, cs }
+    }
 
     pub async fn check_identity(&mut self) -> Result<(), ImuError> {
         self.cs.set_low(); // Drop CS low to select the IMU
