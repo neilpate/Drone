@@ -659,7 +659,7 @@ impl App {
                     ui.end_row();
                     ui.label("kd_roll");
                     ui.add(
-                        egui::Slider::new(&mut self.params.kd_roll, 0.0..=0.1).fixed_decimals(3),
+                        egui::Slider::new(&mut self.params.kd_roll, 0.0..=0.3).fixed_decimals(3),
                     );
                     ui.end_row();
                     ui.label("ki_roll");
@@ -674,7 +674,7 @@ impl App {
                     ui.end_row();
                     ui.label("kd_pitch");
                     ui.add(
-                        egui::Slider::new(&mut self.params.kd_pitch, 0.0..=0.1).fixed_decimals(3),
+                        egui::Slider::new(&mut self.params.kd_pitch, 0.0..=0.3).fixed_decimals(3),
                     );
                     ui.end_row();
                     ui.label("ki_pitch");
@@ -686,7 +686,7 @@ impl App {
                     ui.add(egui::Slider::new(&mut self.params.kp_yaw, 0.0..=0.5).fixed_decimals(3));
                     ui.end_row();
                     ui.label("kd_yaw");
-                    ui.add(egui::Slider::new(&mut self.params.kd_yaw, 0.0..=0.1).fixed_decimals(3));
+                    ui.add(egui::Slider::new(&mut self.params.kd_yaw, 0.0..=0.3).fixed_decimals(3));
                     ui.end_row();
                     ui.label("max_tilt_deg");
                     ui.add(
