@@ -15,6 +15,14 @@ impl AngularRate {
     pub fn as_degrees_per_second(self) -> f32 {
         self.0
     }
+
+    pub fn from_rpm(rpm: f32) -> Self {
+        Self(rpm * 360.0 / 60.0)
+    }
+
+    pub fn as_rpm(self) -> f32 {
+        self.0 * 60.0 / 360.0
+    }
 }
 
 impl Sub<AngularRate> for AngularRate {
