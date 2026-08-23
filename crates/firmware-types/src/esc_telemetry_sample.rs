@@ -1,19 +1,17 @@
-use crate::{AngularRate, BatteryState, ERPM, Temperature};
+use crate::{AngularRate, BatteryState, ERPM, MotorID, Temperature};
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, Default, PartialEq, MaxSize)]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
-pub struct DShotTelemetry {
+pub struct ESCTelemetrySample {
     pub temperature: Temperature,
     pub battery_state: BatteryState,
-    pub motor1_rpm: AngularRate,
-    pub motor2_rpm: AngularRate,
-    pub motor3_rpm: AngularRate,
-    pub motor4_rpm: AngularRate,
+    pub motor_id: MotorID,
+    pub motor_rpm: AngularRate,
 }
 
-impl DShotTelemetry {
+impl ESCTelemetrySample {
     fn check_crc(bytes: &[u8]) -> bool {
         // KISS/BLHeli/AM32 telemetry CRC8: poly 0x07, MSB-first, init 0, folded
         // over the first 9 bytes; byte 9 is the transmitted checksum.
@@ -32,7 +30,7 @@ impl DShotTelemetry {
     }
 
     // `_motor_index` is the parked round-robin slot; wired once per-motor RPM lands (ADR 0027).
-    pub fn from_bytes(bytes: &[u8], _motor_index: u8) -> Option<Self> {
+    pub fn from_bytes(bytes: &[u8], motor_id: MotorID) -> Option<Self> {
         if bytes.len() != 10 {
             return None;
         }
@@ -49,19 +47,11 @@ impl DShotTelemetry {
         let erpm_bytes = [bytes[7], bytes[8]];
         let erpm = ERPM::from_bytes(&erpm_bytes);
 
-        // match motor_index {
-        //     0 :
-        // }
-
-        // let motor1_rpm = RPM::from_/bytes(&motor_rpm);
-
         Some(Self {
             temperature,
             battery_state,
-            motor1_rpm: AngularRate::from_rpm(erpm.as_motor_rpm()),
-            motor2_rpm: AngularRate::from_rpm(erpm.as_motor_rpm()),
-            motor3_rpm: AngularRate::from_rpm(erpm.as_motor_rpm()),
-            motor4_rpm: AngularRate::from_rpm(erpm.as_motor_rpm()),
+            motor_id,
+            motor_rpm: AngularRate::from_rpm(erpm.as_motor_rpm()),
         })
     }
 }
@@ -74,7 +64,7 @@ mod tests {
     fn good_values() {
         let bytes = [0x1f, 0x06, 0x31, 0x03, 0x52, 0x00, 0xd2, 0x05, 0xdc, 0x0c];
 
-        let telemetry = DShotTelemetry::from_bytes(&bytes, 0).unwrap();
+        let telemetry = ESCTelemetrySample::from_bytes(&bytes, MotorID::Motor1).unwrap();
 
         assert_eq!(telemetry.temperature.as_celsius(), 31.0);
         assert_eq!(telemetry.battery_state.voltage.as_volts(), 15.85); // Example value
@@ -84,6 +74,6 @@ mod tests {
             210
         ); // Example value
         // 0x05DC = 1500 -> x100 = 150000 eRPM / 6 pole pairs = 25000 rpm
-        assert_eq!(telemetry.motor1_rpm.as_rpm(), 25000.0);
+        assert_eq!(telemetry.motor_rpm.as_rpm(), 25000.0);
     }
 }
