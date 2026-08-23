@@ -10,13 +10,14 @@
 
 use core::sync::atomic::{AtomicU16, Ordering};
 
+use crate::signals::esc_telemetry_sample;
 use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
 use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
-use embassy_nrf::uarte::{self, Baudrate, Parity, UarteRx};
+use embassy_nrf::uarte::{self, Baudrate, Parity, UarteRx, UarteRxWithIdle};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
-use firmware_types::{Acceleration, AngularRate, ImuData, MotorCommand, ThrottleCommand};
+use firmware_types::{Acceleration, AngularRate, ImuData, MotorCommand, MotorID, ThrottleCommand};
 
 pub const NAME: &str = "BBC micro:bit v2";
 
@@ -25,7 +26,7 @@ pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
 
 pub type TemperatureSensor = temp::Temp<'static>;
 pub type Spim3 = spim::Spim<'static, peripherals::SPI3>;
-pub type UartRx = UarteRx<'static, peripherals::UARTE1>;
+pub type EscTelemetryRx = UarteRxWithIdle<'static, peripherals::UARTE1, peripherals::TIMER1>;
 
 bind_interrupts!(struct Irqs {
     RADIO => radio::InterruptHandler<peripherals::RADIO>;
@@ -98,7 +99,7 @@ impl Board {
             radio: Radio::new(p.RADIO, Irqs),
             temperature_sensor: TemperatureSensor::new(p.TEMP, Irqs),
             imu: Imu::new(p.SPI3, p.P0_17, p.P0_01, p.P0_13, p.P1_02),
-            esc_telemetry: ESCTelemetry::new(p.UARTE1, p.P0_26),
+            esc_telemetry: ESCTelemetry::new(p.UARTE1, p.P0_26, p.TIMER1, p.PPI_CH0, p.PPI_CH1),
         }
     }
 }
@@ -125,17 +126,33 @@ impl StatusLed {
 }
 
 pub struct ESCTelemetry {
-    esc_telemetry_rx: UartRx,
+    esc_telemetry_rx: EscTelemetryRx,
 }
 
 impl ESCTelemetry {
-    pub fn new(peripherals: peripherals::UARTE1, pin: impl Pin) -> Self {
+    pub fn new(
+        uarte: peripherals::UARTE1,
+        pin: impl Pin,
+        timer: peripherals::TIMER1,
+        ppi_ch1: peripherals::PPI_CH0,
+        ppi_ch2: peripherals::PPI_CH1,
+    ) -> Self {
         let mut esc_telemetry_config = embassy_nrf::uarte::Config::default();
         esc_telemetry_config.baudrate = Baudrate::BAUD115200;
         esc_telemetry_config.parity = Parity::EXCLUDED;
-        let esc_telemetry_rx = UartRx::new(peripherals, Irqs, pin.degrade(), esc_telemetry_config);
+
+        let rx = UarteRx::new(uarte, Irqs, pin.degrade(), esc_telemetry_config);
+        // Idle-line framing: the timer + PPI stop RX on the inter-frame gap, so
+        // each read re-anchors to a real frame boundary (self-healing sync).
+        let esc_telemetry_rx = rx.with_idle(timer, ppi_ch1, ppi_ch2);
 
         Self { esc_telemetry_rx }
+    }
+
+    /// Read one frame's worth of bytes, returning at the idle gap. Returns the
+    /// byte count (10 for a full frame; fewer means a partial/mid-frame read).
+    pub async fn read(&mut self, buffer: &mut [u8]) -> Result<usize, uarte::Error> {
+        self.esc_telemetry_rx.read_until_idle(buffer).await
     }
 }
 
@@ -270,21 +287,35 @@ impl Motors {
     }
 
     pub fn set_all_motors(&mut self, command: MotorCommand) {
-        Self::write_frame(0, Self::frame_for(command.motor1));
-        Self::write_frame(1, Self::frame_for(command.motor2));
-        Self::write_frame(2, Self::frame_for(command.motor3));
-        Self::write_frame(3, Self::frame_for(command.motor4));
+        let req = esc_telemetry_sample::take_request();
+
+        Self::write_frame(
+            0,
+            Self::frame_for(command.motor1, req == Some(MotorID::Motor1)),
+        );
+        Self::write_frame(
+            1,
+            Self::frame_for(command.motor2, req == Some(MotorID::Motor2)),
+        );
+        Self::write_frame(
+            2,
+            Self::frame_for(command.motor3, req == Some(MotorID::Motor3)),
+        );
+        Self::write_frame(
+            3,
+            Self::frame_for(command.motor4, req == Some(MotorID::Motor4)),
+        );
     }
 
     /// Zero throttle maps to STOP (motor off), preserving the invariant that a
     /// zero command never spins a motor; any positive throttle maps into the
     /// 48..2047 DShot throttle band.
-    fn frame_for(throttle: ThrottleCommand) -> u16 {
+    fn frame_for(throttle: ThrottleCommand, request_telemetry: bool) -> u16 {
         let normalised = throttle.as_normalised();
         if normalised <= 0.0 {
-            dshot::STOP
+            dshot::frame(dshot::STOP, request_telemetry) // stop the motor, but still request telem
         } else {
-            dshot::throttle_frame(normalised, true)
+            dshot::throttle_frame(normalised, request_telemetry)
         }
     }
 

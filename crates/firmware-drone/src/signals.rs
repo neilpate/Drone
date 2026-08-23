@@ -3,6 +3,7 @@ pub mod control_mode_update;
 pub mod control_system_parameter_update;
 pub mod controller_demand;
 pub mod cpu_load;
+pub mod esc_telemetry_sample;
 pub mod imu_calibrate;
 pub mod imu_data;
 pub mod motor_command;

@@ -45,6 +45,7 @@ async fn main(_thread_mode_spawner: Spawner) {
     high_priority_spawner.must_spawn(tasks::supervisor::supervisor());
     high_priority_spawner.must_spawn(tasks::status_led::status_led(board.status_led));
     high_priority_spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
+    high_priority_spawner.must_spawn(tasks::esc_telemetry::esc_telemetry(board.esc_telemetry));
     high_priority_spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
     high_priority_spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
     high_priority_spawner.must_spawn(tasks::sensors_aggregator::sensors_aggregator());

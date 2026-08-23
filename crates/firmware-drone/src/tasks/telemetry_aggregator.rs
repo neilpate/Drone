@@ -3,8 +3,7 @@ use crate::signals::{
     pilot_command, sensors, status, telemetry,
 };
 use embassy_time::{Duration, Ticker};
-use firmware_types::Telemetry;
-use firmware_types::{ImuData, Sensors, Temperature};
+use firmware_types::{ESCTelemetry, ImuData, MotorID, Sensors, Telemetry, Temperature};
 
 #[embassy_executor::task]
 pub async fn telemetry_aggregator() -> ! {
@@ -21,8 +20,11 @@ pub async fn telemetry_aggregator() -> ! {
     let mut motor_command_receiver = motor_command::subscribe();
     let mut imu_processed_receiver = imu_data::subscribe_processed();
     let mut control_mode_receiver = control_mode_update::subscribe();
+    let mut esc_telemetry_sample_receiver = crate::signals::esc_telemetry_sample::subscribe();
 
     let mut ticker = Ticker::every(Duration::from_millis(10));
+
+    let mut esc_telemetry = ESCTelemetry::default();
 
     loop {
         ticker.next().await;
@@ -38,6 +40,7 @@ pub async fn telemetry_aggregator() -> ! {
         let motor_command = motor_command_receiver.get().await;
         let imu_processed = imu_processed_receiver.get().await;
         let control_mode = control_mode_receiver.get().await;
+        let esc_telemetry_sample = esc_telemetry_sample_receiver.get().await;
 
         let sensors_processed = Sensors {
             temperature: Temperature::from_celsius(25.0),
@@ -50,6 +53,19 @@ pub async fn telemetry_aggregator() -> ! {
                 angular_rate_z: imu_processed.angular_rate_z,
             },
         };
+
+        esc_telemetry.temperature = esc_telemetry_sample.temperature;
+        esc_telemetry.battery_state = esc_telemetry_sample.battery_state;
+
+        esc_telemetry.temperature = esc_telemetry_sample.temperature;
+        esc_telemetry.battery_state = esc_telemetry_sample.battery_state;
+        match esc_telemetry_sample.motor_id {
+            MotorID::Motor1 => esc_telemetry.motor1_rpm = esc_telemetry_sample.motor_rpm,
+            MotorID::Motor2 => esc_telemetry.motor2_rpm = esc_telemetry_sample.motor_rpm,
+            MotorID::Motor3 => esc_telemetry.motor3_rpm = esc_telemetry_sample.motor_rpm,
+            MotorID::Motor4 => esc_telemetry.motor4_rpm = esc_telemetry_sample.motor_rpm,
+            MotorID::None => {}
+        }
 
         let state = Telemetry {
             drone_state,
