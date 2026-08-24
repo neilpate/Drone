@@ -1,22 +1,17 @@
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, watch::Watch};
-use firmware_types::TelemetryFrameHighRate;
+use firmware_types::TelemetryFrame;
 
 const MAX_SUBSCRIBERS: usize = 8;
 
-static THROTTLE_COMMAND: Watch<CriticalSectionRawMutex, TelemetryFrameHighRate, MAX_SUBSCRIBERS> =
-    Watch::new();
+static TELEMETRY: Watch<CriticalSectionRawMutex, TelemetryFrame, MAX_SUBSCRIBERS> = Watch::new();
 
-pub type Receiver = embassy_sync::watch::Receiver<
-    'static,
-    CriticalSectionRawMutex,
-    TelemetryFrameHighRate,
-    MAX_SUBSCRIBERS,
->;
+pub type Receiver =
+    embassy_sync::watch::Receiver<'static, CriticalSectionRawMutex, TelemetryFrame, MAX_SUBSCRIBERS>;
 
 pub fn subscribe() -> Receiver {
-    THROTTLE_COMMAND.receiver().unwrap()
+    TELEMETRY.receiver().unwrap()
 }
 
-pub fn set(throttle: TelemetryFrameHighRate) {
-    THROTTLE_COMMAND.sender().send(throttle);
+pub fn set(telemetry: TelemetryFrame) {
+    TELEMETRY.sender().send(telemetry);
 }

@@ -1,10 +1,11 @@
 //! Ground station: throttle + roll/pitch/yaw command sender + telemetry plotter.
 //!
 //! Sends control values as postcard + COBS framed `Command` messages over a
-//! serial port at 115 200 8N1, and receives postcard + COBS framed `Telemetry`
-//! on the same port. A single I/O thread handles both directions (see
-//! `serial_io_thread`) and forwards each decoded `Telemetry` to the UI thread,
-//! which appends it to a set of time series and draws them in a live plot.
+//! serial port at 115 200 8N1, and receives postcard + COBS framed
+//! `TelemetryFrame` on the same port. A single I/O thread handles both
+//! directions (see `serial_io_thread`) and forwards each decoded frame to the
+//! UI thread, which merges it into a running view, appends the high-rate
+//! channels to a set of time series and draws them in a live plot.
 //! Each signal can be shown or hidden with a checkbox.
 
 use std::collections::VecDeque;
@@ -17,9 +18,10 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use firmware_types::{
-    COMMAND_FRAME_MAX_SIZE_BYTES, Command, ControlMode, ControlSystemParameters, DroneState,
-    PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, Telemetry,
-    ThrottleCommand, YawCommand,
+    Acceleration, AngularRate, Attitude, COMMAND_FRAME_MAX_SIZE_BYTES, Command, ControlMode,
+    ControlSystemParameters, ControllerDemand, CpuLoad, DroneState, ImuData, MotorCommand,
+    PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, TelemetryFrame,
+    TelemetryFrameHighRate, TelemetryFrameLowRate, Temperature, ThrottleCommand, YawCommand,
 };
 
 use groundstation::{
@@ -131,6 +133,82 @@ const SERIES_GYRO_FZ: usize = 27;
 /// the next column.
 const MAX_TABLE_ROWS: usize = 10;
 
+/// The ground station's merged view of the latest telemetry. The drone sends
+/// two interleaved frames (high-rate flight data, low-rate housekeeping); this
+/// holds the most recent value of every field so the plot, table and log always
+/// see a complete row. High-rate frames drive new rows; low-rate frames only
+/// refresh their slower-changing fields (ADR 0027).
+#[derive(Clone, Copy)]
+struct TelemetryView {
+    sequence_number: u32,
+    drone_state: DroneState,
+    control_mode: ControlMode,
+    pilot_command: PilotCommand,
+    cpu_load: CpuLoad,
+    temperature: Temperature,
+    imu: ImuData,
+    filtered_angular_rate_x: AngularRate,
+    filtered_angular_rate_y: AngularRate,
+    filtered_angular_rate_z: AngularRate,
+    attitude: Attitude,
+    controller_demand: ControllerDemand,
+    motor_command: MotorCommand,
+    /// The drone's active gains, echoed on the low-rate frame; logged as
+    /// ground-truth instead of the ground station's own slider values.
+    control_parameters: ControlSystemParameters,
+}
+
+impl Default for TelemetryView {
+    fn default() -> Self {
+        Self {
+            sequence_number: 0,
+            drone_state: DroneState::Initialising,
+            control_mode: ControlMode::Manual,
+            pilot_command: PilotCommand::default(),
+            cpu_load: CpuLoad::from_percentage(0.0),
+            temperature: Temperature::from_celsius(0.0),
+            imu: ImuData {
+                acceleration_x: Acceleration::from_g(0.0),
+                acceleration_y: Acceleration::from_g(0.0),
+                acceleration_z: Acceleration::from_g(0.0),
+                angular_rate_x: AngularRate::from_degrees_per_second(0.0),
+                angular_rate_y: AngularRate::from_degrees_per_second(0.0),
+                angular_rate_z: AngularRate::from_degrees_per_second(0.0),
+            },
+            filtered_angular_rate_x: AngularRate::from_degrees_per_second(0.0),
+            filtered_angular_rate_y: AngularRate::from_degrees_per_second(0.0),
+            filtered_angular_rate_z: AngularRate::from_degrees_per_second(0.0),
+            attitude: Attitude::from_degrees(0.0, 0.0),
+            controller_demand: ControllerDemand::ZERO,
+            motor_command: MotorCommand::ZERO,
+            control_parameters: ControlSystemParameters::default(),
+        }
+    }
+}
+
+impl TelemetryView {
+    fn apply_high_rate(&mut self, f: &TelemetryFrameHighRate) {
+        self.sequence_number = f.sequence_number;
+        self.drone_state = f.drone_state;
+        self.pilot_command = f.pilot_command;
+        self.imu = f.imu;
+        self.filtered_angular_rate_x = f.filtered_angular_rate_x;
+        self.filtered_angular_rate_y = f.filtered_angular_rate_y;
+        self.filtered_angular_rate_z = f.filtered_angular_rate_z;
+        self.attitude = f.attitude;
+        self.controller_demand = f.controller_demand;
+        self.motor_command = f.motor_command;
+    }
+
+    fn apply_low_rate(&mut self, f: &TelemetryFrameLowRate) {
+        self.sequence_number = f.sequence_number;
+        self.cpu_load = f.cpu_load;
+        self.control_mode = f.control_mode;
+        self.temperature = f.temperature;
+        self.control_parameters = f.control_parameters;
+    }
+}
+
 struct App {
     port_name: String,
     throttle: f32,
@@ -138,11 +216,11 @@ struct App {
     pitch: f32,
     yaw: f32,
     tx: Option<mpsc::Sender<Command>>,
-    telemetry_rx: Option<mpsc::Receiver<Telemetry>>,
+    telemetry_rx: Option<mpsc::Receiver<TelemetryFrame>>,
     status: String,
     start: Instant,
     series: Vec<Series>,
-    last: Option<Telemetry>,
+    last: Option<TelemetryView>,
     /// Sent commands awaiting their echo in telemetry, with the send instant.
     /// Used to measure the end-to-end round-trip time.
     pending: VecDeque<(Instant, Command)>,
@@ -297,106 +375,84 @@ impl App {
         }
     }
 
-    /// Drain any telemetry delivered by the serial thread into the series.
+    /// Drain any telemetry delivered by the serial thread, merging each frame
+    /// into the running view. High-rate frames drive a new plot/log row;
+    /// low-rate frames only refresh their fields in the view (ADR 0027).
     fn ingest_telemetry(&mut self) {
         let Some(rx) = &self.telemetry_rx else {
             return;
         };
-        let mut samples = Vec::new();
-        while let Ok(telemetry) = rx.try_recv() {
-            samples.push(telemetry);
+        let mut frames = Vec::new();
+        while let Ok(frame) = rx.try_recv() {
+            frames.push(frame);
         }
-        for telemetry in samples {
-            let t = self.start.elapsed().as_secs_f64();
-            // While paused, keep draining, logging, and updating the live
-            // readouts, but freeze the plot series so a box-zoom on the frozen
-            // snapshot stays stable instead of being rescaled by new data.
-            if !self.paused {
-                self.series[SERIES_THROTTLE]
-                    .push(t, telemetry.pilot_command.throttle.as_normalised() as f64);
-                self.series[SERIES_ROLL]
-                    .push(t, telemetry.pilot_command.roll.as_normalised() as f64);
-                self.series[SERIES_PITCH]
-                    .push(t, telemetry.pilot_command.pitch.as_normalised() as f64);
-                self.series[SERIES_YAW].push(t, telemetry.pilot_command.yaw.as_normalised() as f64);
-                self.series[SERIES_DRONE_STATE].push(t, drone_state_code(telemetry.drone_state));
-                self.series[SERIES_SEQUENCE].push(t, telemetry.sequence_number as f64);
-                self.series[SERIES_TEMPERATURE]
-                    .push(t, telemetry.sensors.temperature.as_celsius() as f64);
-                self.series[SERIES_CPU_LOAD].push(t, telemetry.cpu_load.as_percentage() as f64);
-                self.series[SERIES_ACCEL_X]
-                    .push(t, telemetry.sensors.imu.acceleration_x.as_g() as f64);
-                self.series[SERIES_ACCEL_Y]
-                    .push(t, telemetry.sensors.imu.acceleration_y.as_g() as f64);
-                self.series[SERIES_ACCEL_Z]
-                    .push(t, telemetry.sensors.imu.acceleration_z.as_g() as f64);
-                self.series[SERIES_GYRO_X].push(
-                    t,
-                    telemetry.sensors.imu.angular_rate_x.as_degrees_per_second() as f64,
-                );
-                self.series[SERIES_GYRO_Y].push(
-                    t,
-                    telemetry.sensors.imu.angular_rate_y.as_degrees_per_second() as f64,
-                );
-                self.series[SERIES_GYRO_Z].push(
-                    t,
-                    telemetry.sensors.imu.angular_rate_z.as_degrees_per_second() as f64,
-                );
-                self.series[SERIES_GYRO_FX].push(
-                    t,
-                    telemetry
-                        .sensors_processed
-                        .imu
-                        .angular_rate_x
-                        .as_degrees_per_second() as f64,
-                );
-                self.series[SERIES_GYRO_FY].push(
-                    t,
-                    telemetry
-                        .sensors_processed
-                        .imu
-                        .angular_rate_y
-                        .as_degrees_per_second() as f64,
-                );
-                self.series[SERIES_GYRO_FZ].push(
-                    t,
-                    telemetry
-                        .sensors_processed
-                        .imu
-                        .angular_rate_z
-                        .as_degrees_per_second() as f64,
-                );
-                self.series[SERIES_ATTITUDE_ROLL]
-                    .push(t, telemetry.attitude.roll.as_degrees() as f64);
-                self.series[SERIES_ATTITUDE_PITCH]
-                    .push(t, telemetry.attitude.pitch.as_degrees() as f64);
-                self.series[SERIES_DEMAND_ROLL]
-                    .push(t, telemetry.controller_demand.roll.as_normalised() as f64);
-                self.series[SERIES_DEMAND_PITCH]
-                    .push(t, telemetry.controller_demand.pitch.as_normalised() as f64);
-                self.series[SERIES_DEMAND_YAW]
-                    .push(t, telemetry.controller_demand.yaw.as_normalised() as f64);
-                self.series[SERIES_MOTOR_1]
-                    .push(t, telemetry.motor_command.motor1.as_normalised() as f64);
-                self.series[SERIES_MOTOR_2]
-                    .push(t, telemetry.motor_command.motor2.as_normalised() as f64);
-                self.series[SERIES_MOTOR_3]
-                    .push(t, telemetry.motor_command.motor3.as_normalised() as f64);
-                self.series[SERIES_MOTOR_4]
-                    .push(t, telemetry.motor_command.motor4.as_normalised() as f64);
-            } // end: plot series frozen while paused
-            self.match_round_trip(&telemetry.pilot_command);
-            if !self.paused {
-                if let Some(rtt) = self.last_rtt_ms {
-                    self.series[SERIES_RTT].push(t, rtt);
+        for frame in frames {
+            let mut view = self.last.unwrap_or_default();
+            match frame {
+                // Housekeeping only: refresh the slow fields, emit no new row.
+                TelemetryFrame::LowRate(low) => {
+                    view.apply_low_rate(&low);
+                    self.last = Some(view);
                 }
-                if let Some(avg) = self.avg_rtt_ms {
-                    self.series[SERIES_AVG_RTT].push(t, avg);
+                TelemetryFrame::HighRate(high) => {
+                    view.apply_high_rate(&high);
+                    let t = self.start.elapsed().as_secs_f64();
+                    // While paused, keep draining, logging, and updating the live
+                    // readouts, but freeze the plot series so a box-zoom on the
+                    // frozen snapshot stays stable instead of being rescaled.
+                    if !self.paused {
+                        self.push_high_rate_series(t, &view);
+                    }
+                    self.match_round_trip(&view.pilot_command);
+                    if !self.paused {
+                        if let Some(rtt) = self.last_rtt_ms {
+                            self.series[SERIES_RTT].push(t, rtt);
+                        }
+                        if let Some(avg) = self.avg_rtt_ms {
+                            self.series[SERIES_AVG_RTT].push(t, avg);
+                        }
+                    }
+                    self.log_row(t, &view);
+                    self.last = Some(view);
                 }
             }
-            self.log_row(t, &telemetry);
-            self.last = Some(telemetry);
         }
+    }
+
+    /// Append the high-rate channels of `view` to their plot series at time `t`.
+    /// The low-rate-sourced channels (temperature, CPU load) are also plotted
+    /// here, holding their last-known value between low-rate updates.
+    fn push_high_rate_series(&mut self, t: f64, view: &TelemetryView) {
+        self.series[SERIES_THROTTLE].push(t, view.pilot_command.throttle.as_normalised() as f64);
+        self.series[SERIES_ROLL].push(t, view.pilot_command.roll.as_normalised() as f64);
+        self.series[SERIES_PITCH].push(t, view.pilot_command.pitch.as_normalised() as f64);
+        self.series[SERIES_YAW].push(t, view.pilot_command.yaw.as_normalised() as f64);
+        self.series[SERIES_DRONE_STATE].push(t, drone_state_code(view.drone_state));
+        self.series[SERIES_SEQUENCE].push(t, view.sequence_number as f64);
+        self.series[SERIES_TEMPERATURE].push(t, view.temperature.as_celsius() as f64);
+        self.series[SERIES_CPU_LOAD].push(t, view.cpu_load.as_percentage() as f64);
+        self.series[SERIES_ACCEL_X].push(t, view.imu.acceleration_x.as_g() as f64);
+        self.series[SERIES_ACCEL_Y].push(t, view.imu.acceleration_y.as_g() as f64);
+        self.series[SERIES_ACCEL_Z].push(t, view.imu.acceleration_z.as_g() as f64);
+        self.series[SERIES_GYRO_X].push(t, view.imu.angular_rate_x.as_degrees_per_second() as f64);
+        self.series[SERIES_GYRO_Y].push(t, view.imu.angular_rate_y.as_degrees_per_second() as f64);
+        self.series[SERIES_GYRO_Z].push(t, view.imu.angular_rate_z.as_degrees_per_second() as f64);
+        self.series[SERIES_GYRO_FX]
+            .push(t, view.filtered_angular_rate_x.as_degrees_per_second() as f64);
+        self.series[SERIES_GYRO_FY]
+            .push(t, view.filtered_angular_rate_y.as_degrees_per_second() as f64);
+        self.series[SERIES_GYRO_FZ]
+            .push(t, view.filtered_angular_rate_z.as_degrees_per_second() as f64);
+        self.series[SERIES_ATTITUDE_ROLL].push(t, view.attitude.roll.as_degrees() as f64);
+        self.series[SERIES_ATTITUDE_PITCH].push(t, view.attitude.pitch.as_degrees() as f64);
+        self.series[SERIES_DEMAND_ROLL].push(t, view.controller_demand.roll.as_normalised() as f64);
+        self.series[SERIES_DEMAND_PITCH]
+            .push(t, view.controller_demand.pitch.as_normalised() as f64);
+        self.series[SERIES_DEMAND_YAW].push(t, view.controller_demand.yaw.as_normalised() as f64);
+        self.series[SERIES_MOTOR_1].push(t, view.motor_command.motor1.as_normalised() as f64);
+        self.series[SERIES_MOTOR_2].push(t, view.motor_command.motor2.as_normalised() as f64);
+        self.series[SERIES_MOTOR_3].push(t, view.motor_command.motor3.as_normalised() as f64);
+        self.series[SERIES_MOTOR_4].push(t, view.motor_command.motor4.as_normalised() as f64);
     }
 
     /// Start writing every incoming telemetry frame to a fresh timestamped TSV
@@ -446,11 +502,13 @@ impl App {
         }
     }
 
-    /// Append one TSV row for `telemetry` if logging is active.
-    fn log_row(&mut self, t: f64, telemetry: &Telemetry) {
+    /// Append one TSV row for `telemetry` if logging is active. The gains are
+    /// the drone's echoed active parameters (ground-truth), not the ground
+    /// station's own slider values.
+    fn log_row(&mut self, t: f64, telemetry: &TelemetryView) {
         let rtt = self.last_rtt_ms;
         let avg = self.avg_rtt_ms;
-        let p = self.params;
+        let p = telemetry.control_parameters;
         let Some(writer) = self.log_file.as_mut() else {
             return;
         };
@@ -473,31 +531,19 @@ impl App {
             roll = telemetry.pilot_command.roll.as_normalised(),
             pitch = telemetry.pilot_command.pitch.as_normalised(),
             yaw = telemetry.pilot_command.yaw.as_normalised(),
-            temp = telemetry.sensors.temperature.as_celsius(),
+            temp = telemetry.temperature.as_celsius(),
             cpu = telemetry.cpu_load.as_percentage(),
             rtt = opt(rtt),
             avg = opt(avg),
-            ax = telemetry.sensors.imu.acceleration_x.as_g(),
-            ay = telemetry.sensors.imu.acceleration_y.as_g(),
-            az = telemetry.sensors.imu.acceleration_z.as_g(),
-            gx = telemetry.sensors.imu.angular_rate_x.as_degrees_per_second(),
-            gy = telemetry.sensors.imu.angular_rate_y.as_degrees_per_second(),
-            gz = telemetry.sensors.imu.angular_rate_z.as_degrees_per_second(),
-            gfx = telemetry
-                .sensors_processed
-                .imu
-                .angular_rate_x
-                .as_degrees_per_second(),
-            gfy = telemetry
-                .sensors_processed
-                .imu
-                .angular_rate_y
-                .as_degrees_per_second(),
-            gfz = telemetry
-                .sensors_processed
-                .imu
-                .angular_rate_z
-                .as_degrees_per_second(),
+            ax = telemetry.imu.acceleration_x.as_g(),
+            ay = telemetry.imu.acceleration_y.as_g(),
+            az = telemetry.imu.acceleration_z.as_g(),
+            gx = telemetry.imu.angular_rate_x.as_degrees_per_second(),
+            gy = telemetry.imu.angular_rate_y.as_degrees_per_second(),
+            gz = telemetry.imu.angular_rate_z.as_degrees_per_second(),
+            gfx = telemetry.filtered_angular_rate_x.as_degrees_per_second(),
+            gfy = telemetry.filtered_angular_rate_y.as_degrees_per_second(),
+            gfz = telemetry.filtered_angular_rate_z.as_degrees_per_second(),
             att_roll = telemetry.attitude.roll.as_degrees(),
             att_pitch = telemetry.attitude.pitch.as_degrees(),
             dem_roll = telemetry.controller_demand.roll.as_normalised(),
@@ -547,7 +593,7 @@ impl App {
     /// command channel (UI -> thread) and the telemetry channel (thread -> UI).
     fn connect(&mut self, ctx: egui::Context) {
         let (cmd_tx, cmd_rx) = mpsc::channel::<Command>();
-        let (telemetry_tx, telemetry_rx) = mpsc::channel::<Telemetry>();
+        let (telemetry_tx, telemetry_rx) = mpsc::channel::<TelemetryFrame>();
 
         let port = match serialport::new(&self.port_name, 115_200)
             .timeout(Duration::from_millis(50))
@@ -783,7 +829,7 @@ impl App {
                 "Temperature",
                 SERIES_TEMPERATURE,
                 last.map_or_else(dash, |t| {
-                    format!("{:.2} \u{00B0}C", t.sensors.temperature.as_celsius())
+                    format!("{:.2} \u{00B0}C", t.temperature.as_celsius())
                 }),
             ),
             (
@@ -805,21 +851,21 @@ impl App {
                 "Accel X",
                 SERIES_ACCEL_X,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3} g", t.sensors.imu.acceleration_x.as_g())
+                    format!("{:+.3} g", t.imu.acceleration_x.as_g())
                 }),
             ),
             (
                 "Accel Y",
                 SERIES_ACCEL_Y,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3} g", t.sensors.imu.acceleration_y.as_g())
+                    format!("{:+.3} g", t.imu.acceleration_y.as_g())
                 }),
             ),
             (
                 "Accel Z",
                 SERIES_ACCEL_Z,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3} g", t.sensors.imu.acceleration_z.as_g())
+                    format!("{:+.3} g", t.imu.acceleration_z.as_g())
                 }),
             ),
             (
@@ -828,7 +874,7 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!(
                         "{:+.1} dps",
-                        t.sensors.imu.angular_rate_x.as_degrees_per_second()
+                        t.imu.angular_rate_x.as_degrees_per_second()
                     )
                 }),
             ),
@@ -838,7 +884,7 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!(
                         "{:+.1} dps",
-                        t.sensors.imu.angular_rate_y.as_degrees_per_second()
+                        t.imu.angular_rate_y.as_degrees_per_second()
                     )
                 }),
             ),
@@ -848,7 +894,7 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!(
                         "{:+.1} dps",
-                        t.sensors.imu.angular_rate_z.as_degrees_per_second()
+                        t.imu.angular_rate_z.as_degrees_per_second()
                     )
                 }),
             ),
@@ -858,10 +904,7 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!(
                         "{:+.1} dps",
-                        t.sensors_processed
-                            .imu
-                            .angular_rate_x
-                            .as_degrees_per_second()
+                        t.filtered_angular_rate_x.as_degrees_per_second()
                     )
                 }),
             ),
@@ -871,10 +914,7 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!(
                         "{:+.1} dps",
-                        t.sensors_processed
-                            .imu
-                            .angular_rate_y
-                            .as_degrees_per_second()
+                        t.filtered_angular_rate_y.as_degrees_per_second()
                     )
                 }),
             ),
@@ -884,10 +924,7 @@ impl App {
                 last.map_or_else(dash, |t| {
                     format!(
                         "{:+.1} dps",
-                        t.sensors_processed
-                            .imu
-                            .angular_rate_z
-                            .as_degrees_per_second()
+                        t.filtered_angular_rate_z.as_degrees_per_second()
                     )
                 }),
             ),
@@ -1200,7 +1237,7 @@ impl eframe::App for App {
 fn serial_io_thread(
     mut port: Box<dyn serialport::SerialPort>,
     rx: mpsc::Receiver<Command>,
-    telemetry_tx: mpsc::Sender<Telemetry>,
+    telemetry_tx: mpsc::Sender<TelemetryFrame>,
     ctx: egui::Context,
 ) {
     let mut buf = [0u8; MAX_SEND_BUFFER_SIZE]; // serialization scratch
@@ -1222,7 +1259,7 @@ fn serial_io_thread(
             Ok(n) => {
                 let mut window = &raw[..n];
                 while !window.is_empty() {
-                    window = match cobs.feed::<Telemetry>(window) {
+                    window = match cobs.feed::<TelemetryFrame>(window) {
                         FeedResult::Consumed => break,        // buffered, need more bytes
                         FeedResult::OverFull(rest) => rest,   // frame too big -> resync
                         FeedResult::DeserError(rest) => rest, // garbage -> resync

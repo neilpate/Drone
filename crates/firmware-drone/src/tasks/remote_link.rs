@@ -2,7 +2,7 @@ use embassy_nrf::radio;
 use embassy_nrf::radio::ieee802154::Packet;
 use embassy_time::{Duration, with_timeout};
 use firmware_types::{
-    Command, PilotCommand, RadioMessage, TELEMETRY_FRAME_MAX_SIZE_BYTES, TelemetryFrameHighRate,
+    Command, PilotCommand, RadioMessage, TELEMETRY_FRAME_MAX_SIZE_BYTES, TelemetryFrame,
 };
 
 use crate::board::Radio;
@@ -38,7 +38,7 @@ async fn receive(radio: &mut Radio) -> Option<RadioMessage> {
     }
 }
 
-async fn send(radio: &mut Radio, telemetry: TelemetryFrameHighRate) -> Result<(), radio::Error> {
+async fn send(radio: &mut Radio, telemetry: TelemetryFrame) -> Result<(), radio::Error> {
     let mut scratch = [0u8; TELEMETRY_FRAME_MAX_SIZE_BYTES]; //Working space for serialization
 
     //bytes_to_send is a subslice of scratch which contains the serialized TelemetryState
