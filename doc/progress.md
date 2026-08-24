@@ -2,6 +2,16 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-08-24 — Telemetry split into high/low-rate frames, and ESC telemetry on the ground station
+
+Yesterday's ESC serial-telemetry bring-up produced data the radio frame had no room for. Today that data reached the ground station, by splitting the drone-to-remote telemetry into two interleaved frames.
+
+**High/low-rate frame split ([ADR 0027](decisions/0027-split-telemetry-high-low-rate.md)).** The single `Telemetry` type was already sitting on the 802.15.4 packet ceiling (~123 of ~125 usable bytes), with no room for the 31-byte ESC block. It became a tagged `TelemetryFrame { HighRate, LowRate }` enum. The **high-rate** frame (every ~10 ms round-trip) carries the flight-critical stream — raw IMU, filtered gyro, attitude, pilot command, controller demand, motor command, drone state — and drops the duplicated accelerometer the old frame wasted. The **low-rate** frame (every 10th cycle, ~10 Hz) carries housekeeping — CPU load, control mode, chip temperature, the full four-motor ESC telemetry, and the drone's *active* control gains echoed back for ground-truth logging. The aggregator stays the single publisher and now owns the interleave schedule; the remote relays whichever frame arrives; the ground station merges both into a running view so its plot, table and TSV log always see a complete row, with the low-rate columns simply updating at their slower cadence (the ADR's merge rule). A pleasant side effect of the leaner high-rate frame: the telemetry feels visibly snappier.
+
+**ESC telemetry on the ground station.** Per-motor RPM, pack voltage, ESC temperature and consumed-mAh now appear as live plot series, table rows and TSV columns — the offline `analyze` tool is header-driven, so it kept working untouched. The ESC's current reading is discarded at the source: the AM32 shunt is uncalibrated and reads a constant ~9 A offset, which would otherwise also poison the consumed-mAh integral.
+
+**Ground-station readout, tidied.** The flat telemetry list became labelled, fixed-width category boxes — System, Pilot command, Attitude, Accelerometer, Gyro, Controller demand, Motor command, ESC / power — stacked in vertical columns. Numeric values are right-justified in a fixed-width monospace field so a fluctuating reading no longer jitters, and the forced `+` sign was dropped.
+
 ## 2026-08-23 — DShot, the M4 asymmetry solved, first hover on the new drivetrain, and ESC serial telemetry
 
 The weekend the motor drivetrain went digital. Outgoing **DShot300** replaced analog servo PWM — and in doing so solved a fault that had been fought for weeks; the drivetrain was retuned on the now-symmetric plant and hovered under control on DShot; and a full **ESC serial-telemetry** path was brought up for per-motor RPM, pack voltage and temperature.
