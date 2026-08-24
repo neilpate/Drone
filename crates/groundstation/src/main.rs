@@ -808,21 +808,21 @@ impl App {
                 "Roll",
                 SERIES_ROLL,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3}", t.pilot_command.roll.as_normalised())
+                    format!("{:.3}", t.pilot_command.roll.as_normalised())
                 }),
             ),
             (
                 "Pitch",
                 SERIES_PITCH,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3}", t.pilot_command.pitch.as_normalised())
+                    format!("{:.3}", t.pilot_command.pitch.as_normalised())
                 }),
             ),
             (
                 "Yaw",
                 SERIES_YAW,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3}", t.pilot_command.yaw.as_normalised())
+                    format!("{:.3}", t.pilot_command.yaw.as_normalised())
                 }),
             ),
             (
@@ -851,21 +851,21 @@ impl App {
                 "Accel X",
                 SERIES_ACCEL_X,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3} g", t.imu.acceleration_x.as_g())
+                    format!("{:.3} g", t.imu.acceleration_x.as_g())
                 }),
             ),
             (
                 "Accel Y",
                 SERIES_ACCEL_Y,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3} g", t.imu.acceleration_y.as_g())
+                    format!("{:.3} g", t.imu.acceleration_y.as_g())
                 }),
             ),
             (
                 "Accel Z",
                 SERIES_ACCEL_Z,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3} g", t.imu.acceleration_z.as_g())
+                    format!("{:.3} g", t.imu.acceleration_z.as_g())
                 }),
             ),
             (
@@ -873,7 +873,7 @@ impl App {
                 SERIES_GYRO_X,
                 last.map_or_else(dash, |t| {
                     format!(
-                        "{:+.1} dps",
+                        "{:.1} dps",
                         t.imu.angular_rate_x.as_degrees_per_second()
                     )
                 }),
@@ -883,7 +883,7 @@ impl App {
                 SERIES_GYRO_Y,
                 last.map_or_else(dash, |t| {
                     format!(
-                        "{:+.1} dps",
+                        "{:.1} dps",
                         t.imu.angular_rate_y.as_degrees_per_second()
                     )
                 }),
@@ -893,7 +893,7 @@ impl App {
                 SERIES_GYRO_Z,
                 last.map_or_else(dash, |t| {
                     format!(
-                        "{:+.1} dps",
+                        "{:.1} dps",
                         t.imu.angular_rate_z.as_degrees_per_second()
                     )
                 }),
@@ -903,7 +903,7 @@ impl App {
                 SERIES_GYRO_FX,
                 last.map_or_else(dash, |t| {
                     format!(
-                        "{:+.1} dps",
+                        "{:.1} dps",
                         t.filtered_angular_rate_x.as_degrees_per_second()
                     )
                 }),
@@ -913,7 +913,7 @@ impl App {
                 SERIES_GYRO_FY,
                 last.map_or_else(dash, |t| {
                     format!(
-                        "{:+.1} dps",
+                        "{:.1} dps",
                         t.filtered_angular_rate_y.as_degrees_per_second()
                     )
                 }),
@@ -923,7 +923,7 @@ impl App {
                 SERIES_GYRO_FZ,
                 last.map_or_else(dash, |t| {
                     format!(
-                        "{:+.1} dps",
+                        "{:.1} dps",
                         t.filtered_angular_rate_z.as_degrees_per_second()
                     )
                 }),
@@ -932,35 +932,35 @@ impl App {
                 "Attitude roll",
                 SERIES_ATTITUDE_ROLL,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} deg", t.attitude.roll.as_degrees())
+                    format!("{:.1} deg", t.attitude.roll.as_degrees())
                 }),
             ),
             (
                 "Attitude pitch",
                 SERIES_ATTITUDE_PITCH,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.1} deg", t.attitude.pitch.as_degrees())
+                    format!("{:.1} deg", t.attitude.pitch.as_degrees())
                 }),
             ),
             (
                 "Demand roll",
                 SERIES_DEMAND_ROLL,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3}", t.controller_demand.roll.as_normalised())
+                    format!("{:.3}", t.controller_demand.roll.as_normalised())
                 }),
             ),
             (
                 "Demand pitch",
                 SERIES_DEMAND_PITCH,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3}", t.controller_demand.pitch.as_normalised())
+                    format!("{:.3}", t.controller_demand.pitch.as_normalised())
                 }),
             ),
             (
                 "Demand yaw",
                 SERIES_DEMAND_YAW,
                 last.map_or_else(dash, |t| {
-                    format!("{:+.3}", t.controller_demand.yaw.as_normalised())
+                    format!("{:.3}", t.controller_demand.yaw.as_normalised())
                 }),
             ),
             (
@@ -1005,7 +1005,10 @@ impl App {
                         .show(ui, |ui| {
                             for (label, idx, value) in chunk {
                                 ui.checkbox(&mut self.series[*idx].visible, *label);
-                                ui.label(value.as_str());
+                                // Right-justify in a fixed-width monospace field so a
+                                // fluctuating value's digits stay put instead of jittering,
+                                // without the cell stealing the whole row's width.
+                                ui.monospace(format!("{value:>12}"));
                                 ui.end_row();
                             }
                         });
