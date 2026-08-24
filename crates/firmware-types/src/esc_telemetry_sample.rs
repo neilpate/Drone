@@ -70,7 +70,8 @@ mod tests {
 
         assert_eq!(telemetry.temperature.as_celsius(), 31.0);
         assert_eq!(telemetry.battery_state.voltage.as_volts(), 15.85); // Example value
-        assert_eq!(telemetry.battery_state.current.as_amps(), 8.5); // Example value
+        // Current is forced to zero on decode: the ESC's shunt is uncalibrated.
+        assert_eq!(telemetry.battery_state.current.as_amps(), 0.0);
         assert_eq!(
             telemetry.battery_state.consumed_current.as_milliamphours(),
             210
