@@ -19,9 +19,10 @@ use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use firmware_types::{
     Acceleration, AngularRate, Attitude, COMMAND_FRAME_MAX_SIZE_BYTES, Command, ControlMode,
-    ControlSystemParameters, ControllerDemand, CpuLoad, DroneState, ImuData, MotorCommand,
-    PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES, TelemetryFrame,
-    TelemetryFrameHighRate, TelemetryFrameLowRate, Temperature, ThrottleCommand, YawCommand,
+    ControlSystemParameters, ControllerDemand, CpuLoad, DroneState, ESCTelemetry, ImuData,
+    MotorCommand, PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES,
+    TelemetryFrame, TelemetryFrameHighRate, TelemetryFrameLowRate, Temperature, ThrottleCommand,
+    YawCommand,
 };
 
 use groundstation::{
@@ -128,10 +129,19 @@ const SERIES_MOTOR_4: usize = 24;
 const SERIES_GYRO_FX: usize = 25;
 const SERIES_GYRO_FY: usize = 26;
 const SERIES_GYRO_FZ: usize = 27;
+const SERIES_ESC_TEMP: usize = 28;
+const SERIES_PACK_VOLTAGE: usize = 29;
+const SERIES_PACK_CURRENT: usize = 30;
+const SERIES_CONSUMED: usize = 31;
+const SERIES_MOTOR_1_RPM: usize = 32;
+const SERIES_MOTOR_2_RPM: usize = 33;
+const SERIES_MOTOR_3_RPM: usize = 34;
+const SERIES_MOTOR_4_RPM: usize = 35;
+/// Number of plot series; also the length of the by-series lookup table.
+const SERIES_COUNT: usize = SERIES_MOTOR_4_RPM + 1;
 
-/// Maximum number of rows in one telemetry-table column before wrapping into
-/// the next column.
-const MAX_TABLE_ROWS: usize = 10;
+/// Fixed width, in points, for every telemetry category box so they all align.
+const TELEMETRY_BOX_WIDTH: f32 = 210.0;
 
 /// The ground station's merged view of the latest telemetry. The drone sends
 /// two interleaved frames (high-rate flight data, low-rate housekeeping); this
@@ -153,6 +163,7 @@ struct TelemetryView {
     attitude: Attitude,
     controller_demand: ControllerDemand,
     motor_command: MotorCommand,
+    esc_telemetry: ESCTelemetry,
     /// The drone's active gains, echoed on the low-rate frame; logged as
     /// ground-truth instead of the ground station's own slider values.
     control_parameters: ControlSystemParameters,
@@ -181,6 +192,7 @@ impl Default for TelemetryView {
             attitude: Attitude::from_degrees(0.0, 0.0),
             controller_demand: ControllerDemand::ZERO,
             motor_command: MotorCommand::ZERO,
+            esc_telemetry: ESCTelemetry::default(),
             control_parameters: ControlSystemParameters::default(),
         }
     }
@@ -205,6 +217,7 @@ impl TelemetryView {
         self.cpu_load = f.cpu_load;
         self.control_mode = f.control_mode;
         self.temperature = f.temperature;
+        self.esc_telemetry = f.esc_telemetry;
         self.control_parameters = f.control_parameters;
     }
 }
@@ -315,6 +328,18 @@ impl Default for App {
                     egui::Color32::from_rgb(210, 210, 255),
                 )
                 .hidden(),
+                Series::new(
+                    "ESC temp (\u{00B0}C)",
+                    egui::Color32::from_rgb(255, 160, 80),
+                )
+                .hidden(),
+                Series::new("Pack voltage (V)", egui::Color32::from_rgb(120, 200, 100)).hidden(),
+                Series::new("Pack current (A)", egui::Color32::from_rgb(230, 120, 120)).hidden(),
+                Series::new("Consumed (mAh)", egui::Color32::from_rgb(180, 180, 120)).hidden(),
+                Series::new("Motor 1 RPM", egui::Color32::from_rgb(255, 140, 140)).hidden(),
+                Series::new("Motor 2 RPM", egui::Color32::from_rgb(140, 230, 160)).hidden(),
+                Series::new("Motor 3 RPM", egui::Color32::from_rgb(140, 190, 255)).hidden(),
+                Series::new("Motor 4 RPM", egui::Color32::from_rgb(240, 200, 110)).hidden(),
             ],
             last: None,
             pending: VecDeque::new(),
@@ -437,12 +462,18 @@ impl App {
         self.series[SERIES_GYRO_X].push(t, view.imu.angular_rate_x.as_degrees_per_second() as f64);
         self.series[SERIES_GYRO_Y].push(t, view.imu.angular_rate_y.as_degrees_per_second() as f64);
         self.series[SERIES_GYRO_Z].push(t, view.imu.angular_rate_z.as_degrees_per_second() as f64);
-        self.series[SERIES_GYRO_FX]
-            .push(t, view.filtered_angular_rate_x.as_degrees_per_second() as f64);
-        self.series[SERIES_GYRO_FY]
-            .push(t, view.filtered_angular_rate_y.as_degrees_per_second() as f64);
-        self.series[SERIES_GYRO_FZ]
-            .push(t, view.filtered_angular_rate_z.as_degrees_per_second() as f64);
+        self.series[SERIES_GYRO_FX].push(
+            t,
+            view.filtered_angular_rate_x.as_degrees_per_second() as f64,
+        );
+        self.series[SERIES_GYRO_FY].push(
+            t,
+            view.filtered_angular_rate_y.as_degrees_per_second() as f64,
+        );
+        self.series[SERIES_GYRO_FZ].push(
+            t,
+            view.filtered_angular_rate_z.as_degrees_per_second() as f64,
+        );
         self.series[SERIES_ATTITUDE_ROLL].push(t, view.attitude.roll.as_degrees() as f64);
         self.series[SERIES_ATTITUDE_PITCH].push(t, view.attitude.pitch.as_degrees() as f64);
         self.series[SERIES_DEMAND_ROLL].push(t, view.controller_demand.roll.as_normalised() as f64);
@@ -453,6 +484,24 @@ impl App {
         self.series[SERIES_MOTOR_2].push(t, view.motor_command.motor2.as_normalised() as f64);
         self.series[SERIES_MOTOR_3].push(t, view.motor_command.motor3.as_normalised() as f64);
         self.series[SERIES_MOTOR_4].push(t, view.motor_command.motor4.as_normalised() as f64);
+        self.series[SERIES_ESC_TEMP].push(t, view.esc_telemetry.temperature.as_celsius() as f64);
+        self.series[SERIES_PACK_VOLTAGE].push(
+            t,
+            view.esc_telemetry.battery_state.voltage.as_volts() as f64,
+        );
+        self.series[SERIES_PACK_CURRENT]
+            .push(t, view.esc_telemetry.battery_state.current.as_amps() as f64);
+        self.series[SERIES_CONSUMED].push(
+            t,
+            view.esc_telemetry
+                .battery_state
+                .consumed_current
+                .as_milliamphours() as f64,
+        );
+        self.series[SERIES_MOTOR_1_RPM].push(t, view.esc_telemetry.motor1_rpm.as_rpm() as f64);
+        self.series[SERIES_MOTOR_2_RPM].push(t, view.esc_telemetry.motor2_rpm.as_rpm() as f64);
+        self.series[SERIES_MOTOR_3_RPM].push(t, view.esc_telemetry.motor3_rpm.as_rpm() as f64);
+        self.series[SERIES_MOTOR_4_RPM].push(t, view.esc_telemetry.motor4_rpm.as_rpm() as f64);
     }
 
     /// Start writing every incoming telemetry frame to a fresh timestamped TSV
@@ -473,6 +522,8 @@ impl App {
                      attitude_roll_deg\tattitude_pitch_deg\t\
                      demand_roll\tdemand_pitch\tdemand_yaw\t\
                      motor1\tmotor2\tmotor3\tmotor4\t\
+                     esc_temp_c\tpack_voltage_v\tpack_current_a\tconsumed_mah\t\
+                     motor1_rpm\tmotor2_rpm\tmotor3_rpm\tmotor4_rpm\t\
                      kp_roll\tki_roll\tkd_roll\tkp_pitch\tki_pitch\tkd_pitch\t\
                      kp_yaw\tki_yaw\tkd_yaw";
                 if let Err(e) = writeln!(writer, "{header}") {
@@ -522,6 +573,8 @@ impl App {
              {att_roll:.4}\t{att_pitch:.4}\t\
              {dem_roll:.6}\t{dem_pitch:.6}\t{dem_yaw:.6}\t\
              {m1:.6}\t{m2:.6}\t{m3:.6}\t{m4:.6}\t\
+             {esc_temp:.2}\t{pack_v:.2}\t{pack_a:.2}\t{consumed}\t\
+             {rpm1:.0}\t{rpm2:.0}\t{rpm3:.0}\t{rpm4:.0}\t\
              {kpr:.4}\t{kir:.4}\t{kdr:.4}\t{kpp:.4}\t{kip:.4}\t{kdp:.4}\t\
              {kpy:.4}\t{kiy:.4}\t{kdy:.4}",
             seq = telemetry.sequence_number,
@@ -553,6 +606,18 @@ impl App {
             m2 = telemetry.motor_command.motor2.as_normalised(),
             m3 = telemetry.motor_command.motor3.as_normalised(),
             m4 = telemetry.motor_command.motor4.as_normalised(),
+            esc_temp = telemetry.esc_telemetry.temperature.as_celsius(),
+            pack_v = telemetry.esc_telemetry.battery_state.voltage.as_volts(),
+            pack_a = telemetry.esc_telemetry.battery_state.current.as_amps(),
+            consumed = telemetry
+                .esc_telemetry
+                .battery_state
+                .consumed_current
+                .as_milliamphours(),
+            rpm1 = telemetry.esc_telemetry.motor1_rpm.as_rpm(),
+            rpm2 = telemetry.esc_telemetry.motor2_rpm.as_rpm(),
+            rpm3 = telemetry.esc_telemetry.motor3_rpm.as_rpm(),
+            rpm4 = telemetry.esc_telemetry.motor4_rpm.as_rpm(),
             kpr = p.kp_roll,
             kir = p.ki_roll,
             kdr = p.kd_roll,
@@ -786,7 +851,7 @@ impl App {
         // formatted current value). Built up front so the loop below only
         // borrows `self.series`.
         let dash = || "\u{2014}".to_string();
-        let rows: [(&str, usize, String); 28] = [
+        let rows: [(&str, usize, String); 36] = [
             (
                 "Sequence",
                 SERIES_SEQUENCE,
@@ -850,52 +915,37 @@ impl App {
             (
                 "Accel X",
                 SERIES_ACCEL_X,
-                last.map_or_else(dash, |t| {
-                    format!("{:.3} g", t.imu.acceleration_x.as_g())
-                }),
+                last.map_or_else(dash, |t| format!("{:.3} g", t.imu.acceleration_x.as_g())),
             ),
             (
                 "Accel Y",
                 SERIES_ACCEL_Y,
-                last.map_or_else(dash, |t| {
-                    format!("{:.3} g", t.imu.acceleration_y.as_g())
-                }),
+                last.map_or_else(dash, |t| format!("{:.3} g", t.imu.acceleration_y.as_g())),
             ),
             (
                 "Accel Z",
                 SERIES_ACCEL_Z,
-                last.map_or_else(dash, |t| {
-                    format!("{:.3} g", t.imu.acceleration_z.as_g())
-                }),
+                last.map_or_else(dash, |t| format!("{:.3} g", t.imu.acceleration_z.as_g())),
             ),
             (
                 "Gyro X",
                 SERIES_GYRO_X,
                 last.map_or_else(dash, |t| {
-                    format!(
-                        "{:.1} dps",
-                        t.imu.angular_rate_x.as_degrees_per_second()
-                    )
+                    format!("{:.1} dps", t.imu.angular_rate_x.as_degrees_per_second())
                 }),
             ),
             (
                 "Gyro Y",
                 SERIES_GYRO_Y,
                 last.map_or_else(dash, |t| {
-                    format!(
-                        "{:.1} dps",
-                        t.imu.angular_rate_y.as_degrees_per_second()
-                    )
+                    format!("{:.1} dps", t.imu.angular_rate_y.as_degrees_per_second())
                 }),
             ),
             (
                 "Gyro Z",
                 SERIES_GYRO_Z,
                 last.map_or_else(dash, |t| {
-                    format!(
-                        "{:.1} dps",
-                        t.imu.angular_rate_z.as_degrees_per_second()
-                    )
+                    format!("{:.1} dps", t.imu.angular_rate_z.as_degrees_per_second())
                 }),
             ),
             (
@@ -931,9 +981,7 @@ impl App {
             (
                 "Attitude roll",
                 SERIES_ATTITUDE_ROLL,
-                last.map_or_else(dash, |t| {
-                    format!("{:.1} deg", t.attitude.roll.as_degrees())
-                }),
+                last.map_or_else(dash, |t| format!("{:.1} deg", t.attitude.roll.as_degrees())),
             ),
             (
                 "Attitude pitch",
@@ -991,28 +1039,186 @@ impl App {
                     format!("{:.3}", t.motor_command.motor4.as_normalised())
                 }),
             ),
+            (
+                "ESC temp",
+                SERIES_ESC_TEMP,
+                last.map_or_else(dash, |t| {
+                    format!("{:.2} \u{00B0}C", t.esc_telemetry.temperature.as_celsius())
+                }),
+            ),
+            (
+                "Pack voltage",
+                SERIES_PACK_VOLTAGE,
+                last.map_or_else(dash, |t| {
+                    format!("{:.2} V", t.esc_telemetry.battery_state.voltage.as_volts())
+                }),
+            ),
+            (
+                "Pack current",
+                SERIES_PACK_CURRENT,
+                last.map_or_else(dash, |t| {
+                    format!("{:.2} A", t.esc_telemetry.battery_state.current.as_amps())
+                }),
+            ),
+            (
+                "Consumed",
+                SERIES_CONSUMED,
+                last.map_or_else(dash, |t| {
+                    format!(
+                        "{} mAh",
+                        t.esc_telemetry
+                            .battery_state
+                            .consumed_current
+                            .as_milliamphours()
+                    )
+                }),
+            ),
+            (
+                "Motor 1 RPM",
+                SERIES_MOTOR_1_RPM,
+                last.map_or_else(dash, |t| {
+                    format!("{:.0}", t.esc_telemetry.motor1_rpm.as_rpm())
+                }),
+            ),
+            (
+                "Motor 2 RPM",
+                SERIES_MOTOR_2_RPM,
+                last.map_or_else(dash, |t| {
+                    format!("{:.0}", t.esc_telemetry.motor2_rpm.as_rpm())
+                }),
+            ),
+            (
+                "Motor 3 RPM",
+                SERIES_MOTOR_3_RPM,
+                last.map_or_else(dash, |t| {
+                    format!("{:.0}", t.esc_telemetry.motor3_rpm.as_rpm())
+                }),
+            ),
+            (
+                "Motor 4 RPM",
+                SERIES_MOTOR_4_RPM,
+                last.map_or_else(dash, |t| {
+                    format!("{:.0}", t.esc_telemetry.motor4_rpm.as_rpm())
+                }),
+            ),
+        ];
+
+        // Rows indexed by their series id, so the category groups below can pull
+        // each metric by name without depending on the array's order.
+        let mut by_series: [Option<&(&str, usize, String)>; SERIES_COUNT] = [None; SERIES_COUNT];
+        for row in &rows {
+            by_series[row.1] = Some(row);
+        }
+
+        // Category boxes laid out in fixed vertical columns so they stack and use
+        // the space beside the controls instead of overflowing to the right. Each
+        // column is a top-to-bottom list of (title, series ids).
+        let columns: [&[(&str, &[usize])]; 4] = [
+            &[
+                (
+                    "System",
+                    &[
+                        SERIES_SEQUENCE,
+                        SERIES_DRONE_STATE,
+                        SERIES_TEMPERATURE,
+                        SERIES_CPU_LOAD,
+                        SERIES_RTT,
+                        SERIES_AVG_RTT,
+                    ],
+                ),
+                (
+                    "Pilot command",
+                    &[SERIES_THROTTLE, SERIES_ROLL, SERIES_PITCH, SERIES_YAW],
+                ),
+                ("Attitude", &[SERIES_ATTITUDE_ROLL, SERIES_ATTITUDE_PITCH]),
+            ],
+            &[
+                (
+                    "Accelerometer",
+                    &[SERIES_ACCEL_X, SERIES_ACCEL_Y, SERIES_ACCEL_Z],
+                ),
+                (
+                    "Gyro",
+                    &[
+                        SERIES_GYRO_X,
+                        SERIES_GYRO_Y,
+                        SERIES_GYRO_Z,
+                        SERIES_GYRO_FX,
+                        SERIES_GYRO_FY,
+                        SERIES_GYRO_FZ,
+                    ],
+                ),
+            ],
+            &[
+                (
+                    "Controller demand",
+                    &[SERIES_DEMAND_ROLL, SERIES_DEMAND_PITCH, SERIES_DEMAND_YAW],
+                ),
+                (
+                    "Motor command",
+                    &[
+                        SERIES_MOTOR_1,
+                        SERIES_MOTOR_2,
+                        SERIES_MOTOR_3,
+                        SERIES_MOTOR_4,
+                    ],
+                ),
+            ],
+            &[(
+                "ESC / power",
+                &[
+                    SERIES_ESC_TEMP,
+                    SERIES_PACK_VOLTAGE,
+                    SERIES_PACK_CURRENT,
+                    SERIES_CONSUMED,
+                    SERIES_MOTOR_1_RPM,
+                    SERIES_MOTOR_2_RPM,
+                    SERIES_MOTOR_3_RPM,
+                    SERIES_MOTOR_4_RPM,
+                ],
+            )],
         ];
 
         ui.vertical(|ui| {
             ui.strong("Telemetry");
-            ui.add_space(2.0);
+            ui.add_space(4.0);
             ui.horizontal_top(|ui| {
-                for (col, chunk) in rows.chunks(MAX_TABLE_ROWS).enumerate() {
-                    egui::Grid::new(("telemetry_table", col))
-                        .num_columns(2)
-                        .spacing([16.0, 4.0])
-                        .striped(true)
-                        .show(ui, |ui| {
-                            for (label, idx, value) in chunk {
-                                ui.checkbox(&mut self.series[*idx].visible, *label);
-                                // Right-justify in a fixed-width monospace field so a
-                                // fluctuating value's digits stay put instead of jittering,
-                                // without the cell stealing the whole row's width.
-                                ui.monospace(format!("{value:>12}"));
-                                ui.end_row();
-                            }
-                        });
-                    ui.add_space(16.0);
+                for column in columns {
+                    ui.vertical(|ui| {
+                        for (title, series_ids) in column {
+                            egui::Frame::group(ui.style())
+                                .rounding(egui::Rounding::same(6.0))
+                                .inner_margin(egui::Margin::symmetric(8.0, 6.0))
+                                .show(ui, |ui| {
+                                    ui.vertical(|ui| {
+                                        ui.set_width(TELEMETRY_BOX_WIDTH);
+                                        ui.strong(*title);
+                                        ui.add_space(2.0);
+                                        egui::Grid::new(("telemetry_cat", *title))
+                                            .num_columns(2)
+                                            .spacing([12.0, 3.0])
+                                            .striped(true)
+                                            .show(ui, |ui| {
+                                                for &series_id in *series_ids {
+                                                    let row = by_series[series_id]
+                                                        .expect("every series id has a row");
+                                                    ui.checkbox(
+                                                        &mut self.series[series_id].visible,
+                                                        row.0,
+                                                    );
+                                                    // Right-justify in a fixed-width
+                                                    // monospace field so a fluctuating
+                                                    // value's digits stay put.
+                                                    ui.monospace(format!("{:>12}", row.2));
+                                                    ui.end_row();
+                                                }
+                                            });
+                                    });
+                                });
+                            ui.add_space(4.0);
+                        }
+                    });
+                    ui.add_space(8.0);
                 }
             });
 
