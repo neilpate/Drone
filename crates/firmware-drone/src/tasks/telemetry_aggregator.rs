@@ -3,7 +3,9 @@ use crate::signals::{
     pilot_command, sensors, status, telemetry,
 };
 use embassy_time::{Duration, Ticker};
-use firmware_types::{ESCTelemetry, ImuData, MotorID, Sensors, Telemetry, Temperature};
+use firmware_types::{
+    ESCTelemetry, ImuData, MotorID, Sensors, TelemetryFrameHighRate, Temperature,
+};
 
 #[embassy_executor::task]
 pub async fn telemetry_aggregator() -> ! {
@@ -67,7 +69,7 @@ pub async fn telemetry_aggregator() -> ! {
             MotorID::None => {}
         }
 
-        let state = Telemetry {
+        let state = TelemetryFrameHighRate {
             drone_state,
             sequence_number: sequence_count,
             sensors,
