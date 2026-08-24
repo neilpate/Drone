@@ -5,8 +5,12 @@ const MAX_SUBSCRIBERS: usize = 8;
 
 static TELEMETRY: Watch<CriticalSectionRawMutex, TelemetryFrame, MAX_SUBSCRIBERS> = Watch::new();
 
-pub type Receiver =
-    embassy_sync::watch::Receiver<'static, CriticalSectionRawMutex, TelemetryFrame, MAX_SUBSCRIBERS>;
+pub type Receiver = embassy_sync::watch::Receiver<
+    'static,
+    CriticalSectionRawMutex,
+    TelemetryFrame,
+    MAX_SUBSCRIBERS,
+>;
 
 pub fn subscribe() -> Receiver {
     TELEMETRY.receiver().unwrap()
