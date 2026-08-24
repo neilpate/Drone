@@ -1,4 +1,4 @@
-use crate::{AngularRate, BatteryState, ERPM, MotorID, Temperature};
+use crate::{AngularRate, BatteryState, Current, ERPM, MotorID, Temperature};
 use postcard::experimental::max_size::MaxSize;
 use serde::{Deserialize, Serialize};
 
@@ -42,7 +42,9 @@ impl ESCTelemetrySample {
         let temperature = Temperature::from_celsius(bytes[0] as f32);
 
         let battery_bytes = [bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6]];
-        let battery_state = BatteryState::from_bytes(&battery_bytes);
+        let mut battery_state = BatteryState::from_bytes(&battery_bytes);
+
+        battery_state.current = Current::zero(); // Current is not measured correctly in this ESC so we set it to 0.0
 
         let erpm_bytes = [bytes[7], bytes[8]];
         let erpm = ERPM::from_bytes(&erpm_bytes);

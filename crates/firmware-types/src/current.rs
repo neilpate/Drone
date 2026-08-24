@@ -14,4 +14,8 @@ impl Current {
     pub fn as_amps(self) -> f32 {
         self.0
     }
+
+    pub fn zero() -> Self {
+        Self(0.0)
+    }
 }
