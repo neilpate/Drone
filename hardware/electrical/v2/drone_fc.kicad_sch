@@ -4607,6 +4607,17 @@
 				)
 			)
 		)
+		(property "MPN" "LTST-C281KGKT"
+			(at 210.82 208.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 210.82 208.28 0)
 			(hide yes)
@@ -4754,6 +4765,17 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 274.32 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 274.32 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -4921,6 +4943,17 @@
 				)
 			)
 		)
+		(property "MPN" "RC0402FR-0710KL"
+			(at 293.37 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 293.37 218.44 0)
 			(hide yes)
@@ -4990,6 +5023,17 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 210.82 226.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-071KL"
 			(at 210.82 226.06 0)
 			(hide yes)
 			(show_name no)
@@ -5248,6 +5292,17 @@
 				)
 			)
 		)
+		(property "MPN" "LTST-C281TBKT"
+			(at 220.98 208.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 220.98 208.28 0)
 			(hide yes)
@@ -5317,6 +5372,17 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 220.98 226.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-071KL"
 			(at 220.98 226.06 0)
 			(hide yes)
 			(show_name no)
@@ -5474,6 +5540,17 @@
 			)
 		)
 		(property "Footprint" "Diode_SMD:D_SMA"
+			(at 31.75 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "SMAJ24A"
 			(at 31.75 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -6112,6 +6189,17 @@
 				)
 			)
 		)
+		(property "MPN" "RC0402FR-0710KL"
+			(at 302.26 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 302.26 218.44 0)
 			(hide yes)
@@ -6374,6 +6462,17 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 295.91 100.33 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 295.91 100.33 0)
 			(hide yes)
 			(show_name no)
@@ -6697,6 +6796,17 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 124.46 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0722K1L"
 			(at 124.46 105.41 0)
 			(hide yes)
 			(show_name no)
@@ -7400,6 +7510,17 @@
 				)
 			)
 		)
+		(property "MPN" "RC0402FR-0766K5L"
+			(at 124.46 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 124.46 91.44 0)
 			(hide yes)
@@ -7469,6 +7590,17 @@
 			)
 		)
 		(property "Footprint" "Package_TO_SOT_SMD:SOT-23-6"
+			(at 72.39 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "LMR50410XDBVR"
 			(at 72.39 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -7970,6 +8102,17 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 283.21 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 283.21 218.44 0)
 			(hide yes)
 			(show_name no)
