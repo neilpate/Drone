@@ -2,6 +2,10 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-08-29 — Phase 4 flight-controller layout begins
+
+The custom nRF5340 flight-controller schematic is now ERC-clean and has a sourced BOM. Layout began in KiCad around the actual Sequre Blueson A1 20x20 mm ESC stack: the carrier uses four soft-mount holes on the matching 20 mm square, with the IMU centred over the stack. The MDBT53-P1M module is aligned to the board edge, with a four-layer no-copper keepout beneath its antenna section. The board has labelled GND, VBAT, +4V, and +3V3 test points, and a filled GND plane connected through local ground vias. Routing is underway; 30 connections remain at the end of the session. There are no electrical clearance or short-circuit DRC violations. Remaining DRC findings are silkscreen cleanup and two dangling-track warnings to resolve before fabrication review.
+
 ## 2026-08-24 — Telemetry split into high/low-rate frames, and ESC telemetry on the ground station
 
 Yesterday's ESC serial-telemetry bring-up produced data the radio frame had no room for. Today that data reached the ground station, by splitting the drone-to-remote telemetry into two interleaved frames.
