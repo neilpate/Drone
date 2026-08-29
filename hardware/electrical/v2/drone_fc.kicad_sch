@@ -951,7 +951,7 @@
 							)
 						)
 					)
-					(number "2"
+					(number "4"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -969,7 +969,7 @@
 							)
 						)
 					)
-					(number "3"
+					(number "5"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -987,7 +987,7 @@
 							)
 						)
 					)
-					(number "4"
+					(number "6"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -998,43 +998,7 @@
 				(pin power_in line
 					(at 20.32 -10.16 180)
 					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 20.32 -5.08 180)
-					(length 2.54)
 					(name "RESV_GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "6"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 20.32 0 180)
-					(length 2.54)
-					(name "RESV_VDD"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1049,17 +1013,53 @@
 						)
 					)
 				)
-				(pin no_connect line
-					(at 20.32 -15.24 180)
+				(pin passive line
+					(at 20.32 -5.08 180)
 					(length 2.54)
-					(name "NC"
+					(name "RESV_2"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "8"
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 20.32 0 180)
+					(length 2.54)
+					(name "RESV_11"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "11"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin no_connect line
+					(at 20.32 -15.24 180)
+					(length 2.54)
+					(name "RESV_10"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "10"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1077,7 +1077,7 @@
 							)
 						)
 					)
-					(number "9"
+					(number "12"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1095,7 +1095,7 @@
 							)
 						)
 					)
-					(number "10"
+					(number "13"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1113,7 +1113,7 @@
 							)
 						)
 					)
-					(number "11"
+					(number "14"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1124,14 +1124,14 @@
 				(pin power_in line
 					(at 20.32 -12.7 180)
 					(length 2.54)
-					(name "GND"
+					(name "RESV_3"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "12"
+					(number "3"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1149,7 +1149,7 @@
 							)
 						)
 					)
-					(number "13"
+					(number "8"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1167,7 +1167,7 @@
 							)
 						)
 					)
-					(number "14"
+					(number "9"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3008,22 +3008,16 @@
 		(uuid "c7bd32bf-fe8f-4fa1-88e7-b454794e4c2b")
 	)
 	(no_connect
+		(at 350.52 124.46)
+		(uuid "b8f2c4a1-3d7e-4f6a-9c8b-1e5a2d7f4c93")
+	)
+	(no_connect
 		(at 193.04 129.54)
 		(uuid "ea17848c-46dc-4046-ac0c-bc0c4ff7547e")
 	)
 	(no_connect
 		(at 193.04 165.1)
 		(uuid "ff8db0b6-1298-4d1d-bc5b-0a7a387c529a")
-	)
-	(wire
-		(pts
-			(xy 350.52 124.46) (xy 360.68 124.46)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "00f73d84-ef1a-4f2a-a9ac-4b4583306995")
 	)
 	(wire
 		(pts
