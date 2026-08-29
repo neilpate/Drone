@@ -11,6 +11,129 @@
 		(company "In-House Custom Flight Controller")
 	)
 	(lib_symbols
+		(symbol "Connector:TestPoint"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.762)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "TP"
+				(at 0 6.858 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "TestPoint"
+				(at 0 5.08 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 5.08 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "test point"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "test point tp"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Pin* Test*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "TestPoint_0_1"
+				(circle
+					(center 0 3.302)
+					(radius 0.762)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "TestPoint_1_1"
+				(pin passive line
+					(at 0 0 90)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "drone_fc_v2_symbols:Capacitor"
 			(pin_numbers
 				(hide yes)
@@ -2699,12 +2822,6 @@
 		(uuid "3293e9e9-aeab-436c-91c9-621ea5ee5f23")
 	)
 	(junction
-		(at 140.97 83.82)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "395b79d4-219f-4a19-b1d2-e6bff5b411fd")
-	)
-	(junction
 		(at 360.68 137.16)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2783,6 +2900,12 @@
 		(uuid "baab8eee-33bc-4867-a4d2-9c43d9d953a1")
 	)
 	(junction
+		(at 140.97 83.82)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "c41aa647-a69e-4343-a760-ce857bc058cc")
+	)
+	(junction
 		(at 41.91 115.57)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2801,6 +2924,12 @@
 		(uuid "e274b22b-6443-40a5-b118-052491c5190c")
 	)
 	(junction
+		(at 88.9 115.57)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "e3510760-1867-4c33-89e2-f1894a5a60d7")
+	)
+	(junction
 		(at 189.23 80.01)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2811,6 +2940,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "e58d2134-14f2-43ab-b19c-106f05ba583c")
+	)
+	(junction
+		(at 140.97 96.52)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "e6e14cb2-7d4f-48f6-9dec-8b8679fbb2d3")
 	)
 	(junction
 		(at 41.91 83.82)
@@ -3442,6 +3577,16 @@
 	)
 	(wire
 		(pts
+			(xy 146.05 96.52) (xy 140.97 96.52)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "982755fa-f30e-4eb6-ac32-ef48c5c5e2a3")
+	)
+	(wire
+		(pts
 			(xy 180.34 152.4) (xy 193.04 152.4)
 		)
 		(stroke
@@ -3802,7 +3947,7 @@
 	)
 	(wire
 		(pts
-			(xy 54.61 83.82) (xy 21.59 83.82)
+			(xy 21.59 83.82) (xy 54.61 83.82)
 		)
 		(stroke
 			(width 0)
@@ -3910,6 +4055,16 @@
 		)
 		(uuid "01a7d736-9086-4076-8c2a-cf96a0fbeae7")
 	)
+	(label "+4V"
+		(at 140.97 83.82 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "1093d5cb-55d6-4c2c-8718-bbe92b1f2444")
+	)
 	(label "+3V3"
 		(at 171.45 76.2 0)
 		(effects
@@ -3990,6 +4145,16 @@
 		)
 		(uuid "6eabf6e5-82ca-4664-aedd-67b68a4733a1")
 	)
+	(label "GND"
+		(at 146.05 96.52 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "7352819f-fd1a-432e-936f-dad590023f01")
+	)
 	(label "+3V3"
 		(at 360.68 106.68 0)
 		(effects
@@ -4029,16 +4194,6 @@
 			(justify left bottom)
 		)
 		(uuid "acc94bc2-3f34-4f46-abe7-920f9799ff10")
-	)
-	(label "+4V"
-		(at 140.97 83.82 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "ad79b28f-e493-4cb1-b4ee-9bb821db1947")
 	)
 	(label "+3V3"
 		(at 88.9 115.57 0)
@@ -4172,17 +4327,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM21BR61A226ME44"
-			(at 140.97 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 140.97 91.44 0)
 			(hide yes)
@@ -4205,6 +4349,17 @@
 				)
 			)
 		)
+		(property "MPN" "GRM21BR61A226ME44"
+			(at 140.97 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "25e1b917-2001-4790-9cc4-91e05531d402")
 		)
@@ -4215,6 +4370,160 @@
 			(project "drone_fc"
 				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
 					(reference "C5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 88.9 115.57 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "08ee592e-ef0e-476a-a89c-7a9136101529")
+		(property "Reference" "TP4"
+			(at 91.948 112.268 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 93.472 110.49 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 88.9 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 88.9 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point"
+			(at 88.9 115.57 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "59dd159a-8fba-4c30-805a-416ec4ca0b83")
+		)
+		(instances
+			(project "drone_fc"
+				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
+					(reference "TP4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 31.75 83.82 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "0cda79ce-a3c4-4275-9132-1fe2cbb1d2e9")
+		(property "Reference" "TP2"
+			(at 34.544 80.518 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "VBAT"
+			(at 35.306 82.55 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 31.75 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 31.75 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point"
+			(at 31.75 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "56399321-cf15-4b8c-ae0c-2cc2a2c1dec1")
+		)
+		(instances
+			(project "drone_fc"
+				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
+					(reference "TP2")
 					(unit 1)
 				)
 			)
@@ -4312,6 +4621,83 @@
 			(project "drone_fc"
 				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
 					(reference "J1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 146.05 96.52 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(in_pos_files no)
+		(dnp no)
+		(uuid "1b726ae3-11e5-4f95-b53f-dc4be6bcaecc")
+		(property "Reference" "TP1"
+			(at 149.098 92.964 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 144.272 99.568 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
+			(at 146.05 96.52 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 146.05 96.52 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "test point"
+			(at 146.05 96.52 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "f472f11b-a71c-45e1-925b-758b26140b6b")
+		)
+		(instances
+			(project "drone_fc"
+				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
+					(reference "TP1")
 					(unit 1)
 				)
 			)
@@ -4437,17 +4823,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM155R61C105KA12D"
-			(at 41.91 120.65 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 41.91 120.65 0)
 			(hide yes)
@@ -4460,6 +4835,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 41.91 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R61C105KA12D"
 			(at 41.91 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -4528,17 +4914,6 @@
 				)
 			)
 		)
-		(property "MPN" "MLZ2012M150WT000"
-			(at 111.76 83.82 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 111.76 83.82 0)
 			(hide yes)
@@ -4551,6 +4926,17 @@
 			)
 		)
 		(property "Description" "Inductor"
+			(at 111.76 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "MLZ2012M150WT000"
 			(at 111.76 83.82 0)
 			(hide yes)
 			(show_name no)
@@ -4618,17 +5004,6 @@
 				)
 			)
 		)
-		(property "MPN" "LTST-C281KGKT"
-			(at 210.82 208.28 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 210.82 208.28 0)
 			(hide yes)
@@ -4641,6 +5016,17 @@
 			)
 		)
 		(property "Description" "Light Emitting Diode"
+			(at 210.82 208.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "LTST-C281KGKT"
 			(at 210.82 208.28 0)
 			(hide yes)
 			(show_name no)
@@ -4786,17 +5172,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-0710KL"
-			(at 274.32 218.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 274.32 218.44 0)
 			(hide yes)
@@ -4809,6 +5184,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 274.32 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 274.32 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -4844,7 +5230,6 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "35779c21-1cca-48dc-9b43-d8d312e6290a")
 		(property "Reference" "#PWR011"
 			(at 187.96 120.65 0)
@@ -4858,7 +5243,8 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 187.96 119.38 0)
+			(at 183.388 110.236 0)
+			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4954,17 +5340,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-0710KL"
-			(at 293.37 218.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 293.37 218.44 0)
 			(hide yes)
@@ -4977,6 +5352,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 293.37 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 293.37 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -5044,17 +5430,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-071KL"
-			(at 210.82 226.06 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 210.82 226.06 0)
 			(hide yes)
@@ -5067,6 +5442,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 210.82 226.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-071KL"
 			(at 210.82 226.06 0)
 			(hide yes)
 			(show_name no)
@@ -5134,17 +5520,6 @@
 				)
 			)
 		)
-		(property "MPN" "CL31B106KBHNNNE"
-			(at 41.91 88.9 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 41.91 88.9 0)
 			(hide yes)
@@ -5157,6 +5532,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 41.91 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "CL31B106KBHNNNE"
 			(at 41.91 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -5224,17 +5610,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM155R61C105KA12D"
-			(at 88.9 120.65 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 88.9 120.65 0)
 			(hide yes)
@@ -5247,6 +5622,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 88.9 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R61C105KA12D"
 			(at 88.9 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -5314,17 +5700,6 @@
 				)
 			)
 		)
-		(property "MPN" "LTST-C281TBKT"
-			(at 220.98 208.28 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 220.98 208.28 0)
 			(hide yes)
@@ -5337,6 +5712,17 @@
 			)
 		)
 		(property "Description" "Light Emitting Diode"
+			(at 220.98 208.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "LTST-C281TBKT"
 			(at 220.98 208.28 0)
 			(hide yes)
 			(show_name no)
@@ -5404,17 +5790,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-071KL"
-			(at 220.98 226.06 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 220.98 226.06 0)
 			(hide yes)
@@ -5427,6 +5802,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 220.98 226.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-071KL"
 			(at 220.98 226.06 0)
 			(hide yes)
 			(show_name no)
@@ -5572,17 +5958,6 @@
 				)
 			)
 		)
-		(property "MPN" "SMAJ24A"
-			(at 31.75 88.9 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 31.75 88.9 0)
 			(hide yes)
@@ -5595,6 +5970,17 @@
 			)
 		)
 		(property "Description" "24V Unidirectional Transient Voltage Suppressor (TVS)"
+			(at 31.75 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "SMAJ24A"
 			(at 31.75 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -5662,17 +6048,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM155R71H104KE14D"
-			(at 95.25 88.9 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 95.25 88.9 0)
 			(hide yes)
@@ -5685,6 +6060,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 95.25 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R71H104KE14D"
 			(at 95.25 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -5752,17 +6138,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM155R71H104KE14D"
-			(at 199.39 85.09 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 199.39 85.09 0)
 			(hide yes)
@@ -5775,6 +6150,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 199.39 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R71H104KE14D"
 			(at 199.39 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -6076,17 +6462,6 @@
 				)
 			)
 		)
-		(property "MPN" "C0402C103K5RECAUTO"
-			(at 386.08 119.38 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 386.08 119.38 0)
 			(hide yes)
@@ -6099,6 +6474,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 386.08 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "C0402C103K5RECAUTO"
 			(at 386.08 119.38 0)
 			(hide yes)
 			(show_name no)
@@ -6244,17 +6630,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-0710KL"
-			(at 302.26 218.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 302.26 218.44 0)
 			(hide yes)
@@ -6267,6 +6642,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 302.26 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 302.26 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -6334,17 +6720,6 @@
 				)
 			)
 		)
-		(property "MPN" "ICM-42688-P"
-			(at 330.2 124.46 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "https://invensense.tdk.com/download-pdf/icm-42688-p-datasheet/"
 			(at 330.2 124.46 0)
 			(hide yes)
@@ -6357,6 +6732,17 @@
 			)
 		)
 		(property "Description" "High-Precision 6-Axis MotionTracking IMU (LGA-14)"
+			(at 330.2 124.46 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "ICM-42688-P"
 			(at 330.2 124.46 0)
 			(hide yes)
 			(show_name no)
@@ -6419,19 +6805,28 @@
 		)
 	)
 	(symbol
-		(lib_id "power:PWR_FLAG")
+		(lib_id "Connector:TestPoint")
 		(at 140.97 83.82 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
-		(in_pos_files yes)
+		(in_pos_files no)
 		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "8b52a819-1b98-493e-aeaa-5c696849633b")
-		(property "Reference" "#FLG01"
-			(at 140.97 81.915 0)
+		(uuid "9412d523-b52d-44b8-b10c-57b703579ec7")
+		(property "Reference" "TP3"
+			(at 143.764 80.518 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+4V"
+			(at 144.018 77.724 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6441,17 +6836,7 @@
 				)
 			)
 		)
-		(property "Value" "PWR_FLAG"
-			(at 140.97 78.74 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
+		(property "Footprint" "TestPoint:TestPoint_Pad_D1.0mm"
 			(at 140.97 83.82 0)
 			(hide yes)
 			(show_name no)
@@ -6473,7 +6858,7 @@
 				)
 			)
 		)
-		(property "Description" "Special symbol for telling ERC where power comes from"
+		(property "Description" "test point"
 			(at 140.97 83.82 0)
 			(hide yes)
 			(show_name no)
@@ -6485,12 +6870,12 @@
 			)
 		)
 		(pin "1"
-			(uuid "badae7fc-594a-467a-99a1-2654d4cd11e5")
+			(uuid "8f77ea2b-b11f-4c03-a406-02bcfc8d36b1")
 		)
 		(instances
 			(project "drone_fc"
 				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
-					(reference "#FLG01")
+					(reference "TP3")
 					(unit 1)
 				)
 			)
@@ -6538,17 +6923,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-0710KL"
-			(at 295.91 100.33 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 295.91 100.33 0)
 			(hide yes)
@@ -6561,6 +6935,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 295.91 100.33 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 295.91 100.33 0)
 			(hide yes)
 			(show_name no)
@@ -6784,17 +7169,6 @@
 				)
 			)
 		)
-		(property "MPN" "TLV75533PDBVR"
-			(at 69.85 120.65 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/tlv755p.pdf"
 			(at 69.85 120.65 0)
 			(hide yes)
@@ -6807,6 +7181,17 @@
 			)
 		)
 		(property "Description" "Fixed 3.3 V 500 mA low-noise LDO regulator, SOT-23-5 (DBV)"
+			(at 69.85 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "TLV75533PDBVR"
 			(at 69.85 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -6883,17 +7268,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-0722K1L"
-			(at 124.46 105.41 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 124.46 105.41 0)
 			(hide yes)
@@ -6906,6 +7280,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 124.46 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0722K1L"
 			(at 124.46 105.41 0)
 			(hide yes)
 			(show_name no)
@@ -7207,17 +7592,6 @@
 				)
 			)
 		)
-		(property "MPN" "MDBT53-P1M"
-			(at 215.9 139.7 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "https://www.raytac.com/download/index.php?index_id=43"
 			(at 215.9 139.7 0)
 			(hide yes)
@@ -7230,6 +7604,17 @@
 			)
 		)
 		(property "Description" "Raytac nRF5340 Dual-Core BLE/802.15.4 Module with PCB Antenna"
+			(at 215.9 139.7 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "MDBT53-P1M"
 			(at 215.9 139.7 0)
 			(hide yes)
 			(show_name no)
@@ -7441,17 +7826,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM155R71H104KE14D"
-			(at 373.38 119.38 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 373.38 119.38 0)
 			(hide yes)
@@ -7464,6 +7838,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 373.38 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R71H104KE14D"
 			(at 373.38 119.38 0)
 			(hide yes)
 			(show_name no)
@@ -7609,17 +7994,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-0766K5L"
-			(at 124.46 91.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 124.46 91.44 0)
 			(hide yes)
@@ -7632,6 +8006,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 124.46 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0766K5L"
 			(at 124.46 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -7699,17 +8084,6 @@
 				)
 			)
 		)
-		(property "MPN" "LMR50410XDBVR"
-			(at 72.39 88.9 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/lmr50410.pdf"
 			(at 72.39 88.9 0)
 			(hide yes)
@@ -7722,6 +8096,17 @@
 			)
 		)
 		(property "Description" "TI LMR50410 4V-36V 1A Synchronous Step-Down Voltage Regulator"
+			(at 72.39 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "LMR50410XDBVR"
 			(at 72.39 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -7801,17 +8186,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM188R61A475KAAJD"
-			(at 177.8 85.09 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 177.8 85.09 0)
 			(hide yes)
@@ -7834,6 +8208,17 @@
 				)
 			)
 		)
+		(property "MPN" "GRM188R61A475KAAJD"
+			(at 177.8 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(pin "1"
 			(uuid "13d7248a-a4df-420f-90b8-3e57634eb64a")
 		)
@@ -7844,6 +8229,84 @@
 			(project "drone_fc"
 				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
 					(reference "C6")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:PWR_FLAG")
+		(at 124.46 83.82 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ea79cc30-f910-4064-9269-be2fb851ab2d")
+		(property "Reference" "#FLG01"
+			(at 124.46 81.915 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 124.46 78.74 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 124.46 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 124.46 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 124.46 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "57888102-0e80-4b3f-92fa-a0d296b2ace5")
+		)
+		(instances
+			(project "drone_fc"
+				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
+					(reference "#FLG01")
 					(unit 1)
 				)
 			)
@@ -8125,17 +8588,6 @@
 				)
 			)
 		)
-		(property "MPN" "SM08B-SRSS-TB"
-			(at 342.9 195.58 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "https://www.jst-mfg.com/product/pdf/eng/eSH.pdf"
 			(at 342.9 195.58 0)
 			(hide yes)
@@ -8148,6 +8600,17 @@
 			)
 		)
 		(property "Description" "8-Pin 1.0mm Pitch JST-SH Connector for 4-in-1 ESC Interface"
+			(at 342.9 195.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "SM08B-SRSS-TB"
 			(at 342.9 195.58 0)
 			(hide yes)
 			(show_name no)
@@ -8233,17 +8696,6 @@
 				)
 			)
 		)
-		(property "MPN" "RC0402FR-0710KL"
-			(at 283.21 218.44 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 283.21 218.44 0)
 			(hide yes)
@@ -8256,6 +8708,17 @@
 			)
 		)
 		(property "Description" "Resistor"
+			(at 283.21 218.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "RC0402FR-0710KL"
 			(at 283.21 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -8323,17 +8786,6 @@
 				)
 			)
 		)
-		(property "MPN" "GRM155R71H104KE14D"
-			(at 189.23 85.09 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
 		(property "Datasheet" "~"
 			(at 189.23 85.09 0)
 			(hide yes)
@@ -8346,6 +8798,17 @@
 			)
 		)
 		(property "Description" "Capacitor"
+			(at 189.23 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R71H104KE14D"
 			(at 189.23 85.09 0)
 			(hide yes)
 			(show_name no)
