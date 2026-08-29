@@ -22,6 +22,9 @@ telemetry-*.tsv
 # JetBrains (in case)
 .idea/
 
+# VS Code Local History extension — per-user editor state, not source
+.history/
+
 # Fusion 360 local backups
 # (committed CAD: *.f3d, *.stl, *.3mf — per ADR 0006)
 *.f3d.backup-*
