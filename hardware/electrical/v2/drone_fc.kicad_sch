@@ -11,139 +11,6 @@
 		(company "In-House Custom Flight Controller")
 	)
 	(lib_symbols
-		(symbol "Capacitor_1"
-			(pin_numbers
-				(hide yes)
-			)
-			(pin_names
-				(hide yes)
-			)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(in_pos_files yes)
-			(duplicate_pin_numbers_are_jumpers no)
-			(property "Reference" "C"
-				(at 2.54 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left)
-				)
-			)
-			(property "Value" "100nF"
-				(at -2.54 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify right)
-				)
-			)
-			(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Description" "Capacitor"
-				(at 0 0 0)
-				(show_name no)
-				(do_not_autoplace no)
-				(hide yes)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(symbol "Capacitor_1_0_1"
-				(polyline
-					(pts
-						(xy -2.54 0.635) (xy 2.54 0.635)
-					)
-					(stroke
-						(width 0.381)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -2.54 -0.635) (xy 2.54 -0.635)
-					)
-					(stroke
-						(width 0.381)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "Capacitor_1_1_1"
-				(pin passive line
-					(at 0 5.08 270)
-					(length 4.445)
-					(name "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -5.08 90)
-					(length 4.445)
-					(name "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(embedded_fonts no)
-		)
 		(symbol "drone_fc_v2_symbols:Capacitor"
 			(pin_numbers
 				(hide yes)
@@ -941,6 +808,42 @@
 						)
 					)
 				)
+				(pin passive line
+					(at 20.32 -5.08 180)
+					(length 2.54)
+					(name "RESV_2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at 20.32 -12.7 180)
+					(length 2.54)
+					(name "RESV_3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
 				(pin output line
 					(at -20.32 -10.16 0)
 					(length 2.54)
@@ -1013,17 +916,17 @@
 						)
 					)
 				)
-				(pin passive line
-					(at 20.32 -5.08 180)
+				(pin power_in line
+					(at 20.32 10.16 180)
 					(length 2.54)
-					(name "RESV_2"
+					(name "VDD"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "2"
+					(number "8"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1031,17 +934,17 @@
 						)
 					)
 				)
-				(pin passive line
-					(at 20.32 0 180)
+				(pin output line
+					(at -20.32 -13.97 0)
 					(length 2.54)
-					(name "RESV_11"
+					(name "INT2"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "11"
+					(number "9"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1060,6 +963,24 @@
 						)
 					)
 					(number "10"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 20.32 0 180)
+					(length 2.54)
+					(name "RESV_11"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "11"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1114,60 +1035,6 @@
 						)
 					)
 					(number "14"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at 20.32 -12.7 180)
-					(length 2.54)
-					(name "RESV_3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_in line
-					(at 20.32 10.16 180)
-					(length 2.54)
-					(name "VDD"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "8"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at -20.32 -13.97 0)
-					(length 2.54)
-					(name "INT2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "9"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -2898,12 +2765,6 @@
 		(uuid "97d7fcef-c44f-4644-bdd1-f9897f722ec7")
 	)
 	(junction
-		(at 360.68 119.38)
-		(diameter 0.9144)
-		(color 0 0 0 0)
-		(uuid "a35d5325-7bd3-4368-8f8b-0db8021760fe")
-	)
-	(junction
 		(at 373.38 129.54)
 		(diameter 0.9144)
 		(color 0 0 0 0)
@@ -3000,16 +2861,16 @@
 		(uuid "b843b8eb-387c-4c8c-bddc-fc58e0735b50")
 	)
 	(no_connect
+		(at 350.52 124.46)
+		(uuid "b8f2c4a1-3d7e-4f6a-9c8b-1e5a2d7f4c93")
+	)
+	(no_connect
 		(at 193.04 160.02)
 		(uuid "ba46ee8d-8915-45c7-899a-c9f9c73eee79")
 	)
 	(no_connect
 		(at 309.88 138.43)
 		(uuid "c7bd32bf-fe8f-4fa1-88e7-b454794e4c2b")
-	)
-	(no_connect
-		(at 350.52 124.46)
-		(uuid "b8f2c4a1-3d7e-4f6a-9c8b-1e5a2d7f4c93")
 	)
 	(no_connect
 		(at 193.04 129.54)
@@ -3971,16 +3832,6 @@
 	)
 	(wire
 		(pts
-			(xy 360.68 119.38) (xy 360.68 124.46)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f7aa3bb6-a4d3-4dec-9846-4ddf679253ee")
-	)
-	(wire
-		(pts
 			(xy 54.61 96.52) (xy 49.53 96.52)
 		)
 		(stroke
@@ -4321,6 +4172,17 @@
 				)
 			)
 		)
+		(property "MPN" "GRM21BR61A226ME44"
+			(at 140.97 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 140.97 91.44 0)
 			(hide yes)
@@ -4389,7 +4251,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector:Tag-Connect_TC2050-IDC-NL_2x05_P1.27mm_Vertical"
+		(property "Footprint" "Connector_PinHeader_1.27mm:PinHeader_2x05_P1.27mm_Vertical_SMD"
 			(at 76.2 175.26 0)
 			(hide yes)
 			(show_name no)
@@ -4534,7 +4396,6 @@
 		)
 	)
 	(symbol
-		(lib_name "Capacitor_1")
 		(lib_id "drone_fc_v2_symbols:Capacitor")
 		(at 41.91 120.65 0)
 		(unit 1)
@@ -4646,6 +4507,17 @@
 			)
 		)
 		(property "Footprint" "Inductor_SMD:L_0805_2012Metric"
+			(at 111.76 83.82 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "MLZ2012M150WT000"
 			(at 111.76 83.82 0)
 			(hide yes)
 			(show_name no)
@@ -5196,7 +5068,18 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_1210_3225Metric"
+		(property "Footprint" "Capacitor_SMD:C_1206_3216Metric"
+			(at 41.91 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "CL31B106KBHNNNE"
 			(at 41.91 88.9 0)
 			(hide yes)
 			(show_name no)
