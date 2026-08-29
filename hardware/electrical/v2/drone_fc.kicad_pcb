@@ -11,9 +11,8 @@
 		(title "Autonomous Drone Flight Controller v2 (nRF5340 PCBA)")
 		(date "2026-08-25")
 		(rev "v2.0.0")
-		(company "CopperPilot Autonomous Systems")
-		(comment 1 "Author: CopperPilot")
-		(comment 2 "Layer Stack: 4-Layer (Signal-GND-PWR-Signal)")
+		(company "In-House Custom Flight Controller")
+		(comment 1 "Layer Stack: 4-Layer (Signal-GND-PWR-Signal)")
 	)
 	(layers
 		(0 "F.Cu" signal)
