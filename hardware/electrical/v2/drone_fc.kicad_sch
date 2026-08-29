@@ -4437,6 +4437,17 @@
 				)
 			)
 		)
+		(property "MPN" "GRM155R61C105KA12D"
+			(at 41.91 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 41.91 120.65 0)
 			(hide yes)
@@ -5213,6 +5224,17 @@
 				)
 			)
 		)
+		(property "MPN" "GRM155R61C105KA12D"
+			(at 88.9 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 88.9 120.65 0)
 			(hide yes)
@@ -5640,6 +5662,17 @@
 				)
 			)
 		)
+		(property "MPN" "GRM155R71H104KE14D"
+			(at 95.25 88.9 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 95.25 88.9 0)
 			(hide yes)
@@ -5709,6 +5742,17 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 199.39 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R71H104KE14D"
 			(at 199.39 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -6032,6 +6076,17 @@
 				)
 			)
 		)
+		(property "MPN" "C0402C103K5RECAUTO"
+			(at 386.08 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 386.08 119.38 0)
 			(hide yes)
@@ -6269,6 +6324,17 @@
 			)
 		)
 		(property "Footprint" "drone_fc_v2_footprints:LGA-14_2.5x3.0mm_P0.5mm_ICM42688P"
+			(at 330.2 124.46 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "ICM-42688-P"
 			(at 330.2 124.46 0)
 			(hide yes)
 			(show_name no)
@@ -6718,6 +6784,17 @@
 				)
 			)
 		)
+		(property "MPN" "TLV75533PDBVR"
+			(at 69.85 120.65 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/tlv755p.pdf"
 			(at 69.85 120.65 0)
 			(hide yes)
@@ -7130,6 +7207,17 @@
 				)
 			)
 		)
+		(property "MPN" "MDBT53-P1M"
+			(at 215.9 139.7 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "https://www.raytac.com/download/index.php?index_id=43"
 			(at 215.9 139.7 0)
 			(hide yes)
@@ -7343,6 +7431,17 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 373.38 119.38 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R71H104KE14D"
 			(at 373.38 119.38 0)
 			(hide yes)
 			(show_name no)
@@ -7702,6 +7801,17 @@
 				)
 			)
 		)
+		(property "MPN" "GRM188R61A475KAAJD"
+			(at 177.8 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "~"
 			(at 177.8 85.09 0)
 			(hide yes)
@@ -8015,6 +8125,17 @@
 				)
 			)
 		)
+		(property "MPN" "SM08B-SRSS-TB"
+			(at 342.9 195.58 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
 		(property "Datasheet" "https://www.jst-mfg.com/product/pdf/eng/eSH.pdf"
 			(at 342.9 195.58 0)
 			(hide yes)
@@ -8192,6 +8313,17 @@
 			)
 		)
 		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 189.23 85.09 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "MPN" "GRM155R71H104KE14D"
 			(at 189.23 85.09 0)
 			(hide yes)
 			(show_name no)
