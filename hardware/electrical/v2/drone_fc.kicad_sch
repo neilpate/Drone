@@ -170,7 +170,7 @@
 					)
 				)
 			)
-			(property "Footprint" "Connector_PinHeader_1.27mm:PinHeader_2x05_P1.27mm_Vertical_SMD"
+			(property "Footprint" "Connector:Tag-Connect_TC2050-IDC-NL_2x05_P1.27mm_Vertical"
 				(at 0 -20.32 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -4251,7 +4251,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_1.27mm:PinHeader_2x05_P1.27mm_Vertical_SMD"
+		(property "Footprint" "Connector:Tag-Connect_TC2050-IDC-NL_2x05_P1.27mm_Vertical"
 			(at 76.2 175.26 0)
 			(hide yes)
 			(show_name no)
