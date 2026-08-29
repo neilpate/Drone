@@ -1597,7 +1597,7 @@
 						)
 					)
 				)
-				(number "2"
+				(number "38"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1615,7 +1615,7 @@
 						)
 					)
 				)
-				(number "3"
+				(number "41"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1633,7 +1633,7 @@
 						)
 					)
 				)
-				(number "4"
+				(number "44"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1651,7 +1651,7 @@
 						)
 					)
 				)
-				(number "5"
+				(number "6"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1669,7 +1669,7 @@
 						)
 					)
 				)
-				(number "6"
+				(number "2"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1687,7 +1687,7 @@
 						)
 					)
 				)
-				(number "7"
+				(number "4"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1705,7 +1705,7 @@
 						)
 					)
 				)
-				(number "8"
+				(number "3"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1723,7 +1723,7 @@
 						)
 					)
 				)
-				(number "9"
+				(number "46"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1741,7 +1741,7 @@
 						)
 					)
 				)
-				(number "10"
+				(number "48"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1752,79 +1752,7 @@
 			(pin output line
 				(at 22.86 25.4 180)
 				(length 2.54)
-				(name "P0.17_SPI_SCK"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-				(number "11"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-			)
-			(pin input line
-				(at 22.86 20.32 180)
-				(length 2.54)
-				(name "P0.01_SPI_MISO"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-				(number "12"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-			)
-			(pin output line
-				(at 22.86 15.24 180)
-				(length 2.54)
-				(name "P0.13_SPI_MOSI"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-				(number "13"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-			)
-			(pin output line
-				(at 22.86 10.16 180)
-				(length 2.54)
-				(name "P1.02_IMU_CS"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-				(number "14"
-					(effects
-						(font
-							(size 1.27 1.27)
-						)
-					)
-				)
-			)
-			(pin input line
-				(at 22.86 5.08 180)
-				(length 2.54)
-				(name "P0.23_IMU_INT1"
+				(name "P0.12_SPI_SCK"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1839,10 +1767,10 @@
 					)
 				)
 			)
-			(pin output line
-				(at 22.86 0 180)
+			(pin input line
+				(at 22.86 20.32 180)
 				(length 2.54)
-				(name "P0.02_ESC_M1"
+				(name "P0.18_SPI_MISO"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1858,9 +1786,9 @@
 				)
 			)
 			(pin output line
-				(at 22.86 -5.08 180)
+				(at 22.86 15.24 180)
 				(length 2.54)
-				(name "P0.12_ESC_M2"
+				(name "P0.11_SPI_MOSI"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1876,9 +1804,9 @@
 				)
 			)
 			(pin output line
-				(at 22.86 -10.16 180)
+				(at 22.86 10.16 180)
 				(length 2.54)
-				(name "P0.09_ESC_M3"
+				(name "P0.10_IMU_CS"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1893,10 +1821,10 @@
 					)
 				)
 			)
-			(pin output line
-				(at 22.86 -15.24 180)
+			(pin input line
+				(at 22.86 5.08 180)
 				(length 2.54)
-				(name "P0.10_ESC_M4"
+				(name "P0.09_IMU_INT1"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1911,17 +1839,89 @@
 					)
 				)
 			)
-			(pin input line
-				(at 22.86 -20.32 180)
+			(pin output line
+				(at 22.86 0 180)
 				(length 2.54)
-				(name "P0.06_ESC_TLM"
+				(name "P0.22_ESC_M1"
 					(effects
 						(font
 							(size 1.27 1.27)
 						)
 					)
 				)
-				(number "20"
+				(number "25"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 22.86 -5.08 180)
+				(length 2.54)
+				(name "P0.17_ESC_M2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "26"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 22.86 -10.16 180)
+				(length 2.54)
+				(name "P0.14_ESC_M3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "27"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin output line
+				(at 22.86 -15.24 180)
+				(length 2.54)
+				(name "P0.16_ESC_M4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "28"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin input line
+				(at 22.86 -20.32 180)
+				(length 2.54)
+				(name "P0.08_ESC_TLM"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "29"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1939,7 +1939,7 @@
 						)
 					)
 				)
-				(number "21"
+				(number "5"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1957,7 +1957,7 @@
 						)
 					)
 				)
-				(number "22"
+				(number "37"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1968,14 +1968,14 @@
 			(pin output line
 				(at -5.08 -38.1 90)
 				(length 2.54)
-				(name "P0.28_LED_STAT"
+				(name "P1.09_LED_STAT"
 					(effects
 						(font
 							(size 1.27 1.27)
 						)
 					)
 				)
-				(number "23"
+				(number "64"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1993,7 +1993,7 @@
 						)
 					)
 				)
-				(number "24"
+				(number "65"
 					(effects
 						(font
 							(size 1.27 1.27)
