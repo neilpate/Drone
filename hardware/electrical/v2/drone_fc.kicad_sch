@@ -51,7 +51,7 @@
 					)
 				)
 			)
-			(property "Datasheet" "~"
+			(property "Datasheet" ""
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -398,7 +398,7 @@
 					)
 				)
 			)
-			(property "Datasheet" "~"
+			(property "Datasheet" ""
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -559,10 +559,10 @@
 				)
 			)
 			(symbol "ESC_4in1_Connector_1_1"
-				(pin passive line
-					(at -17.78 -5.08 0)
+				(pin power_out line
+					(at 17.78 10.16 180)
 					(length 2.54)
-					(name "M4"
+					(name "VBAT"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -570,96 +570,6 @@
 						)
 					)
 					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 0 0)
-					(length 2.54)
-					(name "M3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 5.08 0)
-					(length 2.54)
-					(name "M2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 10.16 0)
-					(length 2.54)
-					(name "M1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 -10.16 0)
-					(length 2.54)
-					(name "TELEMETRY"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 -15.24 0)
-					(length 2.54)
-					(name "CURRENT"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "6"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -677,6 +587,96 @@
 							)
 						)
 					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 -15.24 0)
+					(length 2.54)
+					(name "CURRENT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 -10.16 0)
+					(length 2.54)
+					(name "TELEMETRY"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 10.16 0)
+					(length 2.54)
+					(name "M1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 5.08 0)
+					(length 2.54)
+					(name "M2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 0 0)
+					(length 2.54)
+					(name "M3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
 					(number "7"
 						(effects
 							(font
@@ -685,10 +685,10 @@
 						)
 					)
 				)
-				(pin power_out line
-					(at 17.78 10.16 180)
+				(pin passive line
+					(at -17.78 -5.08 0)
 					(length 2.54)
-					(name "VBAT"
+					(name "M4"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1071,7 +1071,7 @@
 					)
 				)
 			)
-			(property "Datasheet" "~"
+			(property "Datasheet" ""
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -1210,7 +1210,7 @@
 					)
 				)
 			)
-			(property "Datasheet" "~"
+			(property "Datasheet" ""
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -2029,7 +2029,7 @@
 					)
 				)
 			)
-			(property "Datasheet" "~"
+			(property "Datasheet" ""
 				(at 0 0 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -2873,16 +2873,6 @@
 	)
 	(wire
 		(pts
-			(xy 283.21 223.52) (xy 283.21 226.06)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "0a3a838f-e1ae-4e75-bdce-22cc47b61a58")
-	)
-	(wire
-		(pts
 			(xy 360.68 129.54) (xy 386.08 129.54)
 		)
 		(stroke
@@ -3243,16 +3233,6 @@
 	)
 	(wire
 		(pts
-			(xy 302.26 223.52) (xy 302.26 226.06)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "60432eb2-976f-4952-a32e-28fada062bcc")
-	)
-	(wire
-		(pts
 			(xy 58.42 185.42) (xy 45.72 185.42)
 		)
 		(stroke
@@ -3310,16 +3290,6 @@
 			(type default)
 		)
 		(uuid "7109ec17-ad31-4f79-a24b-acdccd331510")
-	)
-	(wire
-		(pts
-			(xy 293.37 223.52) (xy 293.37 224.79)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "76ab7881-b1cd-431a-b0d0-d28a26ab8fe6")
 	)
 	(wire
 		(pts
@@ -3433,7 +3403,7 @@
 	)
 	(wire
 		(pts
-			(xy 360.68 114.3) (xy 360.68 124.46)
+			(xy 360.68 114.3) (xy 360.68 119.38)
 		)
 		(stroke
 			(width 0)
@@ -3753,16 +3723,6 @@
 	)
 	(wire
 		(pts
-			(xy 274.32 223.52) (xy 274.32 226.06)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "ebe3281b-2488-45a1-87b8-568c1532b923")
-	)
-	(wire
-		(pts
 			(xy 58.42 177.8) (xy 45.72 177.8)
 		)
 		(stroke
@@ -3800,6 +3760,16 @@
 			(type default)
 		)
 		(uuid "f56d86f2-b828-49e4-95b9-c98627b79be5")
+	)
+	(wire
+		(pts
+			(xy 360.68 119.38) (xy 360.68 124.46)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f7aa3bb6-a4d3-4dec-9846-4ddf679253ee")
 	)
 	(wire
 		(pts
@@ -3880,16 +3850,6 @@
 			(justify left bottom)
 		)
 		(uuid "01a7d736-9086-4076-8c2a-cf96a0fbeae7")
-	)
-	(label "GND"
-		(at 45.72 190.5 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "1846a5ee-7bbe-485a-8138-19d539a756aa")
 	)
 	(label "+3V3"
 		(at 171.45 76.2 0)
@@ -4142,7 +4102,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 152.4 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -4164,7 +4124,7 @@
 				)
 			)
 		)
-		(property "Description" "Buck Output Capacitor"
+		(property "Description" "Capacitor"
 			(at 152.4 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -4200,10 +4160,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "12368c29-d7e1-4f41-ad41-79d5eb30892e")
 		(property "Reference" "J3"
-			(at 76.2 154.94 0)
+			(at 62.23 158.496 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4213,7 +4172,7 @@
 			)
 		)
 		(property "Value" "Cortex_SWD_10P"
-			(at 76.2 157.48 0)
+			(at 68.326 194.564 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4233,7 +4192,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "~"
+		(property "Datasheet" "https://developer.arm.com/documentation/dui0499/b/arm-dstream-target-interface-connections/arm-coreSight-10-pin-connector-interface"
 			(at 76.2 175.26 0)
 			(hide yes)
 			(show_name no)
@@ -4244,7 +4203,7 @@
 				)
 			)
 		)
-		(property "Description" "Standard 10-Pin Cortex Debug SWD Connector"
+		(property "Description" "Standard 10-Pin 1.27mm Cortex Debug SWD Connector"
 			(at 76.2 175.26 0)
 			(hide yes)
 			(show_name no)
@@ -4290,7 +4249,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 302.26 226.06 0)
+		(at 302.26 223.52 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -4301,7 +4260,7 @@
 		(fields_autoplaced yes)
 		(uuid "1d8062b9-75be-41c3-924c-eb8739e0884a")
 		(property "Reference" "#PWR013"
-			(at 302.26 232.41 0)
+			(at 302.26 229.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4312,7 +4271,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 302.26 231.14 0)
+			(at 302.26 228.6 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4322,7 +4281,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 302.26 226.06 0)
+			(at 302.26 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4333,7 +4292,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 302.26 226.06 0)
+			(at 302.26 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4344,7 +4303,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 302.26 226.06 0)
+			(at 302.26 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4397,7 +4356,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 48.26 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -4419,7 +4378,7 @@
 				)
 			)
 		)
-		(property "Description" ""
+		(property "Description" "Capacitor"
 			(at 48.26 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -4499,7 +4458,7 @@
 				)
 			)
 		)
-		(property "Description" "Buck Power Inductor"
+		(property "Description" "Inductor"
 			(at 123.19 83.82 0)
 			(hide yes)
 			(show_name no)
@@ -4578,7 +4537,7 @@
 				)
 			)
 		)
-		(property "Description" "Supervisor Status LED"
+		(property "Description" "Light Emitting Diode"
 			(at 210.82 203.2 0)
 			(hide yes)
 			(show_name no)
@@ -4694,7 +4653,7 @@
 		(dnp no)
 		(uuid "341d2f72-e8f9-4a8b-a8ba-33faf87a1ace")
 		(property "Reference" "R7"
-			(at 274.32 213.36 0)
+			(at 277.114 216.408 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4735,7 +4694,7 @@
 				)
 			)
 		)
-		(property "Description" "M1 Pulldown"
+		(property "Description" "Resistor"
 			(at 274.32 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -4851,7 +4810,7 @@
 		(dnp no)
 		(uuid "36fb8a70-3626-4da6-bfb7-663592e15e88")
 		(property "Reference" "R9"
-			(at 293.37 213.36 0)
+			(at 296.164 216.154 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -4892,7 +4851,7 @@
 				)
 			)
 		)
-		(property "Description" "M3 Pulldown"
+		(property "Description" "Resistor"
 			(at 293.37 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -4971,7 +4930,7 @@
 				)
 			)
 		)
-		(property "Description" "D1 Ballast Resistor"
+		(property "Description" "Resistor"
 			(at 210.82 220.98 0)
 			(hide yes)
 			(show_name no)
@@ -5009,7 +4968,7 @@
 		(dnp no)
 		(uuid "46c573ad-bf80-43ff-a846-9f2c15f313c8")
 		(property "Reference" "C2"
-			(at 37.846 86.868 0)
+			(at 39.878 91.694 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5019,7 +4978,7 @@
 			)
 		)
 		(property "Value" "10uF_50V"
-			(at 41.91 93.98 0)
+			(at 46.99 91.694 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5028,7 +4987,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 41.91 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -5050,7 +5009,7 @@
 				)
 			)
 		)
-		(property "Description" "Buck Input Capacitor"
+		(property "Description" "Capacitor"
 			(at 41.91 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -5107,7 +5066,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 88.9 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -5129,7 +5088,7 @@
 				)
 			)
 		)
-		(property "Description" ""
+		(property "Description" "Capacitor"
 			(at 88.9 120.65 0)
 			(hide yes)
 			(show_name no)
@@ -5208,7 +5167,7 @@
 				)
 			)
 		)
-		(property "Description" "Radio Link LED"
+		(property "Description" "Light Emitting Diode"
 			(at 220.98 203.2 0)
 			(hide yes)
 			(show_name no)
@@ -5287,7 +5246,7 @@
 				)
 			)
 		)
-		(property "Description" "D2 Ballast Resistor"
+		(property "Description" "Resistor"
 			(at 220.98 220.98 0)
 			(hide yes)
 			(show_name no)
@@ -5403,7 +5362,7 @@
 		(dnp no)
 		(uuid "6f7cfa48-87ba-46d1-a351-3593968d4163")
 		(property "Reference" "TVS1"
-			(at 27.432 87.122 0)
+			(at 25.4 89.916 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5413,7 +5372,7 @@
 			)
 		)
 		(property "Value" "SMAJ24A"
-			(at 31.75 93.98 0)
+			(at 27.432 92.202 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5444,7 +5403,7 @@
 				)
 			)
 		)
-		(property "Description" "24V VBAT TVS Diode"
+		(property "Description" "24V Unidirectional Transient Voltage Suppressor (TVS)"
 			(at 31.75 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -5482,7 +5441,7 @@
 		(dnp no)
 		(uuid "7200f3af-4a12-460b-849f-19adfda1dff4")
 		(property "Reference" "C1"
-			(at 101.092 86.36 0)
+			(at 109.22 86.614 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5492,7 +5451,7 @@
 			)
 		)
 		(property "Value" "100nF_BOOT"
-			(at 104.394 81.788 0)
+			(at 112.268 91.186 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5523,7 +5482,7 @@
 				)
 			)
 		)
-		(property "Description" "Bootstrap Capacitor"
+		(property "Description" "Capacitor"
 			(at 105.41 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -5580,7 +5539,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 199.39 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -5602,7 +5561,7 @@
 				)
 			)
 		)
-		(property "Description" "Buck Output Capacitor"
+		(property "Description" "Capacitor"
 			(at 199.39 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -5708,7 +5667,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 293.37 224.79 0)
+		(at 293.37 223.52 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5719,7 +5678,7 @@
 		(fields_autoplaced yes)
 		(uuid "75b63393-fb97-4191-8d27-86573a8daf78")
 		(property "Reference" "#PWR012"
-			(at 293.37 231.14 0)
+			(at 293.37 229.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5730,7 +5689,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 293.37 229.87 0)
+			(at 293.37 228.6 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -5740,7 +5699,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 293.37 224.79 0)
+			(at 293.37 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5751,7 +5710,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 293.37 224.79 0)
+			(at 293.37 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5762,7 +5721,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 293.37 224.79 0)
+			(at 293.37 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5915,7 +5874,7 @@
 				)
 			)
 		)
-		(property "Description" "IMU High-Freq Decoupling"
+		(property "Description" "Capacitor"
 			(at 386.08 119.38 0)
 			(hide yes)
 			(show_name no)
@@ -6031,7 +5990,7 @@
 		(dnp no)
 		(uuid "84d8fd2b-1b1d-43a7-915f-0bd7d29784ad")
 		(property "Reference" "R10"
-			(at 302.26 213.36 0)
+			(at 305.816 216.408 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6072,7 +6031,7 @@
 				)
 			)
 		)
-		(property "Description" "M4 Pulldown"
+		(property "Description" "Resistor"
 			(at 302.26 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -6108,10 +6067,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "8b12d80c-a021-4772-83a4-46039282aca1")
 		(property "Reference" "U2"
-			(at 330.2 104.14 0)
+			(at 313.69 108.204 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6121,7 +6079,7 @@
 			)
 		)
 		(property "Value" "ICM-42688-P"
-			(at 330.2 106.68 0)
+			(at 319.278 143.764 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6345,7 +6303,7 @@
 				)
 			)
 		)
-		(property "Description" "M4 Pulldown"
+		(property "Description" "Resistor"
 			(at 295.91 100.33 0)
 			(hide yes)
 			(show_name no)
@@ -6539,7 +6497,7 @@
 		(dnp no)
 		(uuid "afda879a-bb43-44d7-a1b8-f4c780e8caba")
 		(property "Reference" "U4"
-			(at 69.85 107.95 0)
+			(at 58.42 109.22 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6549,7 +6507,7 @@
 			)
 		)
 		(property "Value" "TLV75533PDBVR"
-			(at 68.834 121.412 0)
+			(at 59.436 132.588 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6621,7 +6579,7 @@
 		(dnp no)
 		(uuid "b59604ab-0654-45b0-94d9-6a70c3c6bb36")
 		(property "Reference" "R12"
-			(at 135.89 100.33 0)
+			(at 139.954 102.87 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6662,7 +6620,7 @@
 				)
 			)
 		)
-		(property "Description" "FB Lower Resistor"
+		(property "Description" "Resistor"
 			(at 135.89 105.41 0)
 			(hide yes)
 			(show_name no)
@@ -6934,8 +6892,7 @@
 		(dnp no)
 		(uuid "cfc37688-efb8-4942-81c0-7b0991960e19")
 		(property "Reference" "U1"
-			(at 127 114.3 0)
-			(hide yes)
+			(at 196.596 108.204 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6945,7 +6902,7 @@
 			)
 		)
 		(property "Value" "MDBT53-P1M"
-			(at 215.9 104.14 0)
+			(at 201.93 176.53 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -6965,7 +6922,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "~"
+		(property "Datasheet" "https://www.raytac.com/download/index.php?index_id=43"
 			(at 215.9 139.7 0)
 			(hide yes)
 			(show_name no)
@@ -7199,7 +7156,7 @@
 				)
 			)
 		)
-		(property "Description" "IMU VDD Decoupling"
+		(property "Description" "Capacitor"
 			(at 373.38 119.38 0)
 			(hide yes)
 			(show_name no)
@@ -7227,7 +7184,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 283.21 226.06 0)
+		(at 283.21 223.52 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -7238,7 +7195,7 @@
 		(fields_autoplaced yes)
 		(uuid "d87d04f3-231d-4d72-84c9-fda804a7afee")
 		(property "Reference" "#PWR011"
-			(at 283.21 232.41 0)
+			(at 283.21 229.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7249,7 +7206,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 283.21 231.14 0)
+			(at 283.21 228.6 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7259,7 +7216,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 283.21 226.06 0)
+			(at 283.21 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7270,7 +7227,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 283.21 226.06 0)
+			(at 283.21 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7281,7 +7238,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 283.21 226.06 0)
+			(at 283.21 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7315,7 +7272,7 @@
 		(dnp no)
 		(uuid "e1458012-3457-40b2-937c-c3ece9987408")
 		(property "Reference" "R11"
-			(at 135.89 86.36 0)
+			(at 140.208 88.392 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7325,7 +7282,7 @@
 			)
 		)
 		(property "Value" "88.7K"
-			(at 142.24 91.186 0)
+			(at 141.224 90.932 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7356,7 +7313,7 @@
 				)
 			)
 		)
-		(property "Description" "FB Upper Resistor"
+		(property "Description" "Resistor"
 			(at 135.89 91.44 0)
 			(hide yes)
 			(show_name no)
@@ -7392,10 +7349,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "e36d347d-f839-4445-9f96-064d7c5b56cb")
 		(property "Reference" "U3"
-			(at 72.39 73.66 0)
+			(at 58.166 77.47 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7405,7 +7361,7 @@
 			)
 		)
 		(property "Value" "LMR50410_Buck"
-			(at 72.39 76.2 0)
+			(at 64.516 103.124 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7425,7 +7381,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "~"
+		(property "Datasheet" "https://www.ti.com/lit/ds/symlink/lmr50410.pdf"
 			(at 72.39 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -7436,7 +7392,7 @@
 				)
 			)
 		)
-		(property "Description" "TI LMR50410 4V-36V 1A Synchronous Step-Down Buck"
+		(property "Description" "TI LMR50410 4V-36V 1A Synchronous Step-Down Voltage Regulator"
 			(at 72.39 88.9 0)
 			(hide yes)
 			(show_name no)
@@ -7505,7 +7461,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 177.8 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -7527,7 +7483,7 @@
 				)
 			)
 		)
-		(property "Description" "Buck Output Capacitor"
+		(property "Description" "Capacitor"
 			(at 177.8 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -7548,6 +7504,84 @@
 			(project "drone_fc"
 				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
 					(reference "C4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 45.72 190.5 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "eacbce48-158b-42c1-a4da-b6cb59a33c11")
+		(property "Reference" "#PWR019"
+			(at 45.72 196.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 45.72 195.58 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 45.72 190.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 45.72 190.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 45.72 190.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "22e8e008-8d6b-47aa-9c24-52078d2d7358")
+		)
+		(instances
+			(project "drone_fc"
+				(path "/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
+					(reference "#PWR019")
 					(unit 1)
 				)
 			)
@@ -7719,10 +7753,9 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "ed6e8084-58fe-48c2-b44a-b79cf7cf2426")
 		(property "Reference" "J1"
-			(at 342.9 175.26 0)
+			(at 328.93 179.07 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7732,7 +7765,7 @@
 			)
 		)
 		(property "Value" "ESC_4IN1_JST_SH"
-			(at 342.9 177.8 0)
+			(at 335.788 214.884 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7752,7 +7785,7 @@
 				)
 			)
 		)
-		(property "Datasheet" "~"
+		(property "Datasheet" "https://www.jst-mfg.com/product/pdf/eng/eSH.pdf"
 			(at 342.9 195.58 0)
 			(hide yes)
 			(show_name no)
@@ -7763,7 +7796,7 @@
 				)
 			)
 		)
-		(property "Description" "8-Pin 1.0mm Pitch JST-SH Connector for 4-in-1 ESC"
+		(property "Description" "8-Pin 1.0mm Pitch JST-SH Connector for 4-in-1 ESC Interface"
 			(at 342.9 195.58 0)
 			(hide yes)
 			(show_name no)
@@ -7819,7 +7852,7 @@
 		(dnp no)
 		(uuid "f5572bf4-88b4-4efc-9e0b-e96b1f6094ec")
 		(property "Reference" "R8"
-			(at 283.21 213.36 0)
+			(at 286.004 216.408 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7860,7 +7893,7 @@
 				)
 			)
 		)
-		(property "Description" "M2 Pulldown"
+		(property "Description" "Resistor"
 			(at 283.21 218.44 0)
 			(hide yes)
 			(show_name no)
@@ -7917,7 +7950,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric"
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
 			(at 189.23 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -7939,7 +7972,7 @@
 				)
 			)
 		)
-		(property "Description" "Buck Output Capacitor"
+		(property "Description" "Capacitor"
 			(at 189.23 85.09 0)
 			(hide yes)
 			(show_name no)
@@ -7967,7 +8000,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 274.32 226.06 0)
+		(at 274.32 223.52 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -7978,7 +8011,7 @@
 		(fields_autoplaced yes)
 		(uuid "ff31ea69-df7e-4de8-9257-a0909624d946")
 		(property "Reference" "#PWR010"
-			(at 274.32 232.41 0)
+			(at 274.32 229.87 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7989,7 +8022,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 274.32 231.14 0)
+			(at 274.32 228.6 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -7999,7 +8032,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 274.32 226.06 0)
+			(at 274.32 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8010,7 +8043,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 274.32 226.06 0)
+			(at 274.32 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8021,7 +8054,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 274.32 226.06 0)
+			(at 274.32 223.52 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
