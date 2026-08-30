@@ -8064,7 +8064,7 @@
 			)
 		)
 		(property "Value" "LMR50410_Buck"
-			(at 64.516 103.124 0)
+			(at 64.516 102.87 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
