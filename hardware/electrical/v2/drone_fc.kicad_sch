@@ -646,7 +646,7 @@
 					)
 				)
 			)
-			(property "Footprint" "drone_fc_v2_footprints:JST_SH_SM08B-SRSS-TB_1x08-1MP_P1.00mm_Horizontal"
+			(property "Footprint" "Connector_JST:JST_SH_SM08B-SRSS-TB_1x08-1MP_P1.00mm_Horizontal"
 				(at 0 -20.32 0)
 				(show_name no)
 				(do_not_autoplace no)
@@ -8577,7 +8577,7 @@
 				)
 			)
 		)
-		(property "Footprint" "drone_fc_v2_footprints:JST_SH_SM08B-SRSS-TB_1x08-1MP_P1.00mm_Horizontal"
+		(property "Footprint" "Connector_JST:JST_SH_SM08B-SRSS-TB_1x08-1MP_P1.00mm_Horizontal"
 			(at 342.9 195.58 0)
 			(hide yes)
 			(show_name no)
