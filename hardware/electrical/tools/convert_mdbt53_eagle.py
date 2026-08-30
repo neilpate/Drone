@@ -17,6 +17,11 @@ def layer_name(eagle_layer: str) -> str:
     }.get(eagle_layer, "F.Fab")
 
 
+def flip_y(value: str | None) -> str:
+    """Eagle measures Y upwards, KiCad downwards; copying verbatim mirrors the part."""
+    return f"{-float(value or 0):g}"
+
+
 def convert(source: Path, destination: Path) -> int:
     root = ET.parse(source).getroot()
     package = root.find("./drawing/library/packages/package[@name='MDBT53']")
@@ -32,27 +37,34 @@ def convert(source: Path, destination: Path) -> int:
         '  (layer "F.Cu")',
         '  (descr "Raytac MDBT53-P1M; converted from manufacturer Eagle library")',
         '  (tags "Raytac MDBT53-P1M nRF5340 65-pad 48-GPIO")',
-        '  (property "Reference" "REF**" (at 0 9.5 0) (layer "F.SilkS")',
+        '  (property "Reference" "REF**" (at 0 -9.5 0) (layer "F.SilkS")',
         '    (effects (font (size 1 1) (thickness 0.15)))',
         '  )',
-        '  (property "Value" "MDBT53-P1M" (at 0 -9.5 0) (layer "F.Fab")',
+        '  (property "Value" "MDBT53-P1M" (at 0 9.5 0) (layer "F.Fab")',
         '    (effects (font (size 1 1) (thickness 0.15)))',
         '  )',
         '  (attr smd)',
     ]
 
     for wire in package.findall("wire"):
-        if wire.get("layer") not in {"21", "41"}:
+        if wire.get("layer") != "21":
             continue
         layer = layer_name(wire.get("layer", ""))
         width = float(wire.get("width", "0.127"))
         lines.append(
-            f'  (fp_line (start {wire.get("x1")} {wire.get("y1")}) '
-            f'(end {wire.get("x2")} {wire.get("y2")}) '
+            f'  (fp_line (start {wire.get("x1")} {flip_y(wire.get("y1"))}) '
+            f'(end {wire.get("x2")} {flip_y(wire.get("y2"))}) '
             f'(stroke (width {width:g}) (type solid)) (layer "{layer}"))'
         )
 
-    lines.append('  (fp_text user "ANTENNA AREA" (at 0 5.0 0) (layer "F.SilkS")')
+    # Eagle layer 41 carries RF keepout notes rather than an outline, so the
+    # courtyard is drawn here; the extra margin at -Y clears the antenna end.
+    lines.append(
+        '  (fp_rect (start -5.7 -8.2) (end 5.7 7.7) '
+        '(stroke (width 0.05) (type default)) (fill none) (layer "F.CrtYd"))'
+    )
+
+    lines.append('  (fp_text user "ANTENNA AREA" (at 0 -5.0 0) (layer "F.SilkS")')
     lines.append('    (effects (font (size 0.7 0.7) (thickness 0.1)))')
     lines.append("  )")
 
@@ -61,11 +73,18 @@ def convert(source: Path, destination: Path) -> int:
         rotation_text = f" {rotation:g}" if rotation else ""
         lines.append(
             f'  (pad "{pad.get("name")}" smd rect '
-            f'(at {pad.get("x")} {pad.get("y")}{rotation_text}) '
+            f'(at {pad.get("x")} {flip_y(pad.get("y"))}{rotation_text}) '
             f'(size {pad.get("dx")} {pad.get("dy")}) '
             '(layers "F.Cu" "F.Paste" "F.Mask"))'
         )
 
+    lines.append(
+        '  (model "${KIPRJMOD}/drone_fc_v2_footprints.3dshapes/MDBT53-P1M.step"'
+    )
+    lines.append("    (offset (xyz 0 0 0))")
+    lines.append("    (scale (xyz 1 1 1))")
+    lines.append("    (rotate (xyz -90 0 0))")
+    lines.append("  )")
     lines.append(")")
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
