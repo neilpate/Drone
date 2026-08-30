@@ -6955,6 +6955,17 @@
 			(uuid "ebfa8b18-cd38-4dfe-85ea-4d01bc1b3501")
 		)
 		(embedded_fonts no)
+		(model "${KIPRJMOD}/drone_fc_v2_footprints.3dshapes/MDBT53-P1M.step"
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 1 1 1)
+			)
+			(rotate
+				(xyz -90 0 0)
+			)
+		)
 	)
 	(footprint "MountingHole_3.0mm"
 		(layer "F.Cu")
