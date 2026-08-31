@@ -1588,6 +1588,60 @@
 				)
 			)
 			(pin power_in line
+				(at -22.86 5.08 0)
+				(length 2.54)
+				(name "GND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "24"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at -22.86 0 0)
+				(length 2.54)
+				(name "GND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "42"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at -22.86 -5.08 0)
+				(length 2.54)
+				(name "GND"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "61"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
 				(at -22.86 20.32 0)
 				(length 2.54)
 				(name "VDD"
@@ -1878,14 +1932,14 @@
 			(pin output line
 				(at 22.86 -10.16 180)
 				(length 2.54)
-				(name "P0.14_ESC_M3"
+				(name "P0.03_ESC_M4"
 					(effects
 						(font
 							(size 1.27 1.27)
 						)
 					)
 				)
-				(number "27"
+				(number "30"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1896,7 +1950,7 @@
 			(pin output line
 				(at 22.86 -15.24 180)
 				(length 2.54)
-				(name "P0.16_ESC_M4"
+				(name "P0.16_ESC_M3"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1968,14 +2022,14 @@
 			(pin output line
 				(at -5.08 -38.1 90)
 				(length 2.54)
-				(name "P1.09_LED_STAT"
+				(name "P0.28_LED_STAT"
 					(effects
 						(font
 							(size 1.27 1.27)
 						)
 					)
 				)
-				(number "64"
+				(number "60"
 					(effects
 						(font
 							(size 1.27 1.27)
@@ -1986,14 +2040,14 @@
 			(pin output line
 				(at 5.08 -38.1 90)
 				(length 2.54)
-				(name "P0.29_LED_RADIO"
+				(name "P0.31_LED_RADIO"
 					(effects
 						(font
 							(size 1.27 1.27)
 						)
 					)
 				)
-				(number "65"
+				(number "56"
 					(effects
 						(font
 							(size 1.27 1.27)

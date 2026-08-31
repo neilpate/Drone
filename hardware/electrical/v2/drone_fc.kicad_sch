@@ -693,107 +693,17 @@
 				)
 			)
 			(symbol "ESC_4in1_Connector_1_1"
-				(pin power_out line
-					(at 17.78 10.16 180)
-					(length 2.54)
-					(name "VBAT"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "8"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin power_out line
-					(at 17.78 -10.16 180)
-					(length 2.54)
-					(name "GND"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "7"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
 				(pin passive line
-					(at -17.78 -15.24 0)
+					(at -17.78 -5.08 0)
 					(length 2.54)
-					(name "CURRENT"
+					(name "M4"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "6"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 -10.16 0)
-					(length 2.54)
-					(name "TELEMETRY"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 10.16 0)
-					(length 2.54)
-					(name "M1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "4"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -17.78 5.08 0)
-					(length 2.54)
-					(name "M2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "3"
+					(number "1"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -820,16 +730,106 @@
 					)
 				)
 				(pin passive line
-					(at -17.78 -5.08 0)
+					(at -17.78 5.08 0)
 					(length 2.54)
-					(name "M4"
+					(name "M2"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "1"
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 10.16 0)
+					(length 2.54)
+					(name "M1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 -10.16 0)
+					(length 2.54)
+					(name "TELEMETRY"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at -17.78 -15.24 0)
+					(length 2.54)
+					(name "CURRENT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 17.78 -10.16 180)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_out line
+					(at 17.78 10.16 180)
+					(length 2.54)
+					(name "VBAT"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "8"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1809,17 +1809,17 @@
 						)
 					)
 				)
-				(pin output line
-					(at 22.86 25.4 180)
+				(pin input line
+					(at 22.86 5.08 180)
 					(length 2.54)
-					(name "P0.12_SPI_SCK"
+					(name "P0.19_IMU_INT1"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "15"
+					(number "14"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1848,25 +1848,7 @@
 				(pin output line
 					(at 22.86 15.24 180)
 					(length 2.54)
-					(name "P0.11_SPI_MOSI"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "17"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at 22.86 10.16 180)
-					(length 2.54)
-					(name "P0.10_IMU_CS"
+					(name "P0.10_SPI_MOSI"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1881,17 +1863,17 @@
 						)
 					)
 				)
-				(pin input line
-					(at 22.86 5.08 180)
+				(pin output line
+					(at 22.86 25.4 180)
 					(length 2.54)
-					(name "P0.09_IMU_INT1"
+					(name "P0.07_SPI_SCK"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "19"
+					(number "20"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1900,9 +1882,45 @@
 					)
 				)
 				(pin output line
-					(at 22.86 0 180)
+					(at 22.86 10.16 180)
 					(length 2.54)
-					(name "P0.22_ESC_M1"
+					(name "P1.05_IMU_CS"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "22"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at -22.86 5.08 0)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "24"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 22.86 -15.24 180)
+					(length 2.54)
+					(name "P0.22_ESC_M4"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1918,9 +1936,9 @@
 					)
 				)
 				(pin output line
-					(at 22.86 -5.08 180)
+					(at 22.86 -10.16 180)
 					(length 2.54)
-					(name "P0.17_ESC_M2"
+					(name "P0.17_ESC_M3"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1936,27 +1954,9 @@
 					)
 				)
 				(pin output line
-					(at 22.86 -10.16 180)
+					(at 22.86 -5.08 180)
 					(length 2.54)
-					(name "P0.14_ESC_M3"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "27"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin output line
-					(at 22.86 -15.24 180)
-					(length 2.54)
-					(name "P0.16_ESC_M4"
+					(name "P0.16_ESC_M2"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1982,6 +1982,24 @@
 						)
 					)
 					(number "29"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin output line
+					(at 22.86 0 180)
+					(length 2.54)
+					(name "P0.03_ESC_M1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "30"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -2044,6 +2062,24 @@
 					)
 				)
 				(pin power_in line
+					(at -22.86 0 0)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "42"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
 					(at -22.86 10.16 0)
 					(length 2.54)
 					(name "VBUS"
@@ -2098,16 +2134,16 @@
 					)
 				)
 				(pin output line
-					(at -5.08 -38.1 90)
+					(at 5.08 -38.1 90)
 					(length 2.54)
-					(name "P1.09_LED_STAT"
+					(name "P0.31_LED_RADIO"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "64"
+					(number "56"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -2116,16 +2152,34 @@
 					)
 				)
 				(pin output line
-					(at 5.08 -38.1 90)
+					(at -5.08 -38.1 90)
 					(length 2.54)
-					(name "P0.29_LED_RADIO"
+					(name "P0.28_LED_STAT"
 						(effects
 							(font
 								(size 1.27 1.27)
 							)
 						)
 					)
-					(number "65"
+					(number "60"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin power_in line
+					(at -22.86 -5.08 0)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "61"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -2810,6 +2864,12 @@
 		(uuid "16648374-10e1-44eb-88d5-dc7b5e4469f1")
 	)
 	(junction
+		(at 187.96 139.7)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "1d391a8e-debb-4c2b-8f05-46664ac0eb67")
+	)
+	(junction
 		(at 360.68 129.54)
 		(diameter 0.9144)
 		(color 0 0 0 0)
@@ -2880,6 +2940,18 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "97d7fcef-c44f-4644-bdd1-f9897f722ec7")
+	)
+	(junction
+		(at 187.96 134.62)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "980c8a91-2787-42a1-9ebd-3d5e4eb9f509")
+	)
+	(junction
+		(at 187.96 114.3)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "a8ccdc24-19d5-4a0c-83c4-9f5e622d48cd")
 	)
 	(junction
 		(at 373.38 129.54)
@@ -3237,6 +3309,16 @@
 	)
 	(wire
 		(pts
+			(xy 187.96 134.62) (xy 187.96 114.3)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2e6d3a55-0016-4465-9cbf-601319083b4f")
+	)
+	(wire
+		(pts
 			(xy 350.52 137.16) (xy 360.68 137.16)
 		)
 		(stroke
@@ -3277,6 +3359,16 @@
 	)
 	(wire
 		(pts
+			(xy 184.15 114.3) (xy 187.96 114.3)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "39590a41-f77f-4863-b51c-d911d5e4f56b")
+	)
+	(wire
+		(pts
 			(xy 168.91 137.16) (xy 193.04 137.16)
 		)
 		(stroke
@@ -3304,6 +3396,16 @@
 			(type default)
 		)
 		(uuid "3d34e5e4-3877-4aad-8a6b-e0055ed9e01d")
+	)
+	(wire
+		(pts
+			(xy 193.04 139.7) (xy 187.96 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "3eef35fa-89c8-41c7-aeed-29ca2d206259")
 	)
 	(wire
 		(pts
@@ -3397,6 +3499,16 @@
 	)
 	(wire
 		(pts
+			(xy 187.96 139.7) (xy 187.96 144.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4ef250c2-4b5a-412c-b001-8d682137d243")
+	)
+	(wire
+		(pts
 			(xy 274.32 200.66) (xy 274.32 154.94)
 		)
 		(stroke
@@ -3447,6 +3559,16 @@
 	)
 	(wire
 		(pts
+			(xy 187.96 114.3) (xy 193.04 114.3)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "64e44da3-e339-43ad-908e-f97023bb0944")
+	)
+	(wire
+		(pts
 			(xy 171.45 119.38) (xy 180.34 119.38)
 		)
 		(stroke
@@ -3454,16 +3576,6 @@
 			(type default)
 		)
 		(uuid "650b1717-d4a2-4f05-b10f-21d52e8c0fd6")
-	)
-	(wire
-		(pts
-			(xy 187.96 114.3) (xy 193.04 114.3)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "700c2160-8967-4394-9bd6-dafa5273754e")
 	)
 	(wire
 		(pts
@@ -3674,6 +3786,16 @@
 			(type default)
 		)
 		(uuid "ade487ce-f8e7-4a72-a0b9-23010b5307d9")
+	)
+	(wire
+		(pts
+			(xy 193.04 134.62) (xy 187.96 134.62)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ae62353f-274b-4a6d-9e19-9dd2d37f6500")
 	)
 	(wire
 		(pts
@@ -3907,6 +4029,16 @@
 	)
 	(wire
 		(pts
+			(xy 193.04 144.78) (xy 187.96 144.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e4986071-b670-4b83-90f5-f81f3b907595")
+	)
+	(wire
+		(pts
 			(xy 238.76 160.02) (xy 264.16 160.02)
 		)
 		(stroke
@@ -4024,6 +4156,16 @@
 			(type default)
 		)
 		(uuid "fb384da9-8ed0-4546-98c8-6e9b8c97b045")
+	)
+	(wire
+		(pts
+			(xy 187.96 134.62) (xy 187.96 139.7)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fe5b0618-1a71-48f0-bd22-4f5f05aa97b0")
 	)
 	(wire
 		(pts
@@ -5222,7 +5364,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 187.96 114.3 0)
+		(at 184.15 114.3 0)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -5232,7 +5374,7 @@
 		(dnp no)
 		(uuid "35779c21-1cca-48dc-9b43-d8d312e6290a")
 		(property "Reference" "#PWR011"
-			(at 187.96 120.65 0)
+			(at 184.15 120.65 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5243,7 +5385,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 183.388 110.236 0)
+			(at 179.578 110.236 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5254,7 +5396,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 187.96 114.3 0)
+			(at 184.15 114.3 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5265,7 +5407,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 187.96 114.3 0)
+			(at 184.15 114.3 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5276,7 +5418,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 187.96 114.3 0)
+			(at 184.15 114.3 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -7643,7 +7785,7 @@
 		(pin "6"
 			(uuid "8a641ffa-a7c6-4a5a-95bc-55cba4587407")
 		)
-		(pin "27"
+		(pin "30"
 			(uuid "bcf97aaf-ef6c-4a64-a30e-4b9fa5df3d09")
 		)
 		(pin "25"
@@ -7667,25 +7809,25 @@
 		(pin "28"
 			(uuid "91e6bf76-6fe2-4dfd-b5d7-1da42b906181")
 		)
-		(pin "15"
+		(pin "20"
 			(uuid "07ad31f8-8981-481c-bea1-c05bcaf44149")
 		)
 		(pin "16"
 			(uuid "3c2c3f54-139b-475e-8beb-8b012033ee07")
 		)
-		(pin "17"
+		(pin "14"
 			(uuid "f09a93bc-7208-4908-9170-dbdd14c84a67")
 		)
 		(pin "18"
 			(uuid "f74fd8ad-ecac-47c9-85aa-960e9f8ae6a4")
 		)
-		(pin "19"
+		(pin "22"
 			(uuid "646869de-95d8-4ac2-a6fd-39040ab4ffc7")
 		)
-		(pin "65"
+		(pin "60"
 			(uuid "2b39719a-4cde-4a80-8ec6-38ad51dd010b")
 		)
-		(pin "64"
+		(pin "56"
 			(uuid "1c328277-82b5-451a-bd5c-6c937a0ac791")
 		)
 		(pin "48"
@@ -7696,6 +7838,15 @@
 		)
 		(pin "37"
 			(uuid "91639c9d-6272-4aa2-bc91-34f2e5db5436")
+		)
+		(pin "24"
+			(uuid "e976b2a1-8a52-4249-ba73-4ab589793e76")
+		)
+		(pin "42"
+			(uuid "d084d7d1-d251-433b-bd85-5714cdc015d9")
+		)
+		(pin "61"
+			(uuid "b487011b-70ac-401d-9b9b-dfc38feb9c01")
 		)
 		(instances
 			(project "drone_fc"
