@@ -95,11 +95,11 @@ The trade accepted: the internal RC needs periodic calibration against HFCLK to 
 - **One fewer part and two fewer pads** from omitting the LFXO, at the cost of a less accurate LFCLK and a constraint to keep `P0.00`/`P0.01` free. Adding the crystal later is a schematic and layout change, not a rework of anything already fitted.
 - **Learning-first and achievable** — the module removes the RF/cert risk that would otherwise sink a first board, leaving the tractable, educational parts.
 - **Turnkey assembly de-risks bring-up** — the QFN IMU and the module are machine-placed and reflowed, removing hand-solder joints as a failure mode; the cost is external sourcing of the module (partial turnkey) and giving up hand-assembly as a learning exercise (a deliberate trade). It also **widens module choice** — LGA parts (u-blox NORA-B1) are viable again, since hand-solderability no longer gates selection.
+- **PCBA vendor: Aisler** (2026-08-31). Chosen over the low-cost China route (JLCPCB, PCBWay) for easier external sourcing of the nRF5340 module and a shorter lead time to the UK, per §9's stated trade-off. Exact consign-vs-source logistics for the module still to be worked out at order time.
 
 ## Open questions
 
 - Exact module part number (stock, footprint, antenna type) — §2.
-- PCBA vendor and route (low-cost China vs EU sourcing/lead time), and the consign-vs-source logistics for the module — §9.
 - Power topology: single buck vs staged, protection, whether to rely on an ESC BEC — §6.
 - Mechanical mounting standard (20×20 vs 30.5×30.5) for the 3" class, and stack vs all-in-one layout.
 - Whether to include a barometer / other sensors on this revision or keep it minimal.
