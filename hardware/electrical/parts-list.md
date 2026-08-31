@@ -80,25 +80,29 @@ bench is already owned or printed:
 
 The ESC-to-FC harness is an 8-pin **JST SH** assembly. Board side is `SM08B-SRSS-TB`
 (side-entry / right-angle SMT header, 1.0 mm pitch; the top-entry sibling is `BM08B-SRSS-TB`);
-the cable housing is `SHR-08V-S-B`. This is the standard 4-in-1 pinout:
+the cable housing is `SHR-08V-S-B`.
+
+**This is not the standard 4-in-1 pinout.** The `ESC_4in1_Connector` schematic symbol's pin
+numbering was deliberately **reversed** to match this project's custom cable, so pin 1 is the
+motor end, not the power end:
 
 | Pin | Signal | Harness wire |
 | ---: | --- | --- |
-| 1 | VBAT | red |
-| 2 | GND | black |
-| 3 | Current sense (analog) | yellow |
-| 4 | Telemetry (serial) | green |
-| 5 | M1 | white |
-| 6 | M2 | white |
-| 7 | M3 | white |
-| 8 | M4 | white |
+| 1 | M4 | white |
+| 2 | M3 | white |
+| 3 | M2 | white |
+| 4 | M1 | white |
+| 5 | Telemetry (serial) | green |
+| 6 | Current sense (analog) | yellow |
+| 7 | GND | black |
+| 8 | VBAT | red |
 
 **Read the wire colours, not the pad order.** The four motor lines are all white and the pad
 silkscreen is only legible from one side of the ESC, so any judgement based on "left" or "right"
 depends on which face you are looking at — that mirroring already caused one false conclusion
 while drawing the schematic. The colours are viewpoint-independent; the pin numbers are not.
 Definitive check before fab: continuity from the ESC battery pad through the harness to the free
-connector identifies pin 1 unambiguously.
+connector identifies pin 8 (VBAT) unambiguously.
 
 Getting this reversed puts pack voltage (up to 16.8 V on 4S) onto an MCU GPIO. Compare
 [ADR 0023](../../doc/decisions/0023-motor-numbering-layout-rotation.md), where reversed ESC signal
