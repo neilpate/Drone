@@ -7556,6 +7556,81 @@
 		(layer "Edge.Cuts")
 		(uuid "91edeae3-1063-477c-8fd1-4423142d011d")
 	)
+	(gr_text "RADIO"
+		(at 89.39 114.95 0)
+		(layer "F.Cu")
+		(uuid "f818761f-8fdc-46c5-810c-e2a3ef8cea73")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+				(bold yes)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text ""
+		(at 108.2 104.99 0)
+		(layer "F.Cu")
+		(uuid "3a64d17a-e1b8-4e9c-83d1-4852efc6e450")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+				(bold yes)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "${PROJECTNAME}"
+		(at 107.94 103.59 0)
+		(layer "F.SilkS")
+		(uuid "62a2b8ae-2dcd-42bd-8422-f6c722c731eb")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "v1.0"
+		(at 107.94 105.065 0)
+		(layer "F.SilkS")
+		(uuid "59511a77-0d08-414e-8c7c-eedfe8075046")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "NRP"
+		(at 107.94 106.54 0)
+		(layer "F.SilkS")
+		(uuid "80d2e184-a6a7-4136-a099-cadeb3fa9d88")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.1)
+			)
+			(justify left bottom)
+		)
+	)
+	(gr_text "STATUS"
+		(at 89.23 123.25 0)
+		(layer "F.SilkS")
+		(uuid "ebfda1cf-3120-409b-9935-44e5e547e625")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+				(bold yes)
+			)
+			(justify left bottom)
+		)
+	)
 	(segment
 		(start 108.53 92.327556)
 		(end 108.53 93.057556)
