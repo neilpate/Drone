@@ -260,7 +260,12 @@
     "equivalence_files": []
   },
   "erc": {
-    "erc_exclusions": [],
+    "erc_exclusions": [
+      [
+        "pin_not_driven|1930400|1371600|8a641ffa-a7c6-4a5a-95bc-55cba4587407|00000000-0000-0000-0000-000000000000|/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94|/7e58f1fd-ad7c-476c-bdab-53da6ca1bf94|",
+        "U3 nRESET has an internal pull-up (Raytac MDBT53 Rev. E pin description). J1 pin 10 is the external debug probe's open-collector reset; no external pull-up is required."
+      ]
+    ],
     "meta": {
       "version": 0
     },
@@ -673,7 +678,7 @@
         "uuid": "7e58f1fd-ad7c-476c-bdab-53da6ca1bf94"
       }
     ],
-    "used_designators": "L1,D1-2,#PWR1-19,J1-2,#FLG1,R1-9,R13,C1-13,U1-5,TVS1",
+    "used_designators": "#PWR1-19,D1-2,L1,#FLG1,R1-9,R13,J1-2,C1-13,U1-5,TVS1",
     "variants": []
   },
   "sheets": [
