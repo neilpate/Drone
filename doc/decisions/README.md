@@ -38,3 +38,4 @@ Each non-trivial design decision gets its own file here.
 - [0025 — Persist control parameters to flash](0025-persist-control-parameters-flash.md) — Proposed, 2026-08-14
 - [0026 — Phase 4 custom PCBA: nRF5340 module on a hand-designed carrier](0026-phase4-custom-pcba-nrf5340.md) — Proposed, 2026-08-19
 - [0027 — Split telemetry into high-rate and low-rate frames](0027-split-telemetry-high-low-rate.md) — Proposed, 2026-08-22
+- [0028 — Fabricate the v2 flight-controller board (PCBWay turnkey)](0028-fabricate-v2-board-pcbway.md) — Proposed, 2026-09-03
