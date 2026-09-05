@@ -535,7 +535,6 @@ impl App {
                     .ok();
                 self.log_rows = 0;
                 self.log_file = Some(writer);
-                self.status = format!("Logging to {}", self.log_path.as_deref().unwrap_or(&name));
             }
             Err(e) => {
                 self.status = format!("failed to open log file: {e}");
@@ -543,13 +542,11 @@ impl App {
         }
     }
 
-    /// Flush and close the active log file, reporting the row count.
+    /// Flush and close the active log file. The captured path is surfaced in the
+    /// bottom controls panel, not the top status line.
     fn stop_logging(&mut self) {
         if let Some(mut writer) = self.log_file.take() {
             let _ = writer.flush();
-        }
-        if let Some(path) = self.log_path.clone() {
-            self.status = format!("Logged {} rows to {path}", self.log_rows);
         }
     }
 
@@ -1231,18 +1228,6 @@ impl App {
                     }
                 }
 
-                let mut logging = self.log_file.is_some();
-                if ui.toggle_value(&mut logging, "Log to TSV").changed() {
-                    if logging {
-                        self.start_logging();
-                    } else {
-                        self.stop_logging();
-                    }
-                }
-                if self.log_file.is_some() {
-                    ui.label(format!("{} rows", self.log_rows));
-                }
-
                 // Zero IMU: trigger an on-drone accel/gyro recalibration. Guarded
                 // to Disarmed only, since calibration assumes the craft is level
                 // and still — recalibrating in flight would capture garbage offsets.
@@ -1255,6 +1240,35 @@ impl App {
                     && let Some(tx) = &self.tx
                 {
                     let _ = tx.send(Command::ResetImuCalibration);
+                }
+
+                let mut logging = self.log_file.is_some();
+                if ui.toggle_value(&mut logging, "Log to TSV").changed() {
+                    if logging {
+                        self.start_logging();
+                    } else {
+                        self.stop_logging();
+                    }
+                }
+                if self.log_file.is_some() {
+                    ui.label(format!("{} rows", self.log_rows));
+                }
+
+                // After logging stops, show the directory the capture was
+                // written to and offer a one-click copy of the full file path
+                // (handy for feeding it straight to the `analyze` tool). Hidden
+                // while logging is active.
+                if self.log_file.is_none()
+                    && let Some(path) = self.log_path.clone()
+                {
+                    let dir = std::path::Path::new(&path)
+                        .parent()
+                        .map(|p| p.display().to_string())
+                        .unwrap_or_else(|| path.clone());
+                    ui.label(dir);
+                    if ui.button("Copy path").on_hover_text(path.clone()).clicked() {
+                        ui.output_mut(|o| o.copied_text = path);
+                    }
                 }
             });
         });
