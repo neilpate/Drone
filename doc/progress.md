@@ -2,6 +2,20 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-09-12 — Revised airframe printed, and custom flight-controller PCBA ready for fabrication
+
+A new 3D-printed airframe iteration and the completed custom nRF5340 flight-controller hardware design reached their fabrication milestones.
+
+**Revised airframe for the custom PCB.** A new PETG airframe was printed to prepare for the arrival of the custom flight-controller PCBA. It integrates dedicated mounting for the 20×20 mm flight-controller and ESC stack, enclosed bays for the electronics and battery, and refined duct geometry.
+
+![The revised 3D-printed airframe designed to carry the custom nRF5340 flight-controller PCB and ESC stack.](images/Revised%20airframe%20for%20new%20PCB.jpg)
+
+**Flight-controller v2 PCBA layout complete and committed to fabrication ([ADR 0028](decisions/0028-fabricate-v2-board-pcbway.md)).** The four-layer KiCad design for the custom flight controller (`drone_fc` v2) reached a complete, fully routed state. The design integrates the Raytac MDBT53 (nRF5340) module with an edge antenna keepout, an SPI-connected ICM-42688-P IMU centred over the 20 mm soft-mount pattern, an 8-pin JST-SH interface for the 4-in-1 ESC, an LMR50410 buck regulator with a 3.3 V LDO powered from 4S, native USB-C, and an SWD debug port. Full turnkey fabrication outputs (Gerbers, drill files, BOM, and CPL) were generated for PCBWay turnkey assembly.
+
+![Schematic of the custom nRF5340 flight controller board (drone_fc v2).](images/drone_fc_v2_schematic.svg)
+
+![Render of the custom nRF5340 flight controller PCBA (drone_fc v2).](images/drone_fc_v2_pcba.png)
+
 ## 2026-08-29 — Phase 4 flight-controller layout begins
 
 The custom nRF5340 flight-controller schematic is now ERC-clean and has a sourced BOM. Layout began in KiCad around the actual Sequre Blueson A1 20x20 mm ESC stack: the carrier uses four soft-mount holes on the matching 20 mm square, with the IMU centred over the stack. The MDBT53-P1M module is aligned to the board edge, with a four-layer no-copper keepout beneath its antenna section. The board has labelled GND, VBAT, +4V, and +3V3 test points, and a filled GND plane connected through local ground vias. Routing is underway; 30 connections remain at the end of the session. There are no electrical clearance or short-circuit DRC violations. Remaining DRC findings are silkscreen cleanup and two dangling-track warnings to resolve before fabrication review.

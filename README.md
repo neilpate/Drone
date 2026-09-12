@@ -41,7 +41,15 @@ The **third airframe iteration** packages the build more sensibly — a base for
 
 ![The third-iteration 3D-printed airframe, packaging the battery, electronics and a soft-mounted IMU more sensibly than the earlier open frame.](doc/images/Airframe%20v3.jpg)
 
-**Next (to finish Phase 2):** with DShot, the ESC telemetry link and the front-left (M4) asymmetry all behind us, the remaining Phase-2 work is flight tuning on the now-symmetric plant, a firmware **power-limit** mode, and the netted test enclosure ([07-safety.md](doc/07-safety.md)); a single-axis **roll test rig** (pivot through the centre of mass) is built for safe, isolated gain tuning off the flight frame. In parallel, **Phase 4 has begun** — the custom nRF5340 PCBA ([ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md)) now has an ERC-clean schematic, a stack-compatible four-layer PCB placement with a 20 mm ESC mounting pattern, an edge-aligned MDBT53 antenna keepout, labelled rail test points, a filled GND plane, and routing in progress (30 connections remain). The micro:bit stays the tuning platform meanwhile.
+The **revised airframe for the custom flight controller** is ready for when the assembled boards arrive — updated to mount the 20×20 mm flight-controller and ESC stack with enclosed battery and electronics compartments:
+
+![The revised 3D-printed airframe designed to carry the custom nRF5340 flight-controller PCB and ESC stack.](doc/images/Revised%20airframe%20for%20new%20PCB.jpg)
+
+**Next (to finish Phase 2):** with DShot, the ESC telemetry link and the front-left (M4) asymmetry all behind us, the remaining Phase-2 work is flight tuning on the now-symmetric plant, a firmware **power-limit** mode, and the netted test enclosure ([07-safety.md](doc/07-safety.md)); a single-axis **roll test rig** (pivot through the centre of mass) is built for safe, isolated gain tuning off the flight frame. In parallel, **Phase 4 is well underway** — the custom nRF5340 flight controller (`drone_fc` v2, [ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md), [ADR 0028](doc/decisions/0028-fabricate-v2-board-pcbway.md)) has an ERC-clean schematic, a completed four-layer routed PCB with a 20 mm ESC mounting pattern, an edge-aligned MDBT53 antenna keepout, labelled rail test points, and turnkey PCBA fab exports generated for PCBWay. The micro:bit stays the tuning platform meanwhile.
+
+![Schematic of the custom nRF5340 flight controller board (drone_fc v2).](doc/images/drone_fc_v2_schematic.svg)
+
+![Render of the custom nRF5340 flight controller PCBA (drone_fc v2).](doc/images/drone_fc_v2_pcba.png)
 
 See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/dev-environment.md`](doc/dev-environment.md) for the toolchain, and [`doc/decisions/`](doc/decisions/README.md) for the full decision history.
 
