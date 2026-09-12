@@ -31,21 +31,11 @@ The ground station plots and logs every signal live — pilot command, six-axis 
 
 ![Ground station gains panel: the Control System Parameters section with sliders for kp/kd on each axis and the tilt/rate limits and a Send-to-drone button, a coloured drone-state badge, and the live telemetry plot and table.](doc/images/groundstation%205.png)
 
-The airframe is the **first complete quad-X frame** — the in-house PETG design of [ADR 0019](doc/decisions/0019-airframe-class-3in-4s-printed.md), modelled in Fusion 360 ([ADR 0006](doc/decisions/0006-mechanical-cad-fusion360.md)) and carrying all four iFlight XING2 1404 motors with the [ADR 0023](doc/decisions/0023-motor-numbering-layout-rotation.md) numbering and rotation marked on it:
-
-![Fusion 360 model of the quad-X frame: an X-shaped top plate with a motor-mount boss and bolt pattern at each of the four arm ends, over an open rectangular body that houses the electronics.](doc/images/first%20quad%20mount%20model.png)
-
-![The first complete 3D-printed quad-X airframe: a blue printed frame with all four iFlight XING2 1404 brushless motors mounted at the arm ends (no propellers), hand-marked with motor numbers and rotation-direction arrows, on the bench.](doc/images/first%20quad%20mount.jpg)
-
-The **third airframe iteration** packages the build more sensibly — a base for the LiPo, provision for a removable lid, and a proper IMU mount, with the IMU soft-mounted on adhesive putty for vibration isolation:
-
-![The third-iteration 3D-printed airframe, packaging the battery, electronics and a soft-mounted IMU more sensibly than the earlier open frame.](doc/images/Airframe%20v3.jpg)
-
-The **revised airframe for the custom flight controller** is ready for when the assembled boards arrive — updated to mount the 20×20 mm flight-controller and ESC stack with enclosed battery and electronics compartments:
+The current **3D-printed airframe** is revised for the incoming custom flight controller — updated to mount the 20×20 mm flight-controller and ESC stack with enclosed battery and electronics compartments:
 
 ![The revised 3D-printed airframe designed to carry the custom nRF5340 flight-controller PCB and ESC stack.](doc/images/Revised%20airframe%20for%20new%20PCB.jpg)
 
-**Next (to finish Phase 2):** with DShot, the ESC telemetry link and the front-left (M4) asymmetry all behind us, the remaining Phase-2 work is flight tuning on the now-symmetric plant, a firmware **power-limit** mode, and the netted test enclosure ([07-safety.md](doc/07-safety.md)); a single-axis **roll test rig** (pivot through the centre of mass) is built for safe, isolated gain tuning off the flight frame. In parallel, **Phase 4 is well underway** — the custom nRF5340 flight controller (`drone_fc` v2, [ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md), [ADR 0028](doc/decisions/0028-fabricate-v2-board-pcbway.md)) has an ERC-clean schematic, a completed four-layer routed PCB with a 20 mm ESC mounting pattern, an edge-aligned MDBT53 antenna keepout, labelled rail test points, and turnkey PCBA fab exports generated for PCBWay. The micro:bit stays the tuning platform meanwhile.
+**Next (to finish Phase 2):** with DShot, the ESC telemetry link and the front-left (M4) asymmetry all behind us, the remaining Phase-2 work is flight tuning on the now-symmetric plant, a firmware **power-limit** mode, and the netted test enclosure ([doc/07-safety.md](doc/07-safety.md)); a single-axis **roll test rig** (pivot through the centre of mass) is built for safe, isolated gain tuning off the flight frame. In parallel, **Phase 4 is well underway** — the custom nRF5340 flight controller (`drone_fc` v2, [ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md), [ADR 0028](doc/decisions/0028-fabricate-v2-board-pcbway.md)) has an ERC-clean schematic, a completed four-layer routed PCB with a 20 mm ESC mounting pattern, an edge-aligned MDBT53 antenna keepout, labelled rail test points, and turnkey PCBA fab exports generated for PCBWay. The micro:bit stays the tuning platform meanwhile.
 
 ![Schematic of the custom nRF5340 flight controller board (drone_fc v2).](doc/images/drone_fc_v2_schematic.svg)
 
@@ -99,6 +89,10 @@ A tracked `pre-push` git hook runs the suite before every push, and [GitHub Acti
 - [ADR 0022](doc/decisions/0022-attitude-estimation-complementary-filter.md) — Attitude estimation: complementary filter for roll and pitch (fixed-gain accel/gyro blend); yaw stays rate-only; pure filter in `firmware-drone-core` (Proposed).
 - [ADR 0023](doc/decisions/0023-motor-numbering-layout-rotation.md) — Motor numbering, layout, and rotation directions: quad-X, Betaflight numbering (M1 rear-right … M4 front-left), props-out rotation, with the derived mixer sign table (Proposed).
 - [ADR 0024](doc/decisions/0024-control-law-angle-mode-pd.md) — Control law: single-loop PD per axis, angle mode for roll/pitch and rate mode for yaw, derivative on the measured gyro; a single-publisher controller stage the supervisor mixes in Armed (Proposed).
+- [ADR 0025](doc/decisions/0025-persist-control-parameters-flash.md) — Persist control parameters to flash: log-structured parameter store in internal flash (Proposed).
+- [ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md) — Phase 4 custom PCBA: nRF5340 module on a hand-designed KiCad carrier (Proposed).
+- [ADR 0027](doc/decisions/0027-split-telemetry-high-low-rate.md) — Split telemetry into high-rate and low-rate frames: fast flight data + slower housekeeping (Proposed).
+- [ADR 0028](doc/decisions/0028-fabricate-v2-board-pcbway.md) — Fabricate the v2 flight-controller board: turnkey PCBA on PCBWay (Proposed).
 
 ## Licence
 
