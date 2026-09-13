@@ -13,7 +13,7 @@
 //!
 
 include!(concat!(env!("OUT_DIR"), "/version.rs"));
-#[unsafe(link_section = ".config")]
+#[unsafe(link_section = ".buildconfig")]
 #[used]
 static VERSION: u32 = FIRMWARE_VERSION;
 

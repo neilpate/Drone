@@ -16,14 +16,14 @@
 MEMORY
 {
   FLASH :  ORIGIN = 0x00000000, LENGTH = 508K
-  CONFIG : ORIGIN = 0x0007F000, LENGTH = 4K
+  BUILDCONFIG : ORIGIN = 0x0007F000, LENGTH = 4K
   RAM   :  ORIGIN = 0x20000000, LENGTH = 128K
 }
 
 SECTIONS
 {
-  .config :
+  .buildconfig :
   {
-    KEEP(*(.config .config.*));
-  } > CONFIG
+    KEEP(*(.buildconfig .buildconfig.*));
+  } > BUILDCONFIG
 } INSERT AFTER .text;
