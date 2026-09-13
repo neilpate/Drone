@@ -14,6 +14,8 @@ pub struct TelemetryFrameLowRate {
     pub esc_telemetry: ESCTelemetry,
     /// The drone's currently active gains, echoed so the ground station logs what actually flew.
     pub control_parameters: ControlSystemParameters,
+    /// Packed firmware version.
+    pub firmware_version: u32,
 }
 
 #[cfg(test)]
@@ -37,6 +39,7 @@ mod tests {
                 motor4_rpm: AngularRate::from_degrees_per_second(0.0),
             },
             control_parameters: ControlSystemParameters::default(),
+            firmware_version: 0x0001_0000,
         };
         let mut buf = [0u8; TelemetryFrameLowRate::POSTCARD_MAX_SIZE];
         let bytes = postcard::to_slice(&original, &mut buf).unwrap();

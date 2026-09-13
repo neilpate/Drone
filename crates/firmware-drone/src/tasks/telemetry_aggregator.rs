@@ -5,6 +5,8 @@ use crate::signals::{
 use embassy_time::{Duration, Ticker};
 use firmware_types::{ESCTelemetry, MotorID, TelemetryFrame, TelemetryFrameHighRate};
 
+use crate::FIRMWARE_VERSION;
+
 /// One low-rate frame every N aggregator cycles; 10 cycles at the 100 Hz cycle gives ~10 Hz.
 const CYCLES_PER_LOW_RATE_FRAME: u32 = 10;
 
@@ -77,6 +79,7 @@ pub async fn telemetry_aggregator() -> ! {
             temperature: sensors.temperature,
             esc_telemetry,
             control_parameters: control_system_parameters,
+            firmware_version: FIRMWARE_VERSION,
         };
 
         let telemetry_frame_high_rate = TelemetryFrame::HighRate(telemetry_frame_high_rate);

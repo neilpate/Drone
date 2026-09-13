@@ -68,6 +68,7 @@ mod tests {
                 motor4_rpm: AngularRate::from_degrees_per_second(0.0),
             },
             control_parameters: ControlSystemParameters::default(),
+            firmware_version: 123,
         });
         assert_eq!(frame, round_trip(&frame));
     }

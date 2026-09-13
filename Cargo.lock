@@ -426,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "firmware-drone"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
@@ -454,7 +454,7 @@ dependencies = [
 
 [[package]]
 name = "firmware-remote"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",

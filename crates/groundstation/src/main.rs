@@ -20,9 +20,9 @@ use postcard::accumulator::{CobsAccumulator, FeedResult};
 use firmware_types::{
     Acceleration, AngularRate, Attitude, COMMAND_FRAME_MAX_SIZE_BYTES, Command, ControlMode,
     ControlSystemParameters, ControllerDemand, CpuLoad, DroneState, ESCTelemetry, ImuData,
-    MotorCommand, PilotCommand, PitchCommand, RollCommand, TELEMETRY_FRAME_MAX_SIZE_BYTES,
+    MotorCommand, PilotCommand, PitchCommand, RollCommand, TO_GROUNDSTATION_MAX_SIZE_BYTES,
     TelemetryFrame, TelemetryFrameHighRate, TelemetryFrameLowRate, Temperature, ThrottleCommand,
-    YawCommand,
+    ToGroundStation, YawCommand,
 };
 
 use groundstation::{
@@ -167,6 +167,8 @@ struct TelemetryView {
     /// The drone's active gains, echoed on the low-rate frame; logged as
     /// ground-truth instead of the ground station's own slider values.
     control_parameters: ControlSystemParameters,
+    /// Packed firmware version (major<<16 | minor<<8 | patch), from the low-rate frame.
+    firmware_version: u32,
 }
 
 impl Default for TelemetryView {
@@ -194,6 +196,7 @@ impl Default for TelemetryView {
             motor_command: MotorCommand::ZERO,
             esc_telemetry: ESCTelemetry::default(),
             control_parameters: ControlSystemParameters::default(),
+            firmware_version: 0,
         }
     }
 }
@@ -219,7 +222,16 @@ impl TelemetryView {
         self.temperature = f.temperature;
         self.esc_telemetry = f.esc_telemetry;
         self.control_parameters = f.control_parameters;
+        self.firmware_version = f.firmware_version;
     }
+}
+
+/// Unpack a packed firmware version (major<<16 | minor<<8 | patch) as `vMAJOR.MINOR.PATCH`.
+fn format_version(packed: u32) -> String {
+    let major = (packed >> 16) & 0xFF;
+    let minor = (packed >> 8) & 0xFF;
+    let patch = packed & 0xFF;
+    format!("v{major}.{minor}.{patch}")
 }
 
 struct App {
@@ -229,11 +241,15 @@ struct App {
     pitch: f32,
     yaw: f32,
     tx: Option<mpsc::Sender<Command>>,
-    telemetry_rx: Option<mpsc::Receiver<TelemetryFrame>>,
+    telemetry_rx: Option<mpsc::Receiver<ToGroundStation>>,
     status: String,
     start: Instant,
     series: Vec<Series>,
     last: Option<TelemetryView>,
+    /// Most recent firmware version reported by the remote in its own
+    /// `RemoteInfo` message, distinct from the drone version carried in
+    /// telemetry. `None` until the first `RemoteInfo` arrives.
+    remote_firmware_version: Option<u32>,
     /// Sent commands awaiting their echo in telemetry, with the send instant.
     /// Used to measure the end-to-end round-trip time.
     pending: VecDeque<(Instant, Command)>,
@@ -342,6 +358,7 @@ impl Default for App {
                 Series::new("Motor 4 RPM", egui::Color32::from_rgb(240, 200, 110)).hidden(),
             ],
             last: None,
+            remote_firmware_version: None,
             pending: VecDeque::new(),
             last_rtt_ms: None,
             avg_rtt_ms: None,
@@ -408,8 +425,17 @@ impl App {
             return;
         };
         let mut frames = Vec::new();
-        while let Ok(frame) = rx.try_recv() {
-            frames.push(frame);
+        let mut latest_remote_version = None;
+        while let Ok(msg) = rx.try_recv() {
+            match msg {
+                ToGroundStation::Telemetry(frame) => frames.push(frame),
+                ToGroundStation::RemoteInfo(info) => {
+                    latest_remote_version = Some(info.firmware_version);
+                }
+            }
+        }
+        if let Some(v) = latest_remote_version {
+            self.remote_firmware_version = Some(v);
         }
         for frame in frames {
             let mut view = self.last.unwrap_or_default();
@@ -655,7 +681,7 @@ impl App {
     /// command channel (UI -> thread) and the telemetry channel (thread -> UI).
     fn connect(&mut self, ctx: egui::Context) {
         let (cmd_tx, cmd_rx) = mpsc::channel::<Command>();
-        let (telemetry_tx, telemetry_rx) = mpsc::channel::<TelemetryFrame>();
+        let (telemetry_tx, telemetry_rx) = mpsc::channel::<ToGroundStation>();
 
         let port = match serialport::new(&self.port_name, 115_200)
             .timeout(Duration::from_millis(50))
@@ -1350,6 +1376,19 @@ impl eframe::App for App {
                     });
 
                     ui.horizontal(|ui| {
+                        ui.label("Firmware:");
+                        match &self.last {
+                            Some(t) => { ui.label(format!("drone {}", format_version(t.firmware_version))); }
+                            None => { ui.label("drone: no telemetry"); }
+                        };
+                        ui.separator();
+                        match self.remote_firmware_version {
+                            Some(v) => { ui.label(format!("remote {}", format_version(v))); }
+                            None => { ui.label("remote: no report"); }
+                        };
+                    });
+
+                    ui.horizontal(|ui| {
                         ui.label("Control mode:");
                         let (label, color) = match self.control_mode {
                             ControlMode::Stabilized => (
@@ -1460,12 +1499,12 @@ impl eframe::App for App {
 fn serial_io_thread(
     mut port: Box<dyn serialport::SerialPort>,
     rx: mpsc::Receiver<Command>,
-    telemetry_tx: mpsc::Sender<TelemetryFrame>,
+    telemetry_tx: mpsc::Sender<ToGroundStation>,
     ctx: egui::Context,
 ) {
     let mut buf = [0u8; MAX_SEND_BUFFER_SIZE]; // serialization scratch
     let mut raw = [0u8; 256]; // chunk from each read
-    let mut cobs: CobsAccumulator<TELEMETRY_FRAME_MAX_SIZE_BYTES> = CobsAccumulator::new();
+    let mut cobs: CobsAccumulator<TO_GROUNDSTATION_MAX_SIZE_BYTES> = CobsAccumulator::new();
 
     loop {
         // 1. Send any pending commands (non-blocking drain).
@@ -1482,7 +1521,7 @@ fn serial_io_thread(
             Ok(n) => {
                 let mut window = &raw[..n];
                 while !window.is_empty() {
-                    window = match cobs.feed::<TelemetryFrame>(window) {
+                    window = match cobs.feed::<ToGroundStation>(window) {
                         FeedResult::Consumed => break,        // buffered, need more bytes
                         FeedResult::OverFull(rest) => rest,   // frame too big -> resync
                         FeedResult::DeserError(rest) => rest, // garbage -> resync
