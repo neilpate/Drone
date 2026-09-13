@@ -12,9 +12,10 @@
 //! supervisor task ([`tasks::supervisor`]) per ADR 0013.
 //!
 
+include!(concat!(env!("OUT_DIR"), "/version.rs"));
 #[unsafe(link_section = ".config")]
 #[used]
-static VERSION: u32 = 0x0001_0000;
+static VERSION: u32 = FIRMWARE_VERSION;
 
 use defmt_rtt as _;
 use panic_probe as _;

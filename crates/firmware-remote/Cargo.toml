@@ -1,6 +1,6 @@
 [package]
 name        = "firmware-remote"
-version     = "0.1.0"
+version     = "0.2.1"
 description = "Remote/ground-station firmware: on-target binary for the BBC micro:bit v2 (nRF52833)."
 edition.workspace    = true
 license.workspace    = true
