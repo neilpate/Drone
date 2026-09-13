@@ -11,6 +11,11 @@
 //! physical pins. System-wide state is owned and published by the
 //! supervisor task ([`tasks::supervisor`]) per ADR 0013.
 
+include!(concat!(env!("OUT_DIR"), "/version.rs"));
+#[unsafe(link_section = ".config")]
+#[used]
+static VERSION: u32 = FIRMWARE_VERSION;
+
 use defmt_rtt as _;
 use embassy_executor::{InterruptExecutor, Spawner};
 use embassy_nrf::interrupt;
