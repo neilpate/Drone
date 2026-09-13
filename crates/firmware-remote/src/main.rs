@@ -10,6 +10,11 @@
 //! [`board`] per ADR 0010; tasks accept BSP wrapper types and never see
 //! physical pins. System-wide state is owned and published by the
 //! supervisor task ([`tasks::supervisor`]) per ADR 0013.
+//!
+
+#[unsafe(link_section = ".config")]
+#[used]
+static VERSION: u32 = 0x0001_0000;
 
 use defmt_rtt as _;
 use panic_probe as _;
