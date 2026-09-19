@@ -234,6 +234,17 @@ fn format_version(packed: u32) -> String {
     format!("v{major}.{minor}.{patch}")
 }
 
+/// Label text for a gain row, tinted amber when the slider value deviates from
+/// the drone's active (last-reported) value — i.e. an unsent edit.
+fn param_label(name: &str, slider: f32, drone: Option<f32>) -> egui::RichText {
+    let text = egui::RichText::new(name);
+    if drone.is_some_and(|d| d != slider) {
+        text.color(egui::Color32::from_rgb(240, 170, 60))
+    } else {
+        text
+    }
+}
+
 struct App {
     port_name: String,
     throttle: f32,
@@ -265,6 +276,13 @@ struct App {
     control_mode: ControlMode,
     /// Control system parameters (gains, limits) sent to the drone on demand.
     params: ControlSystemParameters,
+    /// True while the user is editing a slider: suspends adopting telemetry into
+    /// the sliders until the drone confirms the sent value. Set on slider press,
+    /// cleared when the drone's echo matches the sliders.
+    params_locked: bool,
+    /// Last low-rate telemetry sequence number, to detect a drone reboot (the
+    /// counter resets to 0), which force-unlocks and re-syncs the sliders.
+    last_control_seq: Option<u32>,
     /// Open TSV log sink while data logging is active; `None` when stopped.
     log_file: Option<BufWriter<File>>,
     /// Absolute path of the active (or most recent) log file, for the status line.
@@ -367,6 +385,8 @@ impl Default for App {
             gamepad_name: None,
             control_mode: ControlMode::Manual,
             params: ControlSystemParameters::default(),
+            params_locked: false,
+            last_control_seq: None,
             log_file: None,
             log_path: None,
             log_rows: 0,
@@ -444,6 +464,9 @@ impl App {
                 TelemetryFrame::LowRate(low) => {
                     view.apply_low_rate(&low);
                     self.last = Some(view);
+                    // Track the drone's active gains into the sliders unless the
+                    // user is editing; force-resync on a drone reboot.
+                    self.sync_params_from_drone(&low);
                 }
                 TelemetryFrame::HighRate(high) => {
                     view.apply_high_rate(&high);
@@ -777,82 +800,178 @@ impl App {
         }
     }
 
+    /// Keep the gain sliders in step with the drone. While the user is not
+    /// editing a slider (`params_locked`), the sliders track the drone's active
+    /// gains, so they populate on connect and re-sync after a reboot. Pressing a
+    /// slider locks it; it unlocks once the drone's echo confirms the value
+    /// (converged), which is drop-safe: a lost send keeps the edit.
+    /// Keep the gain sliders in step with the drone. While the user is not
+    /// editing a slider (`params_locked`), the sliders track the drone's active
+    /// gains, so they populate on connect. A drone reboot (its telemetry
+    /// sequence number resets to 0) force-unlocks and re-syncs, so the panel
+    /// always reflects what the drone loaded from flash. Editing locks a slider;
+    /// it unlocks when the drone's echo confirms the value (converged).
+    fn sync_params_from_drone(&mut self, low: &TelemetryFrameLowRate) {
+        let drone = low.control_parameters;
+        let rebooted = self
+            .last_control_seq
+            .is_some_and(|last| low.sequence_number < last);
+        self.last_control_seq = Some(low.sequence_number);
+
+        // A reboot makes the drone authoritative again: drop any lock so its
+        // loaded gains are adopted even if the user had an unsent edit.
+        if rebooted || self.params == drone {
+            self.params_locked = false;
+        }
+        if !self.params_locked {
+            self.params = drone;
+        }
+    }
+
     /// Render the collapsible control system parameters panel with sliders for
-    /// every gain and limit, and a button to push the current values to the drone.
+    /// every gain and limit, plus buttons to push the values to the drone and
+    /// save them to flash. A slider whose value differs from the drone's active
+    /// value is tinted amber (an unsent edit); pressing a slider locks it from
+    /// telemetry updates until the drone confirms the new value.
     fn params_panel(&mut self, ui: &mut egui::Ui) {
         ui.collapsing("Control System Parameters", |ui| {
+            // The drone's active gains, for the deviation tint; None until telemetry.
+            let drone = self.last.map(|v| v.control_parameters);
+            let mut interacted = false;
             egui::Grid::new("params_grid")
                 .num_columns(2)
                 .spacing([8.0, 4.0])
                 .striped(true)
                 .show(ui, |ui| {
-                    ui.label("kp_roll");
-                    ui.add(
+                    ui.label(param_label(
+                        "kp_roll",
+                        self.params.kp_roll,
+                        drone.map(|d| d.kp_roll),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(&mut self.params.kp_roll, 0.0..=0.5).fixed_decimals(3),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("kd_roll");
-                    ui.add(
+                    ui.label(param_label(
+                        "kd_roll",
+                        self.params.kd_roll,
+                        drone.map(|d| d.kd_roll),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(&mut self.params.kd_roll, 0.0..=0.3).fixed_decimals(3),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("ki_roll");
-                    ui.add(
+                    ui.label(param_label(
+                        "ki_roll",
+                        self.params.ki_roll,
+                        drone.map(|d| d.ki_roll),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(&mut self.params.ki_roll, 0.0..=0.5).fixed_decimals(3),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("kp_pitch");
-                    ui.add(
+                    ui.label(param_label(
+                        "kp_pitch",
+                        self.params.kp_pitch,
+                        drone.map(|d| d.kp_pitch),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(&mut self.params.kp_pitch, 0.0..=0.5).fixed_decimals(3),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("kd_pitch");
-                    ui.add(
+                    ui.label(param_label(
+                        "kd_pitch",
+                        self.params.kd_pitch,
+                        drone.map(|d| d.kd_pitch),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(&mut self.params.kd_pitch, 0.0..=0.3).fixed_decimals(3),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("ki_pitch");
-                    ui.add(
+                    ui.label(param_label(
+                        "ki_pitch",
+                        self.params.ki_pitch,
+                        drone.map(|d| d.ki_pitch),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(&mut self.params.ki_pitch, 0.0..=0.5).fixed_decimals(3),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("kp_yaw");
-                    ui.add(egui::Slider::new(&mut self.params.kp_yaw, 0.0..=0.5).fixed_decimals(3));
+                    ui.label(param_label(
+                        "kp_yaw",
+                        self.params.kp_yaw,
+                        drone.map(|d| d.kp_yaw),
+                    ));
+                    let r = ui.add(
+                        egui::Slider::new(&mut self.params.kp_yaw, 0.0..=0.5).fixed_decimals(3),
+                    );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("kd_yaw");
-                    ui.add(egui::Slider::new(&mut self.params.kd_yaw, 0.0..=0.3).fixed_decimals(3));
+                    ui.label(param_label(
+                        "kd_yaw",
+                        self.params.kd_yaw,
+                        drone.map(|d| d.kd_yaw),
+                    ));
+                    let r = ui.add(
+                        egui::Slider::new(&mut self.params.kd_yaw, 0.0..=0.3).fixed_decimals(3),
+                    );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("max_tilt_deg");
-                    ui.add(
+                    ui.label(param_label(
+                        "max_tilt_deg",
+                        self.params.max_tilt_degrees,
+                        drone.map(|d| d.max_tilt_degrees),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(&mut self.params.max_tilt_degrees, 1.0..=45.0)
                             .fixed_decimals(1),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("max_tilt_rate_dps");
-                    ui.add(
+                    ui.label(param_label(
+                        "max_tilt_rate_dps",
+                        self.params.max_tilt_rate_degrees_per_second,
+                        drone.map(|d| d.max_tilt_rate_degrees_per_second),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(
                             &mut self.params.max_tilt_rate_degrees_per_second,
                             50.0..=1000.0,
                         )
                         .fixed_decimals(0),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
-                    ui.label("max_yaw_rate_dps");
-                    ui.add(
+                    ui.label(param_label(
+                        "max_yaw_rate_dps",
+                        self.params.max_yaw_rate_degrees_per_second,
+                        drone.map(|d| d.max_yaw_rate_degrees_per_second),
+                    ));
+                    let r = ui.add(
                         egui::Slider::new(
                             &mut self.params.max_yaw_rate_degrees_per_second,
                             20.0..=360.0,
                         )
                         .fixed_decimals(0),
                     );
+                    interacted |= r.is_pointer_button_down_on() || r.dragged();
                     ui.end_row();
                 });
+            if interacted {
+                self.params_locked = true;
+            }
             ui.add_space(4.0);
             ui.horizontal(|ui| {
                 if ui.button("Send to drone").clicked()
                     && let Some(tx) = &self.tx
                 {
-                    let _ = tx.send(Command::ControlSystemParameterUpdate(self.params));
+                    let _ = tx.send(Command::ControlSystemParametersUpdate(self.params));
                 }
                 // Persists the drone's *currently active* gains (disarmed only), not
                 // necessarily the sliders — click "Send to drone" first to sync them.

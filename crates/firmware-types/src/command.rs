@@ -7,7 +7,7 @@ use crate::{ControlMode, ControlSystemParameters, PilotCommand};
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Command {
     PilotCommand(PilotCommand),
-    ControlSystemParameterUpdate(ControlSystemParameters),
+    ControlSystemParametersUpdate(ControlSystemParameters),
     ControlModeUpdate(ControlMode),
     ResetImuCalibration,
     SaveConfig,

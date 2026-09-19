@@ -2,7 +2,7 @@ use firmware_types::{COMMAND_FRAME_MAX_SIZE_BYTES, Command, PilotCommand};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use crate::board::UartRx;
-use crate::signals::{command, reset_imu, save_config};
+use crate::signals::{command, control_system_parameters_update, reset_imu, save_config};
 
 #[embassy_executor::task]
 pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
@@ -28,6 +28,9 @@ pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
             // them every tick and the drone would re-action them ~100x/s. Only
             // streaming state (pilot sticks, mode) belongs on the `command` Watch.
             match data {
+                Command::ControlSystemParametersUpdate(params) => {
+                    control_system_parameters_update::signal(params)
+                }
                 Command::ResetImuCalibration => reset_imu::signal(),
                 Command::SaveConfig => save_config::signal(),
                 other => command::set(other),

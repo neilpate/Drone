@@ -8,7 +8,9 @@ use postcard::experimental::max_size::MaxSize;
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::{command, reset_imu, save_config, telemetry};
+use crate::signals::{
+    command, control_system_parameters_update, reset_imu, save_config, telemetry,
+};
 
 const MAX_SEND_BUFFER_SIZE: usize = RadioMessage::POSTCARD_MAX_SIZE;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
@@ -89,6 +91,8 @@ pub async fn drone_link(mut radio: Radio) -> ! {
         // is meant to be resent, so it stays on the `command` Watch below.
         let command_to_send = if reset_imu::take() {
             Command::ResetImuCalibration
+        } else if let Some(p) = control_system_parameters_update::take() {
+            Command::ControlSystemParametersUpdate(p)
         } else if save_config::take() {
             Command::SaveConfig
         } else if is_heartbeat {
