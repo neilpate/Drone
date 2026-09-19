@@ -33,6 +33,9 @@ use eframe::egui;
 use egui_plot::{Corner, Legend, Line, Plot, PlotPoints};
 use gilrs::{Axis, Button, EventType, GamepadId, Gilrs};
 
+mod attitude_view;
+use attitude_view::AttitudeView;
+
 const MAX_SEND_BUFFER_SIZE: usize = COMMAND_FRAME_MAX_SIZE_BYTES;
 
 /// Maximum number of samples retained per signal (the last N frames).
@@ -252,7 +255,7 @@ struct App {
     pitch: f32,
     yaw: f32,
     tx: Option<mpsc::Sender<Command>>,
-    telemetry_rx: Option<mpsc::Receiver<ToGroundStation>>,
+    telemetry_rx: Option<mpsc::Receiver<(f64, ToGroundStation)>>,
     status: String,
     start: Instant,
     series: Vec<Series>,
@@ -293,6 +296,10 @@ struct App {
     /// series are frozen so a region can be box-zoomed and inspected without new
     /// data rescaling the view.
     paused: bool,
+    /// 3D attitude renderer (mesh + camera), reused each frame.
+    attitude_view: AttitudeView,
+    /// Texture the attitude render is uploaded into; created on first frame.
+    attitude_texture: Option<egui::TextureHandle>,
 }
 
 impl Default for App {
@@ -391,6 +398,8 @@ impl Default for App {
             log_path: None,
             log_rows: 0,
             paused: false,
+            attitude_view: AttitudeView::new(),
+            attitude_texture: None,
         }
     }
 }
@@ -446,9 +455,9 @@ impl App {
         };
         let mut frames = Vec::new();
         let mut latest_remote_version = None;
-        while let Ok(msg) = rx.try_recv() {
+        while let Ok((t, msg)) = rx.try_recv() {
             match msg {
-                ToGroundStation::Telemetry(frame) => frames.push(frame),
+                ToGroundStation::Telemetry(frame) => frames.push((t, frame)),
                 ToGroundStation::RemoteInfo(info) => {
                     latest_remote_version = Some(info.firmware_version);
                 }
@@ -457,7 +466,7 @@ impl App {
         if let Some(v) = latest_remote_version {
             self.remote_firmware_version = Some(v);
         }
-        for frame in frames {
+        for (t, frame) in frames {
             let mut view = self.last.unwrap_or_default();
             match frame {
                 // Housekeeping only: refresh the slow fields, emit no new row.
@@ -470,7 +479,6 @@ impl App {
                 }
                 TelemetryFrame::HighRate(high) => {
                     view.apply_high_rate(&high);
-                    let t = self.start.elapsed().as_secs_f64();
                     // While paused, keep draining, logging, and updating the live
                     // readouts, but freeze the plot series so a box-zoom on the
                     // frozen snapshot stays stable instead of being rescaled.
@@ -704,7 +712,7 @@ impl App {
     /// command channel (UI -> thread) and the telemetry channel (thread -> UI).
     fn connect(&mut self, ctx: egui::Context) {
         let (cmd_tx, cmd_rx) = mpsc::channel::<Command>();
-        let (telemetry_tx, telemetry_rx) = mpsc::channel::<ToGroundStation>();
+        let (telemetry_tx, telemetry_rx) = mpsc::channel::<(f64, ToGroundStation)>();
 
         let port = match serialport::new(&self.port_name, 115_200)
             .timeout(Duration::from_millis(50))
@@ -718,11 +726,14 @@ impl App {
             }
         };
 
-        thread::spawn(move || serial_io_thread(port, cmd_rx, telemetry_tx, ctx));
+        // Set the plot epoch before spawning so the I/O thread timestamps
+        // frames against the same start the UI plots against.
+        self.start = Instant::now();
+        let start = self.start;
+        thread::spawn(move || serial_io_thread(port, cmd_rx, telemetry_tx, ctx, start));
 
         self.tx = Some(cmd_tx);
         self.telemetry_rx = Some(telemetry_rx);
-        self.start = Instant::now();
         self.pending.clear();
         self.last_rtt_ms = None;
         self.avg_rtt_ms = None;
@@ -981,6 +992,50 @@ impl App {
                     let _ = tx.send(Command::SaveConfig);
                 }
             });
+        });
+    }
+
+    /// Render the live 3D attitude view: the drone frame mesh rotated by the
+    /// estimated roll/pitch, into an RGBA buffer uploaded as an egui texture.
+    /// Drawn inline beside the telemetry table so the plot below keeps the full
+    /// width. Yaw is not shown (ADR 0022).
+    fn attitude_panel(&mut self, ui: &mut egui::Ui) {
+        ui.vertical(|ui| {
+            ui.heading("Attitude");
+
+            let (roll_deg, pitch_deg) = self.last.map_or((0.0, 0.0), |t| {
+                (t.attitude.roll.as_degrees(), t.attitude.pitch.as_degrees())
+            });
+
+            let pixels = self.attitude_view.render(roll_deg, pitch_deg);
+            let image = egui::ColorImage::from_rgba_unmultiplied(
+                [attitude_view::WIDTH, attitude_view::HEIGHT],
+                pixels,
+            );
+            match &mut self.attitude_texture {
+                Some(tex) => tex.set(image, egui::TextureOptions::LINEAR),
+                None => {
+                    self.attitude_texture = Some(ui.ctx().load_texture(
+                        "attitude_view",
+                        image,
+                        egui::TextureOptions::LINEAR,
+                    ));
+                }
+            }
+
+            if let Some(tex) = &self.attitude_texture {
+                ui.image(egui::load::SizedTexture::new(
+                    tex.id(),
+                    egui::vec2(300.0, 300.0),
+                ));
+            }
+
+            ui.label(format!(
+                "roll {roll_deg:+.1}\u{00B0}   pitch {pitch_deg:+.1}\u{00B0}"
+            ));
+            ui.small("yaw not estimated (no magnetometer)");
+            // Animate at ~100 Hz even when no telemetry is arriving.
+            ui.ctx().request_repaint_after(Duration::from_millis(10));
         });
     }
 
@@ -1562,6 +1617,9 @@ impl eframe::App for App {
 
                 ui.add_space(16.0);
                 self.telemetry_table(ui);
+
+                ui.add_space(16.0);
+                self.attitude_panel(ui);
             });
             ui.add_space(4.0);
         });
@@ -1595,8 +1653,9 @@ impl eframe::App for App {
 fn serial_io_thread(
     mut port: Box<dyn serialport::SerialPort>,
     rx: mpsc::Receiver<Command>,
-    telemetry_tx: mpsc::Sender<ToGroundStation>,
+    telemetry_tx: mpsc::Sender<(f64, ToGroundStation)>,
     ctx: egui::Context,
+    start: Instant,
 ) {
     let mut buf = [0u8; MAX_SEND_BUFFER_SIZE]; // serialization scratch
     let mut raw = [0u8; 256]; // chunk from each read
@@ -1622,7 +1681,10 @@ fn serial_io_thread(
                         FeedResult::OverFull(rest) => rest,   // frame too big -> resync
                         FeedResult::DeserError(rest) => rest, // garbage -> resync
                         FeedResult::Success { data, remaining } => {
-                            if telemetry_tx.send(data).is_err() {
+                            // Stamp arrival time here, not on the GUI thread, so
+                            // the plot time axis is unaffected by render load.
+                            let t = start.elapsed().as_secs_f64();
+                            if telemetry_tx.send((t, data)).is_err() {
                                 return; // UI gone
                             }
                             ctx.request_repaint();
