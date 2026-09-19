@@ -1,4 +1,5 @@
 pub mod attitude_estimator;
+pub mod config_manager;
 pub mod control_system;
 pub mod esc_telemetry;
 pub mod imu;

@@ -1,7 +1,7 @@
 use embassy_time::{Duration, Ticker, Timer};
 
-use crate::board;
 use crate::signals::imu_data;
+use crate::{board, signals::imu_calibrate};
 use firmware_types::{Acceleration, AngularRate, ImuData};
 
 const LOOP_PERIOD_MS: u64 = 1; // Loop period in milliseconds
@@ -90,13 +90,6 @@ pub async fn imu(mut imu: board::Imu) -> ! {
         Err(e) => defmt::error!("imu configuration failed: {:?}", e),
     }
 
-    let mut imu_calibrate_receiver = crate::signals::imu_calibrate::subscribe();
-
-    // Seed the calibrate watch so the loop's `get().await` never blocks on
-    // first-publish. Without this, on a fresh boot (before any Zero IMU press)
-    // the read loop parks on the very first `get()` and the IMU never updates.
-    crate::signals::imu_calibrate::set(false);
-
     Timer::after(Duration::from_millis(100)).await; // Give the IMU some time to stabilize after configuration
 
     let mut calibration = calibrate_imu(&mut imu).await;
@@ -104,8 +97,7 @@ pub async fn imu(mut imu: board::Imu) -> ! {
     let mut ticker = Ticker::every(Duration::from_millis(LOOP_PERIOD_MS));
 
     loop {
-        let calibrate = imu_calibrate_receiver.get().await;
-        if calibrate {
+        if imu_calibrate::check() {
             defmt::info!("imu calibration requested");
             calibration = calibrate_imu(&mut imu).await;
             defmt::info!(
@@ -116,7 +108,6 @@ pub async fn imu(mut imu: board::Imu) -> ! {
                 calibration.gyro_y_offset,
                 calibration.gyro_z_offset
             );
-            crate::signals::imu_calibrate::set(false); // Reset the calibration request signal
         }
 
         ticker.next().await; // Adjust the delay as needed

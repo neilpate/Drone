@@ -1,8 +1,8 @@
 # ADR 0013 — Async inter-task communication: when to use Channel, Watch, Signal, PubSubChannel
 
 - **Status:** Accepted
-- **Date:** 2026-05-24
-- **Related:** [ADR 0004](0004-concurrency-embassy-channels.md), [ADR 0009](0009-workspace-bootstrap-and-crate-naming.md)
+- **Date:** 2026-05-24 (amended 2026-09-19 — one-shot commands over the radio relay)
+- **Related:** [ADR 0004](0004-concurrency-embassy-channels.md), [ADR 0009](0009-workspace-bootstrap-and-crate-naming.md), [ADR 0014](0014-radio-protocol-ieee802154.md), [ADR 0018](0018-pc-link-uart-postcard-cobs.md)
 
 ## Context
 
@@ -117,6 +117,43 @@ When the first concrete user appears, that issue gets to set the
 conventions for `CAP` / `SUBS` / `PUBS` sizing and the back-pressure
 choice (`publish().await` vs `publish_immediate()`).
 
+### One-shot commands over a resending relay (amended 2026-09-19)
+
+The state-vs-events axis extends past intra-drone signals to the **radio
+relay**. The remote forwards pilot input to the drone by holding the latest
+`Command` in a `command` `Watch` and **retransmitting it every tick**
+(`drone_link`, ~100 Hz). That resend is deliberate — the link is lossy
+([ADR 0014](0014-radio-protocol-ieee802154.md)), so a dropped packet
+self-heals on the next tick. It makes the `command` Watch a *streaming-state*
+channel: correct for pilot sticks and control mode, which are meant to be
+resent and are idempotent to re-apply.
+
+A one-shot **event** command placed on that same Watch is therefore
+retransmitted ~100×/s and **re-actioned on the drone every time**. This bit us
+with `SaveConfig`: routed through the streaming `command` Watch, it persisted
+to flash on every tick (erase-thrash), instead of once. The events-vs-state
+mismatch here manifests as repeated side effects, not merely a stale read.
+
+Rule: a one-shot command variant must be lifted off the streaming `command`
+Watch onto a **dedicated `Signal`** at each relay boundary, and forwarded
+**exactly once** by consuming it with `take()`:
+
+- `serial_link_rx` (PC → remote) routes the variant to its own `Signal`
+  (`Command::SaveConfig => save_config::signal()`), never `command::set()`.
+- `drone_link` (remote → drone) checks each one-shot `Signal` with `take()`
+  *ahead of* the streaming command, so it wins that tick and is sent once.
+- On the drone, `remote_link` fires the corresponding drone-side `Signal` once
+  per received packet; the owning task consumes it — blocking with `wait()`
+  when the event is its whole job (`config_manager`), or polling with
+  `try_take()` when the event interrupts an otherwise-continuous loop (the imu
+  task). `try_take()`/`wait()` both consume, so no reset or boot-seed is
+  needed (unlike a `Watch<bool>`, which needs both).
+
+Trade-off: sent once, a dropped packet means no action and the operator
+re-triggers — the correct trade, since the alternative (resending) *is* the
+repeated-side-effect bug. `ResetImuCalibration` and `SaveConfig` are the two
+current one-shots; any new one follows the same pattern.
+
 ## Consequences
 
 - Subsystems that need to react to shared state subscribe to it; producers
@@ -147,3 +184,8 @@ choice (`publish().await` vs `publish_immediate()`).
 - Don't roll your own pub/sub on top of `Mutex<RefCell<...>>` + manual
   notification. `Watch` and `PubSubChannel` already bundle the wake
   mechanism with the storage — bypassing them defeats the async model.
+- Don't place a one-shot **command** on a resending relay (the remote's
+  streaming `command` Watch). It will be re-actioned every tick — a repeated
+  side effect, not just a stale read. Lift it onto a dedicated `Signal`
+  forwarded exactly once with `take()`. Streaming state (sticks, mode) is meant
+  to be resent; events are not.

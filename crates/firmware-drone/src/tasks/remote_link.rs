@@ -8,7 +8,8 @@ use firmware_types::{
 use crate::board::Radio;
 use crate::radio_link;
 use crate::signals::{
-    control_mode_update, control_system_parameter_update, imu_calibrate, pilot_command, telemetry,
+    control_mode_update, control_system_parameter_update, imu_calibrate, pilot_command,
+    save_config, telemetry,
 };
 
 const RECEIVE_TIMEOUT: Duration = Duration::from_millis(50); //5× the 10ms remote period — generous for early bring-up
@@ -58,7 +59,6 @@ pub async fn remote_link(mut radio: Radio) -> ! {
 
     pilot_command::set(PilotCommand::default()); //Set the watch signal so that the link to the drone will be in a known state and not blocking
     control_mode_update::set(firmware_types::ControlMode::Manual); //Set the watch signal so that the link to the drone will be in a known state and not blocking
-    control_system_parameter_update::set(firmware_types::ControlSystemParameters::default()); //Set the watch signal so that the link to the drone will be in a known state and not blocking
 
     let mut telemetry_receiver = telemetry::subscribe();
 
@@ -95,7 +95,11 @@ pub async fn remote_link(mut radio: Radio) -> ! {
             }
 
             Command::ResetImuCalibration => {
-                imu_calibrate::set(true);
+                imu_calibrate::signal();
+            }
+
+            Command::SaveConfig => {
+                save_config::signal();
             }
         }
 

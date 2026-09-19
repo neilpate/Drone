@@ -8,6 +8,7 @@ pub mod imu_calibrate;
 pub mod imu_data;
 pub mod motor_command;
 pub mod pilot_command;
+pub mod save_config;
 pub mod sensors;
 pub mod status;
 pub mod telemetry;

@@ -10,6 +10,7 @@ pub enum Command {
     ControlSystemParameterUpdate(ControlSystemParameters),
     ControlModeUpdate(ControlMode),
     ResetImuCalibration,
+    SaveConfig,
 }
 
 // The maximum size of a `Command` frame, in bytes, when serialized with `postcard`.

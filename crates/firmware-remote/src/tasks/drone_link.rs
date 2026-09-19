@@ -8,7 +8,7 @@ use postcard::experimental::max_size::MaxSize;
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::{command, reset_imu, telemetry};
+use crate::signals::{command, reset_imu, save_config, telemetry};
 
 const MAX_SEND_BUFFER_SIZE: usize = RadioMessage::POSTCARD_MAX_SIZE;
 const LOOP_PERIOD: Duration = Duration::from_millis(10);
@@ -80,13 +80,17 @@ pub async fn drone_link(mut radio: Radio) -> ! {
         // self-heals over the lossy link.
         let is_heartbeat = sequence_count.is_multiple_of(25);
 
-        // A pending IMU reset takes priority for this tick. It arrives via a
-        // dedicated Signal (see signals::reset_imu) that latches until consumed,
-        // so — unlike routing it through the streaming `command` Watch — the
-        // high-rate pilot stream cannot clobber the edge before we sample it.
-        // `take` consumes it, so it is forwarded exactly once.
+        // One-off commands (IMU reset, save-config) must be handled differently
+        // from streaming state. The `command` Watch is resent every tick, so a
+        // one-shot placed there would be retransmitted ~100x/s and re-actioned on
+        // the drone every time. Instead each rides a dedicated Signal that latches
+        // until consumed; `take` forwards it exactly once and takes priority over
+        // the streaming command for this tick. Streaming state (pilot sticks, mode)
+        // is meant to be resent, so it stays on the `command` Watch below.
         let command_to_send = if reset_imu::take() {
             Command::ResetImuCalibration
+        } else if save_config::take() {
+            Command::SaveConfig
         } else if is_heartbeat {
             last_mode_command
         } else {

@@ -848,11 +848,20 @@ impl App {
                     ui.end_row();
                 });
             ui.add_space(4.0);
-            if ui.button("Send to drone").clicked()
-                && let Some(tx) = &self.tx
-            {
-                let _ = tx.send(Command::ControlSystemParameterUpdate(self.params));
-            }
+            ui.horizontal(|ui| {
+                if ui.button("Send to drone").clicked()
+                    && let Some(tx) = &self.tx
+                {
+                    let _ = tx.send(Command::ControlSystemParameterUpdate(self.params));
+                }
+                // Persists the drone's *currently active* gains (disarmed only), not
+                // necessarily the sliders — click "Send to drone" first to sync them.
+                if ui.button("Save to flash").clicked()
+                    && let Some(tx) = &self.tx
+                {
+                    let _ = tx.send(Command::SaveConfig);
+                }
+            });
         });
     }
 

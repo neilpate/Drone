@@ -59,6 +59,7 @@ async fn main(_thread_mode_spawner: Spawner) {
     high_priority_spawner.must_spawn(tasks::control_system::control_system());
     high_priority_spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator());
 
+    high_priority_spawner.must_spawn(tasks::config_manager::config_manager(board.config_storage));
     // Seed cpu_load so the telemetry aggregator never blocks on first-publish.
     // Harmless when the profiler runs (it overwrites this 0%); keeps telemetry
     // alive when the profiler is disabled.

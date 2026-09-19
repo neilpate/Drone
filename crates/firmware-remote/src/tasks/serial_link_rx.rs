@@ -2,7 +2,7 @@ use firmware_types::{COMMAND_FRAME_MAX_SIZE_BYTES, Command, PilotCommand};
 use postcard::accumulator::{CobsAccumulator, FeedResult};
 
 use crate::board::UartRx;
-use crate::signals::{command, reset_imu};
+use crate::signals::{command, reset_imu, save_config};
 
 #[embassy_executor::task]
 pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
@@ -22,11 +22,14 @@ pub async fn serial_link_rx(mut uart_rx: UartRx) -> ! {
 
         // one byte in → accumulator buffers until a full frame arrives
         if let FeedResult::Success { data, .. } = cobs.feed::<Command>(&byte) {
-            // The IMU reset is a one-shot event, not streaming state: route it to
-            // its own signal so the high-rate pilot-command stream through the
-            // `command` Watch cannot clobber it before the relay samples it.
+            // One-off commands (IMU reset, save-config) are events, not streaming
+            // state: route each to its own dedicated Signal. If they went through
+            // the `command` Watch like streaming state, `drone_link` would resend
+            // them every tick and the drone would re-action them ~100x/s. Only
+            // streaming state (pilot sticks, mode) belongs on the `command` Watch.
             match data {
                 Command::ResetImuCalibration => reset_imu::signal(),
+                Command::SaveConfig => save_config::signal(),
                 other => command::set(other),
             }
         }
