@@ -26,6 +26,11 @@ board-microbit-v2 = []
 [dependencies]
 firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
 
+embassy-embedded-hal = { workspace = true }
+# `postcard` feature enables the PostcardValue trait (pulls in postcard + serde)
+# used to (de)serialise the persisted config record.
+sequential-storage   = { workspace = true, features = ["postcard"] }
+
 embassy-executor = { workspace = true }
 embassy-nrf      = { workspace = true }
 embassy-time     = { workspace = true }
@@ -42,6 +47,7 @@ panic-probe = { workspace = true }
 firmware-types = { path = "../firmware-types", features = ["defmt"] }
 
 postcard = { workspace = true }
+serde    = { workspace = true }
 
 [lints]
 workspace = true

@@ -79,6 +79,13 @@ micromath  = "2.1"
 serde    = { version = "1", default-features = false, features = ["derive"] }
 postcard = { version = "1", default-features = false, features = ["use-defmt"] }
 
+# --- Flash config storage (runtime, no_std) -----------------------------------
+# sequential-storage: log-structured key/value store over the internal flash.
+# embassy-embedded-hal: BlockingAsync adapter to present embassy-nrf's blocking
+# Nvmc as the async NorFlash that sequential-storage 8.x requires.
+sequential-storage   = { version = "8", default-features = false }
+embassy-embedded-hal = { version = "0.2", features = ["defmt"] }
+
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "warn"
 missing_debug_implementations = "warn"

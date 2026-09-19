@@ -8,25 +8,41 @@
 //!
 //!
 
+use core::ops::Range;
 use core::sync::atomic::{AtomicU16, Ordering};
 
-use crate::signals::esc_telemetry_sample;
+use embassy_embedded_hal::adapter::BlockingAsync;
 use embassy_nrf::config::{Config, HfclkSource};
 use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
+use embassy_nrf::nvmc::Nvmc;
 use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::uarte::{self, Baudrate, Parity, UarteRx, UarteRxWithIdle};
 use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
-use firmware_types::{Acceleration, AngularRate, ImuData, MotorCommand, MotorID, ThrottleCommand};
+use sequential_storage::cache::{Cache, Uncached};
+use sequential_storage::map::{MapConfig, MapStorage, PostcardValue};
+use serde::{Deserialize, Serialize};
 
-pub const NAME: &str = "BBC micro:bit v2";
+use firmware_types::{
+    Acceleration, AngularRate, ControlSystemParameters, ImuData, MotorCommand, MotorID,
+    ThrottleCommand,
+};
 
-/// BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
-pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>;
+use crate::signals::esc_telemetry_sample;
 
+pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>; // BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
 pub type TemperatureSensor = temp::Temp<'static>;
 pub type Spim3 = spim::Spim<'static, peripherals::SPI3>;
 pub type EscTelemetryRx = UarteRxWithIdle<'static, peripherals::UARTE1, peripherals::TIMER1>;
+
+type ConfigFlash = BlockingAsync<Nvmc<'static>>;
+// Only the `Cache` wrapper implements `CacheImpl`; the bare `Uncached` type does
+// not. This is the all-sub-caches-disabled (no caching) form for a `u8` key.
+type ConfigCache = Cache<Uncached, Uncached, Uncached, u8>;
+type ConfigMap = MapStorage<u8, ConfigFlash, ConfigCache>; //key-value store in flash with no caching
+
+pub const NAME: &str = "BBC micro:bit v2";
+const RUNTIMECONFIGSTORAGELOCATION: Range<u32> = 0x7D000..0x7F000; //2x 4KB pages of flash memory are allocated for config storage
 
 bind_interrupts!(struct Irqs {
     RADIO => radio::InterruptHandler<peripherals::RADIO>;
@@ -42,6 +58,7 @@ pub struct Board {
     pub temperature_sensor: TemperatureSensor,
     pub imu: Imu,
     pub esc_telemetry: ESCTelemetry,
+    pub config_storage: ConfigStorage,
 }
 
 // Pin map — BBC micro:bit v2 / nRF52833
@@ -100,7 +117,82 @@ impl Board {
             temperature_sensor: TemperatureSensor::new(p.TEMP, Irqs),
             imu: Imu::new(p.SPI3, p.P0_17, p.P0_01, p.P0_13, p.P1_02),
             esc_telemetry: ESCTelemetry::new(p.UARTE1, p.P0_26, p.TIMER1, p.PPI_CH0, p.PPI_CH1),
+            config_storage: ConfigStorage::new(p.NVMC),
         }
+    }
+}
+
+pub struct ConfigStorage {
+    map: ConfigMap,
+    buf: [u8; CONFIG_STORAGE_BUF_LEN],
+}
+
+/// Schema version of the persisted record. Bump when `ControlSystemParameters`'
+/// layout changes so a stale record is rejected instead of mis-decoded.
+const STORED_PARAMS_VERSION: u8 = 1;
+
+// Generous fixed scratch size. `StoredParams` (a version byte plus a handful of
+// f32 gains/limits) serialises well under this; revisit if the params grow.
+const CONFIG_STORAGE_BUF_LEN: usize = 128;
+
+/// On-flash record: the parameters plus a schema tag. A local newtype is needed
+/// because `PostcardValue` cannot be implemented for the foreign
+/// `ControlSystemParameters` (orphan rule). Board-agnostic — move to a shared
+/// module when a second board lands.
+#[derive(Serialize, Deserialize, Clone, Copy)]
+struct StoredParams {
+    version: u8,
+    params: ControlSystemParameters,
+}
+
+// Marker impl: opts `StoredParams` into postcard (de)serialisation for the map.
+impl PostcardValue<'_> for StoredParams {}
+
+/// A flash write failed. The underlying sequential-storage error is collapsed;
+/// callers only need success/failure.
+#[derive(Debug, defmt::Format)]
+pub struct ConfigStoreError;
+
+impl ConfigStorage {
+    /// Single fixed key: only one config blob lives in this region.
+    const KEY: u8 = 0;
+
+    pub fn new(nvmc: peripherals::NVMC) -> Self {
+        let flash = BlockingAsync::new(Nvmc::new(nvmc));
+        // MapStorage::new + MapConfig::new are const fns, so this stays sync —
+        // Board::new does not need to become async.
+        let map = MapStorage::new(
+            flash,
+            const { MapConfig::new(RUNTIMECONFIGSTORAGELOCATION) },
+            Cache::new_uncached(),
+        );
+        Self {
+            map,
+            buf: [0; CONFIG_STORAGE_BUF_LEN],
+        }
+    }
+
+    /// Fail-safe read: None on empty / CRC fail / version mismatch — caller defaults.
+    pub async fn load(&mut self) -> Option<ControlSystemParameters> {
+        match self
+            .map
+            .fetch_item::<StoredParams>(&mut self.buf, &Self::KEY)
+            .await
+        {
+            Ok(Some(s)) if s.version == STORED_PARAMS_VERSION => Some(s.params),
+            _ => None,
+        }
+    }
+
+    pub async fn save(&mut self, params: &ControlSystemParameters) -> Result<(), ConfigStoreError> {
+        let stored = StoredParams {
+            version: STORED_PARAMS_VERSION,
+            params: *params,
+        };
+        self.map
+            .store_item(&mut self.buf, &Self::KEY, &stored)
+            .await
+            .map_err(|_| ConfigStoreError)
     }
 }
 
