@@ -1338,8 +1338,8 @@ impl App {
                     ui.vertical(|ui| {
                         for (title, series_ids) in column {
                             egui::Frame::group(ui.style())
-                                .rounding(egui::Rounding::same(6.0))
-                                .inner_margin(egui::Margin::symmetric(8.0, 6.0))
+                                .corner_radius(egui::CornerRadius::same(6))
+                                .inner_margin(egui::Margin::symmetric(8, 6))
                                 .show(ui, |ui| {
                                     ui.vertical(|ui| {
                                         ui.set_width(TELEMETRY_BOX_WIDTH);
@@ -1421,7 +1421,7 @@ impl App {
                         .unwrap_or_else(|| path.clone());
                     ui.label(dir);
                     if ui.button("Copy path").on_hover_text(path.clone()).clicked() {
-                        ui.output_mut(|o| o.copied_text = path);
+                        ui.ctx().copy_text(path);
                     }
                 }
             });
@@ -1435,11 +1435,12 @@ impl eframe::App for App {
         storage.set_string(PORT_STORAGE_KEY, self.port_name.clone());
     }
 
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         self.ingest_telemetry();
-        self.poll_gamepad(ctx);
+        let ctx = ui.ctx().clone();
+        self.poll_gamepad(&ctx);
 
-        egui::TopBottomPanel::top("controls").show(ctx, |ui| {
+        egui::Panel::top("controls").show(ui, |ui| {
             ui.add_space(4.0);
 
             // Drone state badge — prominent coloured indicator at the top of the panel.
@@ -1453,10 +1454,10 @@ impl eframe::App for App {
                     Some(DroneState::Fault)        => ("FAULT",        egui::Color32::from_rgb(210,  30,  30)),
                     None                           => ("No telemetry", egui::Color32::from_rgb( 80,  80,  80)),
                 };
-                egui::Frame::none()
+                egui::Frame::new()
                     .fill(bg)
-                    .inner_margin(egui::Margin::symmetric(10.0, 4.0))
-                    .rounding(egui::Rounding::same(5.0))
+                    .inner_margin(egui::Margin::symmetric(10, 4))
+                    .corner_radius(egui::CornerRadius::same(5))
                     .show(ui, |ui| {
                         ui.label(
                             egui::RichText::new(label)
@@ -1598,7 +1599,7 @@ impl eframe::App for App {
             ui.add_space(4.0);
         });
 
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             if self.paused {
                 ui.label(
                     "PAUSED - right-drag to box-zoom into a region, double-click to reset, \
@@ -1612,9 +1613,9 @@ impl eframe::App for App {
                 .show(ui, |plot_ui| {
                     for series in &self.series {
                         if series.visible && !series.points.is_empty() {
-                            let line = Line::new(PlotPoints::from(series.points.clone()))
-                                .name(series.name)
-                                .color(series.color);
+                            let line =
+                                Line::new(series.name, PlotPoints::from(series.points.clone()))
+                                    .color(series.color);
                             plot_ui.line(line);
                         }
                     }

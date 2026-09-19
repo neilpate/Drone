@@ -20,8 +20,8 @@ name = "gs"
 path = "src/main.rs"
 
 [dependencies]
-eframe     = { version = "0.28", default-features = false, features = ["default_fonts", "glow", "wayland", "x11", "persistence"] }
-egui_plot  = "0.28"
+eframe     = { version = "0.36", default-features = false, features = ["default_fonts", "glow", "wayland", "x11", "persistence"] }
+egui_plot  = "0.37"
 gilrs      = "0.11"
 serialport = "4.3"
 postcard   = "1.0"
