@@ -35,7 +35,7 @@ Each non-trivial design decision gets its own file here.
 - [0022 — Attitude estimation: complementary filter for roll and pitch](0022-attitude-estimation-complementary-filter.md) — Proposed, 2026-06-27
 - [0023 — Motor numbering, layout, and rotation directions](0023-motor-numbering-layout-rotation.md) — Proposed, 2026-07-18
 - [0024 — Control law: single-loop PD, angle mode roll/pitch, rate mode yaw](0024-control-law-angle-mode-pd.md) — Proposed, 2026-07-22
-- [0025 — Persist control parameters to flash](0025-persist-control-parameters-flash.md) — Proposed, 2026-08-14
+- [0025 — Persist control parameters to flash](0025-persist-control-parameters-flash.md) — Accepted, 2026-08-14 (implemented 2026-09-19)
 - [0026 — Phase 4 custom PCBA: nRF5340 module on a hand-designed carrier](0026-phase4-custom-pcba-nrf5340.md) — Proposed, 2026-08-19
 - [0027 — Split telemetry into high-rate and low-rate frames](0027-split-telemetry-high-low-rate.md) — Proposed, 2026-08-22
 - [0028 — Fabricate the v2 flight-controller board (PCBWay turnkey)](0028-fabricate-v2-board-pcbway.md) — Proposed, 2026-09-03

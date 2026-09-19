@@ -1,7 +1,7 @@
 # ADR 0025 — Persist control parameters to flash
 
-- **Status:** Proposed
-- **Date:** 2026-08-14
+- **Status:** Accepted
+- **Date:** 2026-08-14 (implemented 2026-09-19)
 - **Related:** [ADR 0024](0024-control-law-angle-mode-pd.md) (the `ControlSystemParameters` this persists), [ADR 0018](0018-pc-link-uart-postcard-cobs.md) (the ground-station link the save command rides on), [ADR 0013](0013-async-communication-primitives.md) (`Watch` the loaded params are published into), [ADR 0010](0010-board-support-package.md) (flash driver is board-specific, lives in the BSP), [ADR 0016](0016-newtype-per-physical-quantity.md) (the newtypes inside the params), [ADR 0017](0017-supervisor-failsafe-state-machine.md) (disarmed gating), [ADR 0007](0007-testing-and-ci-strategy.md) / [ADR 0009](0009-workspace-bootstrap-and-crate-naming.md) (crate split, host-testable core)
 
 ## Context
@@ -54,8 +54,10 @@ postcard is not self-describing: if the `ControlSystemParameters` layout changes
 - **Config never bricks or blocks flight.** CRC + version tag + default fallback means a bad or stale record degrades to compiled-in defaults; disarmed-only, off-control-path writes keep the blocking erase away from flight.
 - **Host-testable core.** The serialise/deserialise/version-check logic is pure and lives testably alongside `firmware-types` / the core crates ([ADR 0007](0007-testing-and-ci-strategy.md)); only the `Nvmc`-backed store is on-target.
 
-## Open questions
+## Resolved at implementation (2026-09-19)
 
-- Exact region size and address in `memory.x` (one page vs two), settled at implementation.
-- Whether to also auto-save on disarm, or keep save strictly explicit.
-- Whether the ground station should read back and display the currently persisted values (a "load from flash" / status affordance) versus the live values.
+- **Region size and address:** two 4 KiB pages (`RUNTIMECONFIG`, `0x0007D000..0x0007F000` on micro:bit v2), reserved in `memory.x` immediately below the build-time version page. Two pages, not one, so `sequential-storage` can compact (copy live records to a fresh page, then erase the old one) without a window that could lose data on power loss.
+- **Save trigger:** strictly explicit — a "Save to flash" command from the ground station, gated to the `Disarmed` state. Auto-save-on-disarm was not added; it remains a possible later refinement.
+- **Read-back / display:** no separate "load from flash" affordance was needed. The drone already echoes its *active* `ControlSystemParameters` in the low-rate telemetry frame ([ADR 0027](0027-split-telemetry-high-low-rate.md)), which the ground station logs as ground truth, so the persisted values become observable there once loaded at boot.
+
+Implementation notes: a `ConfigStorage` BSP wrapper ([ADR 0010](0010-board-support-package.md)) hides `sequential-storage` over the nRF `Nvmc` driver behind `load()` / `save()`; a `config_manager` task reads the region at boot, publishes the result (or `::default()` on empty/CRC-fail) into the `control_system_parameter_update` `Watch`, and is its sole boot seeder. The save command is a one-shot routed off the streaming command relay per the [ADR 0013](0013-async-communication-primitives.md) amendment (else it would re-write flash every radio tick).

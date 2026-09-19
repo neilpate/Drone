@@ -2,6 +2,14 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-09-19 — Control gains persist to flash
+
+The live-tuned PID gains now survive a power cycle. Tune from the ground station, click **Save to flash**, and the values are written to the drone's internal flash; on the next boot they load automatically. This closes the slow part of the tuning loop — no more editing the compiled-in defaults and reflashing to make a tune permanent ([ADR 0025](decisions/0025-persist-control-parameters-flash.md)).
+
+A 2-page (8 KiB) region was reserved in `memory.x` below the build-time version page, and a `ConfigStorage` BSP wrapper (per [ADR 0010](decisions/0010-board-support-package.md)) hides `sequential-storage` over the nRF `Nvmc` flash driver behind `load()` / `save()`. A new `config_manager` task reads the region at boot and publishes the result — or the compiled defaults on a fresh board — into the control-parameter watch, then saves the drone's active gains on an explicit, disarmed-gated command.
+
+The save command surfaced a general rule, now recorded in [ADR 0013](decisions/0013-async-communication-primitives.md): a one-shot command must not ride the remote-to-drone streaming command relay, which resends the latest command every tick — the drone would re-action it ~100 times a second (here, writing to flash in a tight loop). One-shots travel instead on dedicated signals forwarded exactly once, mirroring the existing IMU-reset path. `imu_calibrate` was converted from a `Watch<bool>` to a one-shot `Signal` in the same pass, deleting its boot-seed and reset-to-false footguns.
+
 ## 2026-09-12 — Revised airframe printed, and custom flight-controller PCBA ready for fabrication
 
 A new 3D-printed airframe iteration and the completed custom nRF5340 flight-controller hardware design reached their fabrication milestones.
