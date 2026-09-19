@@ -1557,39 +1557,6 @@ impl eframe::App for App {
                     });
 
                     ui.add_space(4.0);
-                    let mut changed = ui
-                        .add(
-                            egui::Slider::new(&mut self.throttle, 0.0..=1.0)
-                                .text("Throttle")
-                                .fixed_decimals(3),
-                        )
-                        .changed();
-                    changed |= ui
-                        .add(
-                            egui::Slider::new(&mut self.roll, -1.0..=1.0)
-                                .text("Roll")
-                                .fixed_decimals(3),
-                        )
-                        .changed();
-                    changed |= ui
-                        .add(
-                            egui::Slider::new(&mut self.pitch, -1.0..=1.0)
-                                .text("Pitch")
-                                .fixed_decimals(3),
-                        )
-                        .changed();
-                    changed |= ui
-                        .add(
-                            egui::Slider::new(&mut self.yaw, -1.0..=1.0)
-                                .text("Yaw")
-                                .fixed_decimals(3),
-                        )
-                        .changed();
-                    if changed {
-                        self.send_command();
-                    }
-
-                    ui.add_space(4.0);
                     self.params_panel(ui);
                 });
 
