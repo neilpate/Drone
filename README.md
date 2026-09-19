@@ -26,9 +26,9 @@ See [`doc/00-vision.md`](doc/00-vision.md) for the full vision and the phased mi
 - **Actuation + ESC telemetry.** **DShot300** drives a 4-in-1 AM32 ESC ([parts list](hardware/electrical/parts-list.md)); each ESC's **KISS serial telemetry** — RPM, pack voltage, temperature — is read back over an idle-framed UART and logged.
 - **Discipline.** Frames, signs and command newtypes are fixed in [ADR 0021](doc/decisions/0021-coordinate-frames-and-command-semantics.md); the pure logic (filter, controller, supervisor, wire types) is host-tested in `firmware-drone-core`.
 
-The ground station plots and logs every signal live, times the round trip, pushes and saves PID gains, and pairs with an offline `analyze` tool that turns a telemetry log into a legible flight report.
+The ground station plots and logs every signal live, times the round trip, pushes and saves PID gains, shows a live 3D view of the drone's attitude, and pairs with an offline `analyze` tool that turns a telemetry log into a legible flight report.
 
-![Ground station gains panel: the Control System Parameters section with sliders for kp/kd on each axis and the tilt/rate limits and a Send-to-drone button, a coloured drone-state badge, and the live telemetry plot and table.](doc/images/groundstation%205.png)
+![The ground station: a live 3D view of the drone frame rotating with the estimated roll/pitch (top right), the live telemetry tables, and the multi-signal time plot below.](doc/images/groundstation%206.png)
 
 **Next (to finish Phase 2):** flight tuning on the now-symmetric plant, a firmware **power-limit** mode, and the netted test enclosure ([doc/07-safety.md](doc/07-safety.md)). In parallel, **Phase 4 is well underway** — the custom nRF5340 flight controller (`drone_fc` v2, [ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md), [ADR 0028](doc/decisions/0028-fabricate-v2-board-pcbway.md)) is fully routed with turnkey PCBA fab exports out to PCBWay; the micro:bit stays the tuning platform meanwhile.
 
