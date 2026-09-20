@@ -2,6 +2,20 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-09-20 — Drift and balance debugging; a control troubleshooting field guide; the old frame retired
+
+A session spent chasing a persistent in-flight drift resolved into a clear picture of the control system's remaining limits — and cost the old flight frame.
+
+**The integral, proven as a centre-of-mass trim corrector.** The recurring "it won't hold level on throttle alone" complaint was traced not to a control bug — `analyze`'s demand-vs-model reconstruction stayed at correlation +1.0000 throughout — but to the integral being geared too slow to do its job in a short hop. With centred sticks the integral clears a steady offset first-order with time constant `τ = kp/ki`; at the bring-up `ki = 0.02` that is ~7.5 s, longer than a hop, and the `throttle == 0` reset wipes it between hops. Raising `ki` to ~0.07 (τ ≈ 2 s) let the integral trim a real nose-down CoM torque within seconds — and confirmed the trim it converges to is set by the airframe's physics, not the gain: `demand_pitch` settled at the same ~+0.038 at both `ki = 0.07` and `ki = 0.12`. No slow-`ki` wallow appeared even at 0.12, so the wallow ceiling is airframe-dependent, not fixed.
+
+**Integrator windup against the hand.** Attempting to trim the craft while cradling it in an open palm produced a lurch on release. The cause is windup: a held craft cannot null its attitude error by rotating, so the integrator accumulates against whatever tilt the hand imposes and over-winds a trim that springs the craft on release. A valid trim can only be built in free flight (or on a CoM-pivoted rig) — the standard reason real controllers freeze the integrator until airborne.
+
+**Balancing by the motor-effort split.** With the integral honestly reflecting the imbalance, the airframe was balanced by reading the per-motor means in `analyze` — a motor works hardest under the heaviest corner — and shaving a shapeable nose ballast preferentially off the hardest corner, which attacks the fore-aft and lateral imbalance together. The front−rear split fell 0.075 → 0.047 → 0.025 and the standing `demand_pitch` 0.038 → 0.024 → 0.012 across the session; even with all nose ballast removed the bare frame stayed marginally nose-heavy. Separately, re-zeroing the IMU on a level surface removed a ~1° static estimate offset that had been parking the craft at a true bank and driving a one-directional skirt — a reminder that self-levelling holds attitude, not position, so any residual tilt translates directly into drift with nothing to arrest it.
+
+**A control troubleshooting field guide.** The hard-won lessons — this session's and the earlier estimator-lag and limit-cycle fights — are consolidated into [06-control-troubleshooting.md](06-control-troubleshooting.md), a symptom → diagnosis → fix companion to [06-control.md](06-control.md). Each entry names the `analyze` line that distinguishes it and states plainly that the forward control maths is already proven, to head off the reflex to blame the control code.
+
+**The old frame retired.** A final run ended in a lost-control crash that broke the airframe. Work now moves to the already-planned lighter frame with the IMU near the centre of mass — which should reduce the estimator lag at its source and, being lower-inertia, will need a fresh, softer re-tune (pull `kp` down, scale `ki` to keep τ ≈ 2 s). Nothing learned is frame-bound; it all carries onto the rebuild.
+
 ## 2026-09-19 — Control gains persist to flash
 
 The live-tuned PID gains now survive a power cycle. Tune from the ground station, click **Save to flash**, and the values are written to the drone's internal flash; on the next boot they load automatically. This closes the slow part of the tuning loop — no more editing the compiled-in defaults and reflashing to make a tune permanent ([ADR 0025](decisions/0025-persist-control-parameters-flash.md)).

@@ -30,7 +30,9 @@ The ground station plots and logs every signal live, times the round trip, pushe
 
 ![The ground station: a live 3D view of the drone frame rotating with the estimated roll/pitch (top right), the live telemetry tables, and the multi-signal time plot below.](doc/images/groundstation%206.png)
 
-**Next (to finish Phase 2):** flight tuning on the now-symmetric plant, a firmware **power-limit** mode, and the netted test enclosure ([doc/07-safety.md](doc/07-safety.md)). In parallel, **Phase 4 is well underway** — the custom nRF5340 flight controller (`drone_fc` v2, [ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md), [ADR 0028](doc/decisions/0028-fabricate-v2-board-pcbway.md)) is fully routed with turnkey PCBA fab exports out to PCBWay; the micro:bit stays the tuning platform meanwhile.
+Recent tuning work — validating the integral term as a **centre-of-mass trim corrector**, balancing the airframe by the per-motor effort split, and re-zeroing out a one-directional drift — is consolidated into a new control-troubleshooting field guide ([doc/06-control-troubleshooting.md](doc/06-control-troubleshooting.md)).
+
+**Next (to finish Phase 2):** rebuild on the lighter next-generation frame — the previous flight frame was retired in a lost-control crash — with the IMU mounted near the centre of mass (which should cut the estimator lag at its source) and a fresh, softer re-tune; plus a firmware **power-limit** mode and the netted test enclosure ([doc/07-safety.md](doc/07-safety.md)). In parallel, **Phase 4 is well underway** — the custom nRF5340 flight controller (`drone_fc` v2, [ADR 0026](doc/decisions/0026-phase4-custom-pcba-nrf5340.md), [ADR 0028](doc/decisions/0028-fabricate-v2-board-pcbway.md)) is fully routed with turnkey PCBA fab exports out to PCBWay; the micro:bit stays the tuning platform meanwhile.
 
 ![The revised 3D-printed airframe designed to carry the custom nRF5340 flight-controller PCB and ESC stack.](doc/images/Revised%20airframe%20for%20new%20PCB.jpg)
 
