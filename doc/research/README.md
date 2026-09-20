@@ -27,4 +27,4 @@ One topic per file. If a file grows past a few screens of references, split it.
 
 ## Status
 
-Empty. Files appear here as research accumulates organically — there is no obligation to pre-populate it.
+- [nrf5340-intercore-ipc.md](nrf5340-intercore-ipc.md) — nRF5340 app↔net core IPC transport for the radio; backs [ADR 0029 §10](../decisions/0029-multi-board-firmware-shared-library.md).
