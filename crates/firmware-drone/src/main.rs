@@ -20,6 +20,7 @@ use defmt_rtt as _;
 use embassy_executor::{InterruptExecutor, Spawner};
 use embassy_nrf::interrupt;
 use embassy_nrf::interrupt::{InterruptExt, Priority};
+use firmware_drone_shared::tasks::attitude_estimator;
 use firmware_types::CpuLoad;
 use panic_probe as _;
 
@@ -55,7 +56,7 @@ async fn main(_thread_mode_spawner: Spawner) {
     high_priority_spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
     high_priority_spawner.must_spawn(tasks::sensors_aggregator::sensors_aggregator());
     high_priority_spawner.must_spawn(tasks::imu::imu(board.imu));
-    high_priority_spawner.must_spawn(tasks::attitude_estimator::attitude_estimator());
+    high_priority_spawner.must_spawn(attitude_estimator::attitude_estimator());
     high_priority_spawner.must_spawn(tasks::control_system::control_system());
     high_priority_spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator());
 

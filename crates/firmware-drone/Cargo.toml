@@ -25,6 +25,7 @@ board-microbit-v2 = []
 
 [dependencies]
 firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
+firmware-drone-shared = { path = "../firmware-drone-shared", features = ["defmt"] }
 
 embassy-embedded-hal = { workspace = true }
 # `postcard` feature enables the PostcardValue trait (pulls in postcard + serde)

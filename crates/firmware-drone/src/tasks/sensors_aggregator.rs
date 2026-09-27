@@ -1,7 +1,8 @@
 use embassy_time::{Duration, Ticker};
 use firmware_types::Sensors;
 
-use crate::signals::{imu_data, sensors, temperature};
+use crate::signals::{sensors, temperature};
+use firmware_drone_shared::signals::imu_data;
 
 #[embassy_executor::task]
 pub async fn sensors_aggregator() -> ! {

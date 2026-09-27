@@ -1,0 +1,40 @@
+[package]
+name        = "firmware-drone-shared"
+version     = "0.1.0"
+description = "Drone firmware: logic shared across targets"
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+publish              = false
+
+# --- Discipline-by-graph -------------------------------------------------------
+# Per ADR 0029 §4, this crate is FORBIDDEN to depend on:
+#   - any embassy-* HAL (embassy-nrf) or any HAL/PAC (nrf52833-hal, nrf52833-pac, ...)
+#   - defmt-rtt, panic-probe
+# so the same library compiles for both the nRF52833 and nRF5340 targets.
+# Reviewer reflex: scan this [dependencies] block on every PR that touches it.
+[dependencies]
+# Optional defmt: gives consumers (firmware-drone) access to `defmt::Format`
+# derives on this crate's public types, without forcing defmt into the host
+# test build. Same pattern as `firmware-types` — see ADR 0015 / 0009.
+defmt = { workspace = true, optional = true }
+
+firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
+
+firmware-types = { path = "../firmware-types" }
+
+embassy-executor = { workspace = true }
+embassy-sync     = { workspace = true }
+embassy-time     = { workspace = true }
+
+# no_std trig/sqrt for the attitude filter (sensor_fusion), via
+# `micromath::F32Ext`. Fast f32 approximations; see ADR 0022.
+micromath = { workspace = true }
+
+
+
+[lints]
+workspace = true
+
+[features]
+defmt = ["dep:defmt", "firmware-types/defmt"]
