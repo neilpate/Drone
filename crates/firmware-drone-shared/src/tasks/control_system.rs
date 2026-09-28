@@ -1,9 +1,9 @@
 use firmware_drone_core::{control_system::Controller, filter};
-use firmware_drone_shared::signals::{attitude, imu_data};
 use firmware_types::{AngularRate, ControlMode, ControllerDemand};
 
-use firmware_drone_shared::signals::{
-    control_mode_update, control_system_parameter_update, controller_demand, pilot_command,
+use crate::signals::{
+    attitude, control_mode_update, control_system_parameter_update, controller_demand, imu_data,
+    pilot_command,
 };
 
 #[embassy_executor::task]

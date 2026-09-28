@@ -25,7 +25,7 @@ board-microbit-v2 = []
 
 [dependencies]
 firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
-firmware-drone-shared = { path = "../firmware-drone-shared", features = ["defmt"] }
+firmware-drone-shared = { path = "../firmware-drone-shared" }
 
 embassy-embedded-hal = { workspace = true }
 # `postcard` feature enables the PostcardValue trait (pulls in postcard + serde)
@@ -41,7 +41,7 @@ embassy-futures  = { workspace = true }
 cortex-m    = { workspace = true }
 cortex-m-rt = { workspace = true }
 
-defmt       = { workspace = true }
+defmt       = { workspace = true}
 defmt-rtt   = { workspace = true }
 panic-probe = { workspace = true }
 

@@ -20,15 +20,17 @@ use defmt_rtt as _;
 use embassy_executor::{InterruptExecutor, Spawner};
 use embassy_nrf::interrupt;
 use embassy_nrf::interrupt::{InterruptExt, Priority};
-use firmware_drone_shared::tasks::attitude_estimator;
+use firmware_drone_shared::signals::cpu_load;
+use firmware_drone_shared::tasks::{
+    attitude_estimator, control_system, load_profiler, sensors_aggregator, supervisor,
+    telemetry_aggregator,
+};
 use firmware_types::CpuLoad;
 use panic_probe as _;
 
 mod board;
 mod radio_link;
 mod tasks;
-
-use firmware_drone_shared::signals::cpu_load;
 
 static EXEC: InterruptExecutor = InterruptExecutor::new();
 #[interrupt]
@@ -42,22 +44,22 @@ async fn main(_thread_mode_spawner: Spawner) {
 
     defmt::info!("firmware-drone on {}: boot ", board::NAME);
 
-    let _calibration_baseline = tasks::load_profiler::calibrate();
+    let _calibration_baseline = load_profiler::calibrate();
 
     interrupt::SWI0_EGU0.set_priority(Priority::P6);
     let high_priority_spawner = EXEC.start(interrupt::SWI0_EGU0);
 
-    high_priority_spawner.must_spawn(tasks::supervisor::supervisor());
+    high_priority_spawner.must_spawn(supervisor::supervisor());
     high_priority_spawner.must_spawn(tasks::status_led::status_led(board.status_led));
     high_priority_spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
     high_priority_spawner.must_spawn(tasks::esc_telemetry::esc_telemetry(board.esc_telemetry));
     high_priority_spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
     high_priority_spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
-    high_priority_spawner.must_spawn(tasks::sensors_aggregator::sensors_aggregator());
+    high_priority_spawner.must_spawn(sensors_aggregator::sensors_aggregator());
     high_priority_spawner.must_spawn(tasks::imu::imu(board.imu));
     high_priority_spawner.must_spawn(attitude_estimator::attitude_estimator());
-    high_priority_spawner.must_spawn(tasks::control_system::control_system());
-    high_priority_spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator());
+    high_priority_spawner.must_spawn(control_system::control_system());
+    high_priority_spawner.must_spawn(telemetry_aggregator::telemetry_aggregator(FIRMWARE_VERSION));
 
     high_priority_spawner.must_spawn(tasks::config_manager::config_manager(board.config_storage));
     // Seed cpu_load so the telemetry aggregator never blocks on first-publish.

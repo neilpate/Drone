@@ -17,7 +17,7 @@ publish              = false
 # Optional defmt: gives consumers (firmware-drone) access to `defmt::Format`
 # derives on this crate's public types, without forcing defmt into the host
 # test build. Same pattern as `firmware-types` — see ADR 0015 / 0009.
-defmt = { workspace = true, optional = true }
+defmt = { workspace = true}
 
 firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
 
@@ -26,6 +26,7 @@ firmware-types = { path = "../firmware-types" }
 embassy-executor = { workspace = true }
 embassy-sync     = { workspace = true }
 embassy-time     = { workspace = true }
+embassy-futures  = { workspace = true }
 
 # no_std trig/sqrt for the attitude filter (sensor_fusion), via
 # `micromath::F32Ext`. Fast f32 approximations; see ADR 0022.
@@ -35,6 +36,3 @@ micromath = { workspace = true }
 
 [lints]
 workspace = true
-
-[features]
-defmt = ["dep:defmt", "firmware-types/defmt"]

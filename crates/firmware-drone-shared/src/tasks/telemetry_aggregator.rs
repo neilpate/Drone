@@ -1,17 +1,15 @@
-use embassy_time::{Duration, Ticker};
-use firmware_drone_shared::signals::{
+use crate::signals::{
     attitude, control_mode_update, control_system_parameter_update, controller_demand, cpu_load,
     esc_telemetry_sample, imu_data, motor_command, pilot_command, sensors, status, telemetry,
 };
+use embassy_time::{Duration, Ticker};
 use firmware_types::{ESCTelemetry, MotorID, TelemetryFrame, TelemetryFrameHighRate};
-
-use crate::FIRMWARE_VERSION;
 
 /// One low-rate frame every N aggregator cycles; 10 cycles at the 100 Hz cycle gives ~10 Hz.
 const CYCLES_PER_LOW_RATE_FRAME: u32 = 10;
 
 #[embassy_executor::task]
-pub async fn telemetry_aggregator() -> ! {
+pub async fn telemetry_aggregator(firmware_version: u32) -> ! {
     defmt::info!("telemetry aggregator task: started");
 
     let mut sequence_count: u32 = 0;
@@ -79,7 +77,7 @@ pub async fn telemetry_aggregator() -> ! {
             temperature: sensors.temperature,
             esc_telemetry,
             control_parameters: control_system_parameters,
-            firmware_version: FIRMWARE_VERSION,
+            firmware_version,
         };
 
         let telemetry_frame_high_rate = TelemetryFrame::HighRate(telemetry_frame_high_rate);

@@ -3,7 +3,7 @@ use embassy_time::{Duration, Ticker};
 use firmware_drone_core::supervisor_core::{Event, Supervisor, TICK_PERIOD_MS};
 use firmware_types::{DroneState, MotorCommand};
 
-use firmware_drone_shared::signals::{controller_demand, motor_command, pilot_command, status};
+use crate::signals::{controller_demand, motor_command, pilot_command, status};
 
 const TIMEOUT_PERIOD: Duration = Duration::from_millis(TICK_PERIOD_MS);
 
