@@ -83,7 +83,7 @@ pub async fn telemetry_aggregator(firmware_version: u32) -> ! {
         let telemetry_frame_high_rate = TelemetryFrame::HighRate(telemetry_frame_high_rate);
         let telemetry_frame_low_rate = TelemetryFrame::LowRate(telemetry_frame_low_rate);
 
-        if sequence_count % CYCLES_PER_LOW_RATE_FRAME == 0 {
+        if sequence_count.is_multiple_of(CYCLES_PER_LOW_RATE_FRAME) {
             telemetry::set(telemetry_frame_low_rate);
         } else {
             telemetry::set(telemetry_frame_high_rate);

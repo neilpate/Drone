@@ -35,6 +35,6 @@ pub fn request(motor: MotorID) {
 pub fn take_request() -> Option<MotorID> {
     match TELEM_REQUEST.swap(MotorID::None as u8, Ordering::Relaxed) {
         x if x == MotorID::None as u8 => None,
-        motor => Some(unsafe { core::mem::transmute(motor) }),
+        motor => Some(unsafe { core::mem::transmute::<u8, MotorID>(motor) }),
     }
 }
