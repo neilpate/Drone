@@ -26,10 +26,9 @@ use panic_probe as _;
 
 mod board;
 mod radio_link;
-mod signals;
 mod tasks;
 
-use crate::signals::cpu_load;
+use firmware_drone_shared::signals::cpu_load;
 
 static EXEC: InterruptExecutor = InterruptExecutor::new();
 #[interrupt]

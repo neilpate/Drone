@@ -3,7 +3,7 @@ use embassy_time::Timer;
 use firmware_types::DroneState;
 
 use crate::board;
-use crate::signals::status;
+use firmware_drone_shared::signals::status;
 enum LedPattern {
     Blinking { on_ms: u64, off_ms: u64 },
 }

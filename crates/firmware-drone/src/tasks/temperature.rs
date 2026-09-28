@@ -1,7 +1,7 @@
 use embassy_time::{Duration, Timer};
 
 use crate::board;
-use crate::signals::temperature;
+use firmware_drone_shared::signals::temperature;
 
 #[embassy_executor::task]
 pub async fn temperature(mut temperature_sensor: board::TemperatureSensor) -> ! {

@@ -18,7 +18,20 @@
 
 pub mod signals {
     pub mod attitude;
+    pub mod control_mode_update;
+    pub mod control_system_parameter_update;
+    pub mod controller_demand;
+    pub mod cpu_load;
+    pub mod esc_telemetry_sample;
+    pub mod imu_calibrate;
     pub mod imu_data;
+    pub mod motor_command;
+    pub mod pilot_command;
+    pub mod save_config;
+    pub mod sensors;
+    pub mod status;
+    pub mod telemetry;
+    pub mod temperature;
 }
 
 pub mod tasks {

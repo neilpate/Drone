@@ -7,7 +7,7 @@ use firmware_types::{
 
 use crate::board::Radio;
 use crate::radio_link;
-use crate::signals::{
+use firmware_drone_shared::signals::{
     control_mode_update, control_system_parameter_update, imu_calibrate, pilot_command,
     save_config, telemetry,
 };

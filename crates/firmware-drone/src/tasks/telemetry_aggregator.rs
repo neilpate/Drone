@@ -1,9 +1,8 @@
-use crate::signals::{
-    control_mode_update, control_system_parameter_update, controller_demand, cpu_load,
-    esc_telemetry_sample, motor_command, pilot_command, sensors, status, telemetry,
-};
 use embassy_time::{Duration, Ticker};
-use firmware_drone_shared::signals::{attitude, imu_data};
+use firmware_drone_shared::signals::{
+    attitude, control_mode_update, control_system_parameter_update, controller_demand, cpu_load,
+    esc_telemetry_sample, imu_data, motor_command, pilot_command, sensors, status, telemetry,
+};
 use firmware_types::{ESCTelemetry, MotorID, TelemetryFrame, TelemetryFrameHighRate};
 
 use crate::FIRMWARE_VERSION;

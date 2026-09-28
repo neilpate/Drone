@@ -2,7 +2,7 @@ use embassy_time::{Duration, Instant};
 
 use firmware_types::CpuLoad;
 
-use crate::signals::cpu_load;
+use firmware_drone_shared::signals::cpu_load;
 
 /// Spin iterations per profiling sample. Sized so one pass takes on the order of
 /// a second at zero load, which sets both the load-averaging window and the

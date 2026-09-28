@@ -2,7 +2,7 @@ use embassy_futures::select::{Either, select};
 use embassy_time::{Duration, Ticker};
 
 use crate::board;
-use crate::signals::motor_command;
+use firmware_drone_shared::signals::motor_command;
 
 const RESEND_PERIOD: Duration = Duration::from_millis(10); // 10ms is the same as the remote link period, so that the motors are always being commanded at the same rate as the remote link is sending commands
 

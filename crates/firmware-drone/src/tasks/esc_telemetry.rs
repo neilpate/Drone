@@ -2,7 +2,7 @@ use embassy_time::{Duration, with_timeout};
 use firmware_types::{ESCTelemetrySample, MotorID};
 
 use crate::board;
-use crate::signals::esc_telemetry_sample;
+use firmware_drone_shared::signals::esc_telemetry_sample;
 
 const READ_TIMEOUT_MS: u64 = 250; // frames arrive at the rate-limited request cadence
 

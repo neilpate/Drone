@@ -28,7 +28,7 @@ use firmware_types::{
     ThrottleCommand,
 };
 
-use crate::signals::esc_telemetry_sample;
+use firmware_drone_shared::signals::esc_telemetry_sample;
 
 pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>; // BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
 pub type TemperatureSensor = temp::Temp<'static>;

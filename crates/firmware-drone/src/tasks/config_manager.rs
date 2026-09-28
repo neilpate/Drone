@@ -1,5 +1,5 @@
 use crate::board;
-use crate::signals::{control_system_parameter_update, save_config, status};
+use firmware_drone_shared::signals::{control_system_parameter_update, save_config, status};
 
 use firmware_types::DroneState;
 

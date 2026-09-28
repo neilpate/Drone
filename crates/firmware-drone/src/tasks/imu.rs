@@ -1,7 +1,7 @@
 use embassy_time::{Duration, Ticker, Timer};
 
-use crate::{board, signals::imu_calibrate};
-use firmware_drone_shared::signals::imu_data;
+use crate::board;
+use firmware_drone_shared::signals::{imu_calibrate, imu_data};
 use firmware_types::{Acceleration, AngularRate, ImuData};
 
 const LOOP_PERIOD_MS: u64 = 1; // Loop period in milliseconds

@@ -2,7 +2,7 @@ use firmware_drone_core::{control_system::Controller, filter};
 use firmware_drone_shared::signals::{attitude, imu_data};
 use firmware_types::{AngularRate, ControlMode, ControllerDemand};
 
-use crate::signals::{
+use firmware_drone_shared::signals::{
     control_mode_update, control_system_parameter_update, controller_demand, pilot_command,
 };
 
