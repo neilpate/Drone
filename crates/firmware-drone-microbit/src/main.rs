@@ -17,14 +17,13 @@ include!(concat!(env!("OUT_DIR"), "/version.rs"));
 static VERSION: u32 = FIRMWARE_VERSION;
 
 use defmt_rtt as _;
-use embassy_executor::{InterruptExecutor, Spawner};
+use embassy_executor::{InterruptExecutor, SendSpawner, Spawner};
 use embassy_nrf::interrupt;
 use embassy_nrf::interrupt::{InterruptExt, Priority};
 use firmware_drone_shared::signals::cpu_load;
-use firmware_drone_shared::tasks::{
-    attitude_estimator, control_system, load_profiler, sensors_aggregator, supervisor,
-    telemetry_aggregator,
-};
+
+use firmware_drone_shared::spawn_shared_tasks;
+// use firmware_drone_shared::{load_profiler, spawn_load_profiler}; //Not used for now
 use firmware_types::CpuLoad;
 use panic_probe as _;
 
@@ -38,34 +37,33 @@ unsafe fn SWI0_EGU0() {
     unsafe { EXEC.on_interrupt() }
 }
 
+fn spawn_hardware_tasks(spawner: SendSpawner, board: board::Board) {
+    spawner.must_spawn(tasks::status_led::status_led(board.status_led));
+    spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
+    spawner.must_spawn(tasks::esc_telemetry::esc_telemetry(board.esc_telemetry));
+    spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
+    spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
+    spawner.must_spawn(tasks::imu::imu(board.imu));
+    spawner.must_spawn(tasks::config_manager::config_manager(board.config_storage));
+}
+
 #[embassy_executor::main]
 async fn main(_thread_mode_spawner: Spawner) {
     let board = board::Board::new();
 
-    defmt::info!("firmware-drone on {}: boot ", board::NAME);
+    defmt::info!("firmware-drone-microbit on {}: boot ", board::NAME);
 
-    let _calibration_baseline = load_profiler::calibrate();
-
-    interrupt::SWI0_EGU0.set_priority(Priority::P6);
-    let high_priority_spawner = EXEC.start(interrupt::SWI0_EGU0);
-
-    high_priority_spawner.must_spawn(supervisor::supervisor());
-    high_priority_spawner.must_spawn(tasks::status_led::status_led(board.status_led));
-    high_priority_spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
-    high_priority_spawner.must_spawn(tasks::esc_telemetry::esc_telemetry(board.esc_telemetry));
-    high_priority_spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
-    high_priority_spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
-    high_priority_spawner.must_spawn(sensors_aggregator::sensors_aggregator());
-    high_priority_spawner.must_spawn(tasks::imu::imu(board.imu));
-    high_priority_spawner.must_spawn(attitude_estimator::attitude_estimator());
-    high_priority_spawner.must_spawn(control_system::control_system());
-    high_priority_spawner.must_spawn(telemetry_aggregator::telemetry_aggregator(FIRMWARE_VERSION));
-
-    high_priority_spawner.must_spawn(tasks::config_manager::config_manager(board.config_storage));
+    // let calibration_baseline = load_profiler::calibrate();
     // Seed cpu_load so the telemetry aggregator never blocks on first-publish.
     // Harmless when the profiler runs (it overwrites this 0%); keeps telemetry
     // alive when the profiler is disabled.
     cpu_load::set(CpuLoad::from_percentage(0.0));
 
-    // thread_mode_spawner.must_spawn(tasks::load_profiler::load_profiler(calibration_baseline));
+    interrupt::SWI0_EGU0.set_priority(Priority::P6);
+    let high_priority_spawner = EXEC.start(interrupt::SWI0_EGU0);
+
+    spawn_shared_tasks(high_priority_spawner, FIRMWARE_VERSION);
+    spawn_hardware_tasks(high_priority_spawner, board);
+
+    // spawn_load_profiler(_thread_mode_spawner, calibration_baseline);
 }

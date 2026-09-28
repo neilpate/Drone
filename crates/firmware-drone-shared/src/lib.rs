@@ -16,6 +16,10 @@
 //! - Pure, host-testable logic belongs in `firmware-drone-core`, not here: this
 //!   crate pulls in the async runtime and is not host-tested. See ADR 0029 §11.
 
+use embassy_time::Duration;
+
+use embassy_executor::{SendSpawner, Spawner};
+
 pub mod signals {
     pub mod attitude;
     pub mod control_mode_update;
@@ -34,11 +38,20 @@ pub mod signals {
     pub mod temperature;
 }
 
-pub mod tasks {
-    pub mod attitude_estimator;
-    pub mod control_system;
-    pub mod load_profiler;
-    pub mod sensors_aggregator;
-    pub mod supervisor;
-    pub mod telemetry_aggregator;
+pub use tasks::load_profiler; //re-export so that it is callable from the per-board binaries
+
+mod tasks;
+
+pub fn spawn_shared_tasks(spawner: SendSpawner, firmware_version: u32) {
+    spawner.must_spawn(tasks::supervisor::supervisor());
+    spawner.must_spawn(tasks::sensors_aggregator::sensors_aggregator());
+    spawner.must_spawn(tasks::attitude_estimator::attitude_estimator());
+    spawner.must_spawn(tasks::control_system::control_system());
+    spawner.must_spawn(tasks::telemetry_aggregator::telemetry_aggregator(
+        firmware_version,
+    ));
+}
+
+pub fn spawn_load_profiler(spawner: Spawner, calibration_baseline: Duration) {
+    spawner.must_spawn(tasks::load_profiler::load_profiler(calibration_baseline));
 }
