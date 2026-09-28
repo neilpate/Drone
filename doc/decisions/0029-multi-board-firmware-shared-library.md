@@ -1,6 +1,6 @@
 # ADR 0029 — Multi-board firmware: shared library plus thin per-board binaries
 
-- **Status:** Accepted
+- **Status:** Accepted (Phase 1 implemented 2026-09-28; Phase 2 — peripheral traits + nRF5340 binaries — deferred to nRF5340 board bring-up)
 - **Date:** 2026-09-20
 - **Related:** [ADR 0010](0010-board-support-package.md) (the BSP seam this revises — the seam moves out of the binary into a shared library), [ADR 0009](0009-workspace-bootstrap-and-crate-naming.md) (crate naming this extends and partly supersedes), [ADR 0015](0015-host-testing-no-std-crates.md) (the pure host-tested boundary `firmware-drone-core` keeps), [ADR 0026](0026-phase4-custom-pcba-nrf5340.md) (nRF5340 platform, dual-core), [ADR 0014](0014-radio-protocol-ieee802154.md) (802.15.4, which lands on the network core), [ADR 0004](0004-concurrency-embassy-channels.md) (Embassy task model this works within)
 
