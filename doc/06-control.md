@@ -9,7 +9,7 @@ This doc is the map of the flight-control path: how a stick deflection and a bat
 
 - Classic **sense → estimate → control → mix → actuate** cascade.
 - Each stage is an independent Embassy async task communicating through `Watch` signals ([ADR 0013](decisions/0013-async-communication-primitives.md)).
-- Pure math lives in [`firmware-drone-core`](../crates/firmware-drone-core/src/lib.rs) — `no_std` on target, host-testable per [ADR 0007](decisions/0007-testing-and-ci-strategy.md) / [ADR 0015](decisions/0015-host-testing-no-std-crates.md). The matching task in [`firmware-drone/src/tasks`](../crates/firmware-drone/src/tasks) does the I/O and drives the pure logic.
+- Pure math lives in [`firmware-drone-core`](../crates/firmware-drone-core/src/lib.rs) — `no_std` on target, host-testable per [ADR 0007](decisions/0007-testing-and-ci-strategy.md) / [ADR 0015](decisions/0015-host-testing-no-std-crates.md). The matching Embassy task — board-agnostic ones in [`firmware-drone-shared/src/tasks`](../crates/firmware-drone-shared/src/tasks), hardware-touching ones in the board binary — does the I/O and drives the pure logic ([ADR 0029](decisions/0029-multi-board-firmware-shared-library.md)).
 - The **supervisor** state machine gates the whole path and is the sole publisher of motor commands ([ADR 0017](decisions/0017-supervisor-failsafe-state-machine.md)).
 - Every gain and limit is a runtime `ControlSystemParameters` message the ground station can push live — no reflash to tune.
 
@@ -38,7 +38,7 @@ The remote sends raw normalised stick deflections (roll/pitch/yaw in −1..+1, t
 
 ## 1. Attitude estimation
 
-Source: [`sensor_fusion.rs`](../crates/firmware-drone-core/src/sensor_fusion.rs), task [`attitude_estimator.rs`](../crates/firmware-drone/src/tasks/attitude_estimator.rs).
+Source: [`sensor_fusion.rs`](../crates/firmware-drone-core/src/sensor_fusion.rs), task [`attitude_estimator.rs`](../crates/firmware-drone-shared/src/tasks/attitude_estimator.rs).
 
 A **complementary filter** ([ADR 0022](decisions/0022-attitude-estimation-complementary-filter.md)) fuses gyro and accelerometer into **roll and pitch only**. Yaw is not estimated — with no magnetometer, heading is unobservable, so yaw stays rate-controlled.
 
@@ -53,7 +53,7 @@ The task feeds a measured `dt` from an Embassy `Instant` delta.
 
 ## 2. Control law
 
-Source: [`control_system.rs`](../crates/firmware-drone-core/src/control_system.rs), task [`control_system.rs`](../crates/firmware-drone/src/tasks/control_system.rs).
+Source: [`control_system.rs`](../crates/firmware-drone-core/src/control_system.rs), task [`control_system.rs`](../crates/firmware-drone-shared/src/tasks/control_system.rs).
 
 A **single-loop PID per axis** (not cascaded), per [ADR 0024](decisions/0024-control-law-angle-mode-pd.md).
 
@@ -109,7 +109,7 @@ Each motor output is clamped to `0..=1`. When throttle is zero, all four motors 
 
 ## 4. Supervisor and failsafe
 
-Source: [`supervisor_core.rs`](../crates/firmware-drone-core/src/supervisor_core.rs), task [`supervisor.rs`](../crates/firmware-drone/src/tasks/supervisor.rs).
+Source: [`supervisor_core.rs`](../crates/firmware-drone-core/src/supervisor_core.rs), task [`supervisor.rs`](../crates/firmware-drone-shared/src/tasks/supervisor.rs).
 
 The supervisor ([ADR 0017](decisions/0017-supervisor-failsafe-state-machine.md)) is the **sole publisher of motor commands** and gates the entire control path. It is tick-driven (10 ms `Ticker`) or command-driven.
 
@@ -125,7 +125,7 @@ Only in `Armed` and `Degraded` does the supervisor call the mixer.
 ## 5. Cross-crate wiring
 
 - **[`firmware-types`](../crates/firmware-types/src/lib.rs)** — the shared vocabulary. One newtype per physical quantity ([ADR 0016](decisions/0016-newtype-per-physical-quantity.md)): `PilotCommand`, `ControllerDemand`, `MotorCommand`, `Attitude`, `ImuData`, `ControlSystemParameters`, `ControlMode`, plus the `Command` / `RadioMessage` wire types.
-- **[`remote_link` task](../crates/firmware-drone/src/tasks/remote_link.rs)** — receives IEEE 802.15.4 packets ([ADR 0014](decisions/0014-radio-protocol-ieee802154.md)), decodes `Command` variants into the `pilot_command`, `control_mode`, and `control_system_parameter` signals, and returns telemetry.
+- **[`remote_link` task](../crates/firmware-drone-microbit/src/tasks/remote_link.rs)** — receives IEEE 802.15.4 packets ([ADR 0014](decisions/0014-radio-protocol-ieee802154.md)), decodes `Command` variants into the `pilot_command`, `control_mode`, and `control_system_parameter` signals, and returns telemetry.
 - **[`groundstation`](../crates/groundstation/src/main.rs)** — pushes `ControlSystemParameters` live, so every gain and limit is tunable at runtime with no reflash.
 
 ## Current gains

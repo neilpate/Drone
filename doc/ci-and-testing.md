@@ -11,7 +11,7 @@ Host-testable logic lives in crates with no HAL / async-runtime / `defmt` depend
 - `firmware-remote-core` — remote-side pure logic (input mapping, parsing) as it lands.
 - `groundstation` — host-only egui app; pure helpers (state mapping, framing) as they are extracted out of `main.rs`.
 
-On-target firmware crates (`firmware-drone`, `firmware-remote`) need a cross target and per-crate linker flags, so they are **not** part of `cargo test`. Their logic is meant to live in the matching `-core` crate. Hardware-in-the-loop testing is deferred (ADR 0007).
+On-target firmware crates (`firmware-drone-microbit`, `firmware-drone-shared`, `firmware-remote`) need a cross target and per-crate linker flags, so they are **not** part of `cargo test`. Their logic is meant to live in the matching `-core` crate. Hardware-in-the-loop testing is deferred (ADR 0007).
 
 ## Running the tests
 

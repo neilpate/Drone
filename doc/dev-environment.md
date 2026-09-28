@@ -37,7 +37,7 @@ The repo ships `.vscode/launch.json`, `.vscode/tasks.json`, and `.vscode/extensi
 - `probe-rs.probe-rs-debugger` extension installed (VS Code prompts on first open via [`.vscode/extensions.json`](../.vscode/extensions.json)).
 - The same `probe-rs` CLI on `PATH` that `cargo run` uses (versions of CLI and extension should track each other — major drift breaks the DAP wire format).
 
-What F5 does: runs the `build firmware-drone (debug)` task, then the extension flashes the resulting ELF, halts the core at the reset vector (in `cortex-m-rt`'s startup, *before* `main`), and attaches. `defmt` frames from RTT are decoded into the Debug Console with timestamps. Breakpoints are hardware breakpoints set in the Cortex-M4's FPB unit — about six are available, after which new ones silently fail to bind.
+What F5 does: runs the `build firmware-drone-microbit (debug)` task, then the extension flashes the resulting ELF, halts the core at the reset vector (in `cortex-m-rt`'s startup, *before* `main`), and attaches. `defmt` frames from RTT are decoded into the Debug Console with timestamps. Breakpoints are hardware breakpoints set in the Cortex-M4's FPB unit — about six are available, after which new ones silently fail to bind.
 
 The launch config defaults to `haltAfterReset: false` on the debug profile so the firmware runs straight to your breakpoints; the release profile keeps `haltAfterReset: true` for cases where a panic at `static` init or in startup needs to be caught.
 
@@ -100,7 +100,7 @@ Day-to-day, the author has both micro:bits plugged into the dev machine via USB 
 Probe selection is baked into each firmware crate's `.cargo/config.toml`, so `cargo run` is unambiguous regardless of how many probes are connected:
 
 ```toml
-# crates/firmware-drone/.cargo/config.toml
+# crates/firmware-drone-microbit/.cargo/config.toml
 [target.thumbv7em-none-eabihf]
 runner = "probe-rs run --chip nRF52833_xxAA --probe 0d28:0204:<drone-board-serial>"
 ```
@@ -109,7 +109,7 @@ The remote crate has the same shape with its own serial. The selector format is 
 
 Practical notes:
 
-- **Workflow.** `cd crates/firmware-drone && cargo run` always flashes the drone board; `cd crates/firmware-remote && cargo run` always flashes the remote. Use two VS Code integrated terminals (right-click → Rename) so the two `defmt` log streams are obviously distinct in the panel.
+- **Workflow.** `cd crates/firmware-drone-microbit && cargo run` always flashes the drone board; `cd crates/firmware-remote && cargo run` always flashes the remote. Use two VS Code integrated terminals (right-click → Rename) so the two `defmt` log streams are obviously distinct in the panel.
 - **Serials are committed.** They identify specific physical boards. If you swap which board plays which role — or move to a different machine with different boards — update the two `.cargo/config.toml` files. One-line edit each.
 - **Why not env vars.** Cargo's `runner` field is passed literally to the spawned process (no shell, no `${VAR}` expansion). Env-var indirection would need a cross-platform shell wrapper. Per-crate runner with the serial baked in is simpler and survives Windows / Unix equally.
 - **Never** rely on "the first probe found" — that's how you flash the wrong board.

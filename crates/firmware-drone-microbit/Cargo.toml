@@ -1,5 +1,5 @@
 [package]
-name        = "firmware-drone"
+name        = "firmware-drone-microbit"
 version     = "0.4.0"
 description = "Drone firmware: on-target binary for the BBC micro:bit v2 (nRF52833)."
 edition.workspace    = true
@@ -11,7 +11,7 @@ autobenches          = false
 autoexamples         = false
 
 [[bin]]
-name    = "firmware-drone"
+name    = "firmware-drone-microbit"
 path    = "src/main.rs"
 test    = false
 bench   = false

@@ -4,7 +4,7 @@
     // ---------------------------------------------------------------------
     //
     // The workspace contains a mix of:
-    //   - on-target firmware (firmware-drone, firmware-remote) cross-compiled
+    //   - on-target firmware (firmware-drone-microbit, firmware-drone-shared, firmware-remote) cross-compiled
     //     to thumbv7em-none-eabihf via per-crate .cargo/config.toml,
     //   - host-testable no_std logic crates (firmware-drone-core, firmware-
     //     remote-core, firmware-types) that build for the host triple,
@@ -23,14 +23,14 @@
     // full IDE support when actively editing it.
     "rust-analyzer.cargo.target": "thumbv7em-none-eabihf",
     "rust-analyzer.linkedProjects": [
-        "crates/firmware-drone/Cargo.toml",
+        "crates/firmware-drone-microbit/Cargo.toml",
         "crates/firmware-remote/Cargo.toml",
         "crates/firmware-drone-core/Cargo.toml",
         "crates/firmware-remote-core/Cargo.toml",
         "crates/firmware-types/Cargo.toml"
     ],
     // Don't analyse dev-deps / tests / examples; firmware crates have those
-    // turned off anyway (see crates/firmware-drone/Cargo.toml).
+    // turned off anyway (see crates/firmware-drone-microbit/Cargo.toml).
     "rust-analyzer.cargo.allTargets": false,
     // Use clippy for on-save checks instead of the default `cargo check`.
     // Same diagnostics plus the clippy lint set, surfaced in the Problems

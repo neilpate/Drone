@@ -49,7 +49,7 @@ This is the same reason I/O-expander chips, level shifters, and motor drivers al
 Two changes covered the issue completely:
 
 - 10 kΩ pull-up from `P0_17` to 3V3 on the breadboard. Now during flashing the line sits at logic high, the L9110 sees "off", the motor stays still.
-- One-line comment in `firmware-drone/src/board/microbit_v2.rs` next to the PWM init explaining that the pull-up is a hardware-firmware contract, not optional.
+- One-line comment in `firmware-drone-microbit/src/board/microbit_v2.rs` next to the PWM init explaining that the pull-up is a hardware-firmware contract, not optional.
 
 The Phase-3 brushless ESCs don't need this — they require a valid PWM signal in a specific range to arm, so a floating input is just "no signal", which they treat as "stay disarmed". Different problem class, no resistor needed.
 

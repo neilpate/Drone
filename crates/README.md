@@ -6,7 +6,7 @@ Empty at the moment — populated when Phase 1 design lands and the first `cargo
 
 Expected initial members (subject to Phase 1 design):
 
-- `firmware-drone-core` / `firmware-drone` — drone firmware, `core`/`task` split realised as sibling crates ([ADR 0007](../doc/decisions/0007-testing-and-ci-strategy.md), [ADR 0009](../doc/decisions/0009-workspace-bootstrap-and-crate-naming.md)). **First to land.**
+- `firmware-drone-core` / `firmware-drone-shared` / `firmware-drone-microbit` — drone firmware, `core`/`task` split realised as sibling crates ([ADR 0007](../doc/decisions/0007-testing-and-ci-strategy.md), [ADR 0009](../doc/decisions/0009-workspace-bootstrap-and-crate-naming.md), [ADR 0029](../doc/decisions/0029-multi-board-firmware-shared-library.md)). **First to land.**
 - `proto` — shared wire-format types ([ADR 0005](../doc/decisions/0005-pc-software-language-rust.md)).
 - `firmware-ground` — ground micro:bit firmware (transparent USB ↔ radio bridge).
 - `groundstation` — PC-side application ([ADR 0005](../doc/decisions/0005-pc-software-language-rust.md)).

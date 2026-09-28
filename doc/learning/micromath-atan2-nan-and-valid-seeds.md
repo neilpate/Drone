@@ -47,7 +47,7 @@ The tolerance-based host tests validate the filter's **logic and signs** — the
 
 ## The fixes (two layers)
 
-1. **Root cause — valid seed default.** The IMU startup default must be a *physically valid* orientation: level = 1 g down the `-Z` (FRD) axis, i.e. `a = (0, 0, -1)`, not all-zeros. Any value fed to `atan2` for seeding must be a real gravity vector. (`crates/firmware-drone/src/tasks/imu.rs`.)
+1. **Root cause — valid seed default.** The IMU startup default must be a *physically valid* orientation: level = 1 g down the `-Z` (FRD) axis, i.e. `a = (0, 0, -1)`, not all-zeros. Any value fed to `atan2` for seeding must be a real gravity vector. (`crates/firmware-drone-microbit/src/tasks/imu.rs`.)
 
 2. **Defence in depth — scrub non-finite at the type boundary.** `RollAngle` / `PitchAngle` / `YawAngle::from_degrees` now scrub `NaN` to `0.0`, so a degenerate estimate can never propagate into the control path — the same NaN-scrub the command newtypes already do (ADR 0016). Today attitude only feeds telemetry, so a NaN is merely a display glitch; once the PID closes the loop (attitude → demand → mixer), a NaN attitude would become NaN motor commands on an armed craft. The scrub closes that hazard before it matters.
 

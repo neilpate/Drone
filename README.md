@@ -45,7 +45,7 @@ See [`doc/progress.md`](doc/progress.md) for the dated milestone history, [`doc/
 ## Repository layout
 
 - [`AGENTS.md`](AGENTS.md) — shared context file for AI coding assistants (Copilot, Claude, etc.). Read first.
-- [`crates/`](crates/README.md) — Cargo workspace. `firmware-drone` (on-target binary) + `firmware-drone-core` (host-testable logic).
+- [`crates/`](crates/README.md) — Cargo workspace. `firmware-drone-microbit` (on-target binary), `firmware-drone-shared` (board-agnostic tasks/signals), `firmware-drone-core` (host-testable logic).
 - [`doc/`](doc/README.md) — design notes, vision, architecture, hardware/software/control docs.
 - [`doc/02-architecture.md`](doc/02-architecture.md) — system architecture overview (two micro:bits, RF link, ground-station evolution).
 - [`doc/decisions/`](doc/decisions/README.md) — Architecture Decision Records (ADRs).

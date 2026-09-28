@@ -31,7 +31,7 @@ This is the embedded equivalent of the classic "idle task counter" trick from RT
 
 The whole method rests on one property: **every cycle the spinner is not running is a cycle stolen by real work.** That only holds if nothing else shares its priority tier.
 
-Our executor layout (see [main.rs](../../crates/firmware-drone/src/main.rs)):
+Our executor layout (see [main.rs](../../crates/firmware-drone-microbit/src/main.rs)):
 
 | Tier | What runs there | Priority |
 |------|-----------------|----------|
