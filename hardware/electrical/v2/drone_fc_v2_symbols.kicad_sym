@@ -28,7 +28,7 @@
 				)
 			)
 		)
-		(property "Footprint" "drone_fc_v2_footprints:LGA-14_2.5x3.0mm_P0.5mm_ICM42688P"
+		(property "Footprint" "Package_LGA:LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y"
 			(at 0 -20.32 0)
 			(show_name no)
 			(do_not_autoplace no)

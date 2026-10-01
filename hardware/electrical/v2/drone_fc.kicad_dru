@@ -1,39 +1,28 @@
-(version 1.1)
+(version 1)
 #----------------------------------------------------------------------------------------------------
-# AISLER custom DRC rules.
-# Make Hardware less Hard. 
-#----------------------------------------------------------------------------------------------------
-# We created these custom rules to warn you if your design hits our manufacturing bounderies. 
-# You can disable the custom rules by commenting them out, though we advise against it.  
-# These rules are valid as of May 2024, please check for updated ones on our forum.
-# Please also note that these rules do not catch every single manufacturing limit. 
-# If you are not certain please check the documentation on our website. 
+# PCBWay custom DRC rules (Standard spec, 4-layer FR-4, green solder mask).
+# Sourced from https://www.pcbway.com/capabilities.html (checked 2026-09).
+# Supplements the board setup + Default net class (min trace/clearance 0.15 mm).
+# Replaces the earlier AISLER rules per ADR 0028 (fab is now PCBWay).
 #----------------------------------------------------------------------------------------------------
 
-# As our tooling is finite we only support certain trough hole sizes. 
-# Please keep the plated trough holes below 5.6mm in diameter. 
-# We provide a community post for more details: 
-# https://community.aisler.net/t/plated-and-non-plated-holes/50
-
-(rule "Max Drill Hole Size PTH"
-    (constraint hole_size (max 5.6mm))
+# Plated through holes: PCBWay standard drills 0.20-6.00 mm.
+(rule "PTH drill size (PCBWay)"
+    (constraint hole_size (min 0.2mm) (max 6.0mm))
     (condition "A.Pad_Type == 'Through-hole'"))
 
 #----------------------------------------------------------------------------------------------------
-# We dont support micro or buried vias
+# PCBWay standard (non-Advanced) has no blind/buried or micro vias.
 
 (rule "Disallow buried via"
-   (constraint disallow buried_via))
+    (constraint disallow buried_via))
 
 (rule "Disallow micro via"
-   (constraint disallow micro_via))
+    (constraint disallow micro_via))
 
 #----------------------------------------------------------------------------------------------------
-# The Soldermask is pulled back by a bit to account for slight missalignment during manufacturing. 
-# We do this on our own, please keep the soldermask margin set to 0. 
- 
-(rule "Disallow solder mask margin overrides"
-    (constraint assertion "A.Soldermask_Margin_Override == 0mm || A.Soldermask_Margin_Override == null")
-    (condition "A.Type == 'Pad'"))
-
+# Solder mask: PCBWay green-ink dam min 0.1 mm (4 mil); mask expansion min 0.05 mm (2 mil).
+# The 0.5 mm-pitch ICM-42688-P (U4) leaves a ~0.05 mm inter-pad web, below the dam min, so U4
+# carries the "allow soldermask bridges" attribute (mask gangs across its pads). Standard for
+# fine-pitch LGA under reflow; no separate DRU rule needed.
 #----------------------------------------------------------------------------------------------------

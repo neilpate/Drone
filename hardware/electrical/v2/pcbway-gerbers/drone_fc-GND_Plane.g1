@@ -1,12 +1,12 @@
 %TF.GenerationSoftware,KiCad,Pcbnew,10.0.5*%
-%TF.CreationDate,2026-09-01T22:57:51+02:00*%
+%TF.CreationDate,2026-10-01T21:12:27+02:00*%
 %TF.ProjectId,drone_fc,64726f6e-655f-4666-932e-6b696361645f,v2.0.0*%
 %TF.SameCoordinates,Original*%
 %TF.FileFunction,Copper,L2,Inr*%
 %TF.FilePolarity,Positive*%
 %FSLAX46Y46*%
 G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
-G04 Created by KiCad (PCBNEW 10.0.5) date 2026-09-01 22:57:51*
+G04 Created by KiCad (PCBNEW 10.0.5) date 2026-10-01 21:12:27*
 %MOMM*%
 %LPD*%
 G01*
@@ -17,9 +17,9 @@ G04 APERTURE LIST*
 G04 APERTURE END LIST*
 D10*
 %TO.N,GND*%
+X98610000Y-105670000D03*
 X105310000Y-121250000D03*
 X105250000Y-112030000D03*
-X99110000Y-105390000D03*
 X98330000Y-95850000D03*
 X93340000Y-121450000D03*
 X111950000Y-117480000D03*
