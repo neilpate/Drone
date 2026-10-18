@@ -25,6 +25,7 @@
             "name": "firmware-drone-microbit (debug, micro:bit v2)",
             "cwd": "${workspaceFolder}",
             "chip": "nRF52833_xxAA",
+            "probe": "0d28:0204:9906360200052820b36c29a69f08054b000000006e052820",
             "connectUnderReset": false,
             "preLaunchTask": "build firmware-drone-microbit (debug)",
             "flashingConfig": {
@@ -58,6 +59,7 @@
             "name": "firmware-drone-microbit (release, micro:bit v2)",
             "cwd": "${workspaceFolder}",
             "chip": "nRF52833_xxAA",
+            "probe": "0d28:0204:9906360200052820b36c29a69f08054b000000006e052820",
             "connectUnderReset": false,
             "preLaunchTask": "build firmware-drone-microbit (release)",
             "flashingConfig": {
