@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Building a Drone from Scratch — A Learning Project with AI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+<style>
+  :root {
+    --r-heading-color: #1a1a2e;
+    --r-main-color: #2d2d2d;
+    --r-link-color: #3a86ff;
+    --accent: #3a86ff;
+    --accent-warm: #e36414;
+    --accent-green: #2a9d8f;
+  }
+  .reveal { font-size: 32px; }
+  .reveal h1 { font-size: 1.8em; font-weight: 700; }
+  .reveal h2 { font-size: 1.4em; font-weight: 700; color: var(--r-heading-color); }
+  .reveal h3 { font-size: 1.1em; font-weight: 600; color: #555; }
+  .reveal ul { text-align: left; }
+  .reveal li { margin-bottom: 0.4em; line-height: 1.4; }
+  .reveal .subtitle { font-size: 0.7em; color: #666; margin-top: 0.5em; }
+  .reveal .highlight { color: var(--accent); font-weight: 600; }
+  .reveal .highlight-warm { color: var(--accent-warm); font-weight: 600; }
+  .reveal .highlight-green { color: var(--accent-green); font-weight: 600; }
+  .reveal .small { font-size: 0.65em; color: #888; }
+  .reveal .quote {
+    font-style: italic; color: #555; border-left: 4px solid var(--accent);
+    padding: 0.3em 0.8em; margin: 0.8em 0; text-align: left;
+  }
+  .reveal img { max-height: 55vh; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+  .reveal .img-row { display: flex; gap: 1em; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .reveal .img-row img { max-height: 40vh; }
+  .reveal .rank-list { list-style: none; padding: 0; }
+  .reveal .rank-list li { padding: 0.3em 0; border-bottom: 1px solid #eee; }
+  .reveal .rank-list li:last-child { border-bottom: none; }
+  .reveal .rank-num { display: inline-block; width: 1.8em; font-weight: 700; color: var(--accent); }
+  .reveal .timeline-table { font-size: 0.75em; width: 100%; border-collapse: collapse; }
+  .reveal .timeline-table td { padding: 0.3em 0.6em; vertical-align: middle; }
+  .reveal .timeline-table td:first-child { font-weight: 600; color: var(--accent); white-space: nowrap; }
+  .reveal .timeline-table img { max-height: 80px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  .reveal .vs-table { width: 90%; margin: 0 auto; font-size: 0.8em; }
+  .reveal .vs-table td { padding: 0.4em 0.8em; vertical-align: top; width: 50%; }
+  .reveal .vs-table td:first-child { border-right: 2px solid #eee; }
+  .reveal .demo-slide { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+  .reveal .demo-slide h2 { color: #fff; }
+  .reveal .demo-slide p { color: #ccc; }
+
+  /* simple chain diagram */
+  .chain { display: flex; align-items: center; justify-content: center; gap: 0; margin: 1em 0; }
+  .chain-node { display: flex; flex-direction: column; align-items: center; gap: 0.3em; }
+  .chain-icon { font-size: 4em; line-height: 1; }
+  .chain-label { font-size: 0.6em; font-weight: 600; color: #444; text-align: center; }
+  .chain-sublabel { font-size: 0.5em; color: #999; text-align: center; }
+  .chain-link {
+    display: flex; flex-direction: column; align-items: center; gap: 0.1em;
+    padding: 0 0.8em; color: #bbb;
+  }
+  .chain-link-line { font-size: 2em; letter-spacing: -0.15em; }
+  .chain-link-label { font-size: 0.5em; color: #aaa; white-space: nowrap; }
+
+  /* journey image grid */
+  .journey-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em;
+    width: 100%; max-width: 1150px; margin: 0 auto;
+  }
+  .journey-item { text-align: center; }
+  .journey-item img {
+    width: 100%; height: 22vh; object-fit: cover;
+    border-radius: 6px; box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+  }
+  .journey-caption { font-size: 0.5em; color: #666; margin-top: 0.25em; }
+
+  /* expert badges */
+  .expert-badge {
+    background: #f0f4ff; border: 2px solid var(--accent); border-radius: 2em;
+    padding: 0.3em 0.9em; font-size: 0.7em; font-weight: 600; color: var(--r-heading-color);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================================ -->
+<!-- SLIDE 1: Title -->
+<!-- ============================================================ -->
+<section>
+  <h1>Building a Drone from Scratch</h1>
+  <h3>A learning project with AI</h3>
+  <br>
+  <p class="subtitle">Neil Pate &mdash; November 2026</p>
+  <br>
+  <p class="quote">The drone is the artefact; understanding the whole stack end-to-end is the deliverable.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2: Why this project -->
+<!-- ============================================================ -->
+<section>
+  <h2>Why this project?</h2>
+  <ul>
+    <li>Goal: <span class="highlight">learning</span>, not building a competitive drone</li>
+    <li>Own the <em>entire</em> stack &mdash; sensors, control, radio, electronics, mechanical</li>
+    <li>Can <span class="highlight">AI augment</span> an engineer in unfamiliar territory?</li>
+    <li>Practice <span class="highlight">embedded Rust</span> &mdash; I write, AI advises</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3: The rules -->
+<!-- ============================================================ -->
+<section>
+  <h2>The rules I set myself</h2>
+  <ul>
+    <li><strong>Roll our own firmware</strong> &mdash; no PX4 / ArduPilot</li>
+    <li><strong>I write the code.</strong> AI advises, reviews, does not implement.</li>
+    <li><strong>Real hardware only</strong></li>
+    <li><strong>Document every decision</strong> &mdash; 29 ADRs and counting</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4: The system — simple chain -->
+<!-- ============================================================ -->
+<section>
+  <h2>The system</h2>
+
+  <div class="chain">
+    <div class="chain-node">
+      <div class="chain-icon">&#x1F3AE;</div>
+      <div class="chain-label">PlayStation<br>Controller</div>
+    </div>
+
+    <div class="chain-link">
+      <div class="chain-link-line">&mdash;&mdash;&rarr;</div>
+      <div class="chain-link-label">USB</div>
+    </div>
+
+    <div class="chain-node">
+      <div class="chain-icon">&#x1F4BB;</div>
+      <div class="chain-label">Ground Station</div>
+      <div class="chain-sublabel">Rust app on PC</div>
+    </div>
+
+    <div class="chain-link">
+      <div class="chain-link-line">&larr;&mdash;&rarr;</div>
+      <div class="chain-link-label">USB</div>
+    </div>
+
+    <div class="chain-node">
+      <!-- MCU chip icon -->
+      <svg width="80" height="80" viewBox="0 0 80 80" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">
+        <rect x="20" y="20" width="40" height="40" rx="4" fill="#2a9d8f" stroke="#1a7a6e" stroke-width="1.5"/>
+        <rect x="30" y="30" width="20" height="20" rx="2" fill="#1a7a6e" opacity="0.5"/>
+        <!-- pins top -->
+        <rect x="28" y="12" width="4" height="10" rx="1" fill="#888"/><rect x="38" y="12" width="4" height="10" rx="1" fill="#888"/><rect x="48" y="12" width="4" height="10" rx="1" fill="#888"/>
+        <!-- pins bottom -->
+        <rect x="28" y="58" width="4" height="10" rx="1" fill="#888"/><rect x="38" y="58" width="4" height="10" rx="1" fill="#888"/><rect x="48" y="58" width="4" height="10" rx="1" fill="#888"/>
+        <!-- pins left -->
+        <rect x="12" y="28" width="10" height="4" rx="1" fill="#888"/><rect x="12" y="38" width="10" height="4" rx="1" fill="#888"/><rect x="12" y="48" width="10" height="4" rx="1" fill="#888"/>
+        <!-- pins right -->
+        <rect x="58" y="28" width="10" height="4" rx="1" fill="#888"/><rect x="58" y="38" width="10" height="4" rx="1" fill="#888"/><rect x="58" y="48" width="10" height="4" rx="1" fill="#888"/>
+        <!-- dot -->
+        <circle cx="28" cy="28" r="2.5" fill="#fff" opacity="0.6"/>
+      </svg>
+      <div class="chain-label">Remote</div>
+      <div class="chain-sublabel">micro:bit (nRF52833)</div>
+    </div>
+
+    <div class="chain-link">
+      <div>
+        <svg width="60" height="36" viewBox="0 0 60 36" style="vertical-align:middle;">
+          <!-- radio wave arcs -->
+          <path d="M18 28 A16 16 0 0 1 18 8" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"/>
+          <path d="M23 24 A10 10 0 0 1 23 12" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="27" cy="18" r="2.5" fill="#999"/>
+          <path d="M37 12 A10 10 0 0 1 37 24" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"/>
+          <path d="M42 8 A16 16 0 0 1 42 28" fill="none" stroke="#999" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="33" cy="18" r="2.5" fill="#999"/>
+        </svg>
+      </div>
+      <div class="chain-link-label">802.15.4 radio</div>
+    </div>
+
+    <div class="chain-node">
+      <!-- Quadcopter with MCU chip in the centre -->
+      <svg width="100" height="100" viewBox="0 0 100 100" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));">
+        <!-- arms -->
+        <line x1="50" y1="50" x2="22" y2="22" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <line x1="50" y1="50" x2="78" y2="22" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <line x1="50" y1="50" x2="22" y2="78" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <line x1="50" y1="50" x2="78" y2="78" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+        <!-- propeller discs -->
+        <circle cx="22" cy="22" r="16" fill="#e36414" opacity="0.2" stroke="#e36414" stroke-width="1.5"/>
+        <circle cx="78" cy="22" r="16" fill="#e36414" opacity="0.2" stroke="#e36414" stroke-width="1.5"/>
+        <circle cx="22" cy="78" r="16" fill="#e36414" opacity="0.2" stroke="#e36414" stroke-width="1.5"/>
+        <circle cx="78" cy="78" r="16" fill="#e36414" opacity="0.2" stroke="#e36414" stroke-width="1.5"/>
+        <!-- motors -->
+        <circle cx="22" cy="22" r="5" fill="#e36414"/><circle cx="78" cy="22" r="5" fill="#e36414"/>
+        <circle cx="22" cy="78" r="5" fill="#e36414"/><circle cx="78" cy="78" r="5" fill="#e36414"/>
+        <!-- centre body = MCU -->
+        <rect x="38" y="38" width="24" height="24" rx="3" fill="#2a9d8f" stroke="#1a7a6e" stroke-width="1"/>
+        <!-- direction arrow -->
+        <polygon points="50,35 53,40 47,40" fill="#fff" opacity="0.8"/>
+      </svg>
+      <div class="chain-label">Drone</div>
+      <div class="chain-sublabel">micro:bit (nRF52833) on board</div>
+    </div>
+  </div>
+
+  <p style="font-size:0.75em;">Commands &rarr; &nbsp; Telemetry &larr; &nbsp; Round trip <span class="highlight">100 Hz</span> &nbsp; All written from scratch in <span class="highlight">Rust</span></p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5: How AI helped -->
+<!-- ============================================================ -->
+<section>
+  <h2>AI as a panel of expert advisors</h2>
+  <p style="font-size:0.75em; margin-bottom:0.5em;">Niche skills that would have taken months to acquire &mdash; or caused me to give up</p>
+  <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:0.5em; margin:0.6em 0;">
+    <div class="expert-badge">&#x1F9D1;&#x200D;&#x1F4BB; Embedded Rust</div>
+    <div class="expert-badge">&#x1FA81; Drone engineering</div>
+    <div class="expert-badge">&#x1F3AF; Control systems</div>
+    <div class="expert-badge">&#x1F5A5;&#xFE0F; eGUI / desktop apps</div>
+    <div class="expert-badge">&#x2699;&#xFE0F; CI / tooling</div>
+    <div class="expert-badge">&#x1F4CB; PCB review</div>
+  </div>
+  <br>
+  <table class="vs-table" style="font-size:0.8em;">
+    <tr>
+      <td>
+        <h3 style="color:var(--accent-green);">Investigation</h3>
+        <ul>
+          <li>Architecture discussed <em>before</em> code</li>
+          <li>Captured in <strong>29 ADRs</strong>, revisited during development</li>
+        </ul>
+      </td>
+      <td>
+        <h3 style="color:var(--accent-green);">Development</h3>
+        <ul>
+          <li>I wrote; AI reviewed and caught bugs</li>
+          <li>Still had to <strong>learn the skills myself</strong> &mdash; AI accelerated, didn't replace</li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6: Journey in pictures -->
+<!-- ============================================================ -->
+<section>
+  <h2>The journey</h2>
+  <div class="journey-grid">
+    <div class="journey-item">
+      <img src="../doc/images/simple mounting plate.png" alt="Motor mount CAD model">
+      <div class="journey-caption"><strong>Jun</strong> &mdash; First 3D-printed part</div>
+    </div>
+    <div class="journey-item">
+      <img src="../doc/images/ESC + motor.jpg" alt="ESC and motor bench setup">
+      <div class="journey-caption"><strong>Jul</strong> &mdash; First motor spinning</div>
+    </div>
+    <div class="journey-item">
+      <img src="../doc/images/first quad mount.jpg" alt="First quad frame with motors">
+      <div class="journey-caption"><strong>Jul</strong> &mdash; First quad frame</div>
+    </div>
+    <div class="journey-item">
+      <img src="../doc/images/Airframe v3.jpg" alt="Airframe v3">
+      <div class="journey-caption"><strong>Aug</strong> &mdash; Airframe v3, first flight</div>
+    </div>
+    <div class="journey-item">
+      <img src="../doc/images/drone_fc_v2_pcba.png" alt="PCB render">
+      <div class="journey-caption"><strong>Sep</strong> &mdash; Custom PCB</div>
+    </div>
+    <div class="journey-item">
+      <img src="../doc/images/Revised airframe for new PCB.jpg" alt="Revised airframe">
+      <div class="journey-caption"><strong>Sep</strong> &mdash; Revised airframe</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6b: Documenting the learnings -->
+<!-- ============================================================ -->
+<section>
+  <h2>Documenting the learnings</h2>
+  <p style="font-size:0.75em; margin-bottom:0.6em;">Every non-obvious thing learned became a short note &mdash; 11 topics from GPIO resets to CPU-load profiling</p>
+  <div class="img-row">
+    <img src="../doc/learning/dshot-bit-pattern.svg" alt="DShot bit-pattern diagram" style="max-height:42vh; background:#fff; padding:0.3em; border-radius:6px;">
+    <img src="../doc/learning/dshot-esc-telemetry-frame.svg" alt="DShot ESC telemetry frame diagram" style="max-height:42vh; background:#fff; padding:0.3em; border-radius:6px;">
+  </div>
+  <p style="font-size:0.55em; color:#888; margin-top:0.4em;">DShot bit pattern (left) and ESC telemetry frame (right) &mdash; drawn to understand protocols before implementing them</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7: Custom PCB — AI cautionary tale -->
+<!-- ============================================================ -->
+<section>
+  <h2>The custom PCB: an AI cautionary tale</h2>
+  <ul>
+    <li><span class="highlight-warm">Attempt 1:</span> specialist AI generated the schematic &mdash; Copilot caught <em>most</em> mistakes in review, but <strong>one slipped through to the vendor &mdash; respin</strong></li>
+    <li><span class="highlight-green">Attempt 2:</span> I drove KiCad myself, Copilot as <strong>verification companion</strong> throughout &mdash; much better</li>
+  </ul>
+  <br>
+  <p class="quote">AI generating a design it can't test &mdash; dangerous.<br>AI reviewing a design you understand &mdash; valuable.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7b: PCB images -->
+<!-- ============================================================ -->
+<section>
+  <h2>The v2 flight controller</h2>
+  <p style="font-size:0.7em; color:#888;">nRF5340 &bull; IMU &bull; DShot &bull; 4S power &bull; USB &bull; KiCad &bull; turnkey PCBA</p>
+  <div style="display:flex; gap:1em; align-items:center; justify-content:center; width:100%;">
+    <img src="../doc/images/drone_fc_v2_schematic.svg" alt="Schematic of the v2 flight controller" style="max-height:52vh; max-width:58%; object-fit:contain; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,0.12); background:#fff; padding:0.3em;">
+    <img src="../doc/images/drone_fc_v2_pcba.png" alt="PCB render of the v2 flight controller" style="max-height:52vh; max-width:38%; object-fit:contain; border-radius:6px; box-shadow:0 4px 20px rgba(0,0,0,0.12);">
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8: What was actually hard -->
+<!-- ============================================================ -->
+<section>
+  <h2>What was actually hard</h2>
+  <p style="font-size:0.85em;">Writing the code was <span class="highlight-warm">not</span> the hardest part.</p>
+  <br>
+  <ul class="rank-list">
+    <li><span class="rank-num">1.</span> <strong>Mechanical design</strong> &mdash; learned Fusion 360 from scratch, three airframe iterations</li>
+    <li><span class="rank-num">2.</span> <strong>Physical build + PCB</strong> &mdash; wiring, soldering, weight distribution</li>
+    <li><span class="rank-num">3.</span> <strong>Tuning the control system</strong> &mdash; correct maths that still won't fly</li>
+    <li><span class="rank-num">4.</span> <strong>Writing firmware</strong> &mdash; the easiest of the four</li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9: War story — M4 -->
+<!-- ============================================================ -->
+<section>
+  <h2>War story: the M4 mystery</h2>
+  <ul>
+    <li>Front-left motor <span class="highlight-warm">always weaker</span> &mdash; chased for weeks</li>
+    <li>Suspected: motor, mount, propellers</li>
+    <li>Root cause: <strong>uncalibrated analog PWM endpoints</strong></li>
+    <li>Switch to <span class="highlight">DShot</span> (digital) &mdash; asymmetry <strong>vanished instantly</strong></li>
+  </ul>
+  <br>
+  <p class="quote">The code was correct. The bug was at the firmware&ndash;physics boundary.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10: War story — roll oscillation -->
+<!-- ============================================================ -->
+<section>
+  <h2>War story: the roll oscillation</h2>
+  <ul>
+    <li><span class="highlight-warm">~3&ndash;4 Hz oscillation</span> &mdash; survived every gain change</li>
+    <li>Not the PID &mdash; the <strong>attitude filter's crossover</strong> sat on the control band</li>
+    <li>One coefficient change (&alpha; 0.98 &rarr; 0.998) &mdash; oscillation collapsed</li>
+  </ul>
+  <br>
+  <p class="quote">Wrong tool, wrong layer. No amount of gain tuning fixes an estimator bug.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 11: Demo -->
+<!-- ============================================================ -->
+<section data-background-color="#1a1a2e">
+  <h2 style="color:#fff;">Demo</h2>
+  <br>
+  <p style="color:#aaa; font-size:0.9em;">Ground station &bull; live telemetry &bull; 3D attitude view &bull; gamepad control &bull; live gain tuning</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 12: What I learned -->
+<!-- ============================================================ -->
+<section>
+  <h2>What I learned</h2>
+  <ul>
+    <li><span class="highlight">AI is a force multiplier</span>, not a replacement</li>
+    <li><span class="highlight">ADRs are underrated</span> &mdash; forced early thinking, prevented rework</li>
+
+    <li><span class="highlight">The code is the easy part</span></li>
+  </ul>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 13: Questions -->
+<!-- ============================================================ -->
+<section>
+  <h2>Questions?</h2>
+  <br>
+  <img src="../doc/images/Revised airframe for new PCB.jpg" alt="The drone" style="max-height:40vh;">
+  <br>
+  <p style="font-size:0.7em; color:#888;">
+    <a href="https://github.com/neilpate/Drone">github.com/neilpate/Drone</a>
+  </p>
+</section>
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    transition: 'fade',
+    transitionSpeed: 'fast',
+    width: 1280,
+    height: 720,
+    margin: 0.08,
+    center: true,
+  });
+</script>
+</body>
+</html>
