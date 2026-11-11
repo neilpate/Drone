@@ -2,6 +2,12 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-11-11 — nRF5340 dual-core board bring-up
+
+The assembled `drone_fc` v2 board has reached dual-core smoke-test bring-up. Both application and network cores were flashed independently and their LEDs were observed blinking together after a cold boot. The [hardware bring-up notes](../hardware/electrical/README.md) record the flashing workflow and the SWD probe investigation.
+
+The application firmware port is in progress and does not yet build. The next integration step is to prove shared-memory IPC on hardware before connecting the network-core radio to the application, as described in [ADR 0029](decisions/0029-multi-board-firmware-shared-library.md).
+
 ## 2026-09-20 — Drift and balance debugging; a control troubleshooting field guide; the old frame retired
 
 A session spent chasing a persistent in-flight drift resolved into a clear picture of the control system's remaining limits — and cost the old flight frame.
