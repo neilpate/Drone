@@ -1,0 +1,39 @@
+{
+  "captured_on": "2026-11-11",
+  "note": "Previously stopped acquisition read without retriggering; original acquisition time and wiring not independently confirmed.",
+  "instrument": "RIGOL TECHNOLOGIES,DHO804,DHO8A254303303,00.01.01",
+  "trigger_status_before": "STOP",
+  "settings": {
+    ":ACQuire:MDEPth?": "1.0000E+06",
+    ":ACQuire:SRATe?": "6.250000E+7",
+    ":TIMebase:MAIN:SCALe?": "2.000000E-4",
+    ":TIMebase:MAIN:OFFSet?": "9.600000E-4",
+    ":TRIGger:EDGE:SOURce?": "CHAN1",
+    ":TRIGger:EDGE:SLOPe?": "POS",
+    ":TRIGger:EDGE:LEVel?": "1.500000E0",
+    ":CHANnel1:PROBe?": "10",
+    ":CHANnel2:PROBe?": "10",
+    ":CHANnel1:SCALe?": "1.000000E+00",
+    ":CHANnel2:SCALe?": "1.000000E+00",
+    ":CHANnel1:OFFSet?": "-1.500000E+00",
+    ":CHANnel2:OFFSet?": "-1.500000E+00",
+    ":CHANnel1:COUPling?": "DC",
+    ":CHANnel2:COUPling?": "DC"
+  },
+  "channels": {
+    "ch1": {
+      "file": "ch1.bin",
+      "format": "unsigned 8-bit Rigol BYTE codes",
+      "preamble": "0,2,1000000,1,1.600000E-8,-8.000000E-3,0.000000,3.4133E-02,-43,128",
+      "points": 1000000
+    },
+    "ch2": {
+      "file": "ch2.bin",
+      "format": "unsigned 8-bit Rigol BYTE codes",
+      "preamble": "0,2,1000000,1,1.600000E-8,-8.000000E-3,0.000000,3.4133E-02,-43,128",
+      "points": 1000000
+    }
+  },
+  "trigger_status_after": "STOP",
+  "scope_error": "0,\"No error\""
+}

@@ -1,0 +1,15 @@
+[package]
+name = "swd-test"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/neilpate/Drone"
+rust-version = "1.95"
+publish = false
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
