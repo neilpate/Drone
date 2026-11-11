@@ -466,6 +466,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "firmware-drone-nrf5340-app"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt 0.3.100",
+ "defmt-rtt",
+ "embassy-nrf",
+ "embassy-time",
+ "panic-probe",
+]
+
+[[package]]
+name = "firmware-drone-nrf5340-radio"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "defmt 0.3.100",
+ "defmt-rtt",
+ "embassy-embedded-hal",
+ "embassy-executor",
+ "embassy-futures",
+ "embassy-nrf",
+ "embassy-sync",
+ "embassy-time",
+ "firmware-drone-core",
+ "firmware-drone-shared",
+ "firmware-types",
+ "panic-probe",
+ "postcard",
+ "sequential-storage",
+ "serde",
+]
+
+[[package]]
 name = "firmware-drone-shared"
 version = "0.1.0"
 dependencies = [

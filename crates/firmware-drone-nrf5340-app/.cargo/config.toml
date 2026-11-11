@@ -1,0 +1,19 @@
+# Run Cargo from this directory so the nRF5340 target and linker flags apply.
+
+[build]
+target = "thumbv8m.main-none-eabihf"
+
+[target.thumbv8m.main-none-eabihf]
+# Requires probe-rs >=0.32 with the explicit application-only target.
+runner = "probe-rs run --chip nRF5340_xxAA_APPONLY --probe 2e8a:000c:E66594D0637D4534 --protocol swd --speed 100"
+rustflags = [
+  # cortex-m-rt linker script
+  "-C", "link-arg=-Tlink.x",
+  # Required for defmt RTT and panic logging.
+  "-C", "link-arg=-Tdefmt.x",
+]
+
+[env]
+# defmt log level. `info` is a reasonable default; bump to `trace` while
+# debugging a specific subsystem.
+DEFMT_LOG = "info"

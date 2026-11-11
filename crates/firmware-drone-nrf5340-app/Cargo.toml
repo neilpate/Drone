@@ -1,0 +1,32 @@
+[package]
+name        = "firmware-drone-nrf5340-app"
+version     = "0.1.0"
+description = "Drone firmware: nRF5340 secure application-core LED smoke test."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish              = false
+autotests            = false
+autobenches          = false
+autoexamples         = false
+
+[[bin]]
+name    = "firmware-drone-nrf5340-app"
+path    = "src/main.rs"
+test    = false
+bench   = false
+doctest = false
+
+[dependencies]
+# Do not inherit the workspace embassy-nrf dependency: it selects nRF52833.
+embassy-nrf = { version = "0.2", features = ["nrf5340-app-s", "defmt", "time-driver-rtc1", "unstable-pac"] }
+embassy-time = { workspace = true }
+cortex-m = { workspace = true }
+cortex-m-rt = { workspace = true }
+defmt = { workspace = true }
+defmt-rtt = { workspace = true }
+panic-probe = { workspace = true }
+
+[lints]
+workspace = true

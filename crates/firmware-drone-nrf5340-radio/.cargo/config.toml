@@ -1,0 +1,18 @@
+# Run Cargo from this directory so the network-core target and linker flags apply.
+
+[build]
+target = "thumbv8m.main-none-eabi"
+
+[target.thumbv8m.main-none-eabi]
+runner = "probe-rs run --chip nRF5340_xxAA --probe 2e8a:000c:E66594D0637D4534 --protocol swd --speed 100"
+rustflags = [
+  # cortex-m-rt linker script
+  "-C", "link-arg=-Tlink.x",
+  # defmt linker script (needed for RTT framing)
+  "-C", "link-arg=-Tdefmt.x",
+]
+
+[env]
+# defmt log level. `info` is a reasonable default; bump to `trace` while
+# debugging a specific subsystem.
+DEFMT_LOG = "info"
