@@ -140,6 +140,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 
 ## Decisions log (quick index)
 
+- ADR 0029 amendment (2026-11-11): the nRF5340 app is a workspace member; build it separately from the micro:bit so Embassy chip features do not unify.
 - [0001](doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope. (2026-05-21)
 - [0002](doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Phases 1–3. (2026-05-21, amended by 0004)
 - [0003](doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)

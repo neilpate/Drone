@@ -3,39 +3,23 @@
     // rust-analyzer: mixed-target workspace configuration
     // ---------------------------------------------------------------------
     //
-    // The workspace contains a mix of:
-    //   - on-target firmware (firmware-drone-microbit, firmware-drone-shared, firmware-remote) cross-compiled
-    //     to thumbv7em-none-eabihf via per-crate .cargo/config.toml,
-    //   - host-testable no_std logic crates (firmware-drone-core, firmware-
-    //     remote-core, firmware-types) that build for the host triple,
-    //   - the host-only ground-station GUI (groundstation, eframe/egui).
-    //
-    // rust-analyzer runs as a single LSP server per VS Code window with one
-    // global `cargo.target`. There is no per-crate target option (even with
-    // `linkedProjects` or multi-root workspaces). So we have to pick.
-    //
-    // Most editing happens on the firmware side, so we target ARM globally
-    // and drop `groundstation` from `linkedProjects` — RA otherwise tries to
-    // analyse egui / winit / glow as `no_std` ARM and emits thousands of
-    // false errors. Groundstation still builds/runs from its own terminal
-    // (`cd crates/groundstation && cargo run`); it just has no live RA
-    // analysis in this window. Open it in a separate VS Code window for
-    // full IDE support when actively editing it.
-    "rust-analyzer.cargo.target": "thumbv7em-none-eabihf",
+    // Focus this window on the nRF5340 app. Workspace-wide Cargo checks would
+    // combine its Embassy chip feature with the micro:bit's nRF52833 feature.
+    // Open the other firmware or groundstation separately when working on it.
+    "rust-analyzer.cargo.target": "thumbv8m.main-none-eabihf",
     "rust-analyzer.linkedProjects": [
-        "crates/firmware-drone-microbit/Cargo.toml",
-        "crates/firmware-remote/Cargo.toml",
-        "crates/firmware-drone-core/Cargo.toml",
-        "crates/firmware-remote-core/Cargo.toml",
-        "crates/firmware-types/Cargo.toml"
+        "crates/firmware-drone-nrf5340-app/Cargo.toml"
     ],
-    // Don't analyse dev-deps / tests / examples; firmware crates have those
-    // turned off anyway (see crates/firmware-drone-microbit/Cargo.toml).
     "rust-analyzer.cargo.allTargets": false,
-    // Use clippy for on-save checks instead of the default `cargo check`.
-    // Same diagnostics plus the clippy lint set, surfaced in the Problems
-    // panel. Standard embedded-Rust workflow.
-    "rust-analyzer.check.command": "clippy",
+    "rust-analyzer.cargo.buildScripts.overrideCommand": [
+        "cargo", "check", "-p", "firmware-drone-nrf5340-app",
+        "--target", "thumbv8m.main-none-eabihf", "--message-format=json"
+    ],
+    "rust-analyzer.check.overrideCommand": [
+        "cargo", "clippy", "-p", "firmware-drone-nrf5340-app",
+        "--target", "thumbv8m.main-none-eabihf", "--message-format=json",
+        "--", "-D", "warnings"
+    ],
     // Populate VS Code's native Testing view (beaker icon) with discovered
     // `#[test]` functions. Experimental in rust-analyzer but stable enough.
     // CodeLens run arrows work independently of this.
