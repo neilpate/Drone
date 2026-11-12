@@ -15,7 +15,8 @@ pub use hardware::Endpoint;
 
 pub const MAX_FRAME_SIZE: usize = 125;
 pub const RADIO_CHANNEL: u8 = 20;
-pub const STARTUP_PROBE: &[u8] = b"drone-ipc-v1";
+#[cfg(any(feature = "app", feature = "net"))]
+const STARTUP_PROBE: &[u8] = b"drone-ipc-v1";
 #[cfg(any(test, feature = "app", feature = "net"))]
 const QUEUE_DEPTH: usize = 4;
 #[cfg(any(test, feature = "app", feature = "net"))]

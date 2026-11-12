@@ -10,14 +10,15 @@ use core::sync::atomic::{AtomicU16, Ordering};
 
 use embassy_embedded_hal::adapter::BlockingAsync;
 use embassy_nrf::config::{Config, HfclkSource};
-use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin};
+use embassy_nrf::gpio::{Level, Output, OutputDrive, Pin, Port};
 use embassy_nrf::nvmc::Nvmc;
+use embassy_nrf::pac;
 use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::uarte::{self, Baudrate, Parity, UarteRx, UarteRxWithIdle};
 use embassy_nrf::{bind_interrupts, peripherals};
 use embassy_time::{Duration, with_timeout};
-use nrf5340_ipc::{Endpoint, Error, MAX_FRAME_SIZE, STARTUP_PROBE};
+use nrf5340_ipc::{Endpoint, Error};
 use sequential_storage::cache::{Cache, Uncached};
 use sequential_storage::map::{MapConfig, MapStorage, PostcardValue};
 use serde::{Deserialize, Serialize};
@@ -104,6 +105,8 @@ impl Board {
         config.hfclk_source = HfclkSource::ExternalXtal;
         let p = embassy_nrf::init(config);
 
+        assign_to_network_core(p.P0_31);
+
         Self {
             status_led: StatusLed::new(p.P0_28),
             motors: Motors::new(p.PWM0, p.P0_03, p.P0_16, p.P0_17, p.P0_22),
@@ -113,6 +116,19 @@ impl Board {
             radio_core_interface: RadioCoreInterface::new(),
         }
     }
+}
+
+/// Give control of a GPIO to the network core. Consuming the pin prevents any
+/// app-core driver from claiming it afterwards.
+fn assign_to_network_core(pin: impl Pin) {
+    // SAFETY: the pin singleton is consumed, so no app-core driver owns it.
+    let port = unsafe {
+        match pin.port() {
+            Port::Port0 => &*pac::P0::ptr(),
+            Port::Port1 => &*pac::P1::ptr(),
+        }
+    };
+    port.pin_cnf[pin.pin() as usize].modify(|_, w| w.mcusel().network_mcu());
 }
 
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(2);
@@ -131,17 +147,9 @@ impl RadioCoreInterface {
 
     /// Validate the two-core transport before any pilot commands are accepted.
     pub async fn check_connection(&mut self) -> Result<(), Error> {
-        with_timeout(STARTUP_TIMEOUT, async {
-            self.endpoint.send(STARTUP_PROBE).await?;
-            let mut buffer = [0; MAX_FRAME_SIZE];
-            let length = self.endpoint.receive(&mut buffer).await?;
-            if &buffer[..length] != STARTUP_PROBE {
-                return Err(Error::StartupMismatch);
-            }
-            Ok(())
-        })
-        .await
-        .map_err(|_| Error::Timeout)?
+        with_timeout(STARTUP_TIMEOUT, self.endpoint.probe())
+            .await
+            .map_err(|_| Error::Timeout)?
     }
 
     pub async fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {

@@ -6,7 +6,9 @@ use embassy_nrf::interrupt::{InterruptExt, Priority};
 use embassy_nrf::{interrupt, pac};
 use embassy_sync::waitqueue::AtomicWaker;
 
-use crate::{Error, MAGIC, Queue, Shared};
+#[cfg(feature = "app")]
+use crate::MAX_FRAME_SIZE;
+use crate::{Error, MAGIC, Queue, STARTUP_PROBE, Shared};
 
 static TAKEN: AtomicBool = AtomicBool::new(false);
 static WAKER: AtomicWaker = AtomicWaker::new();
@@ -52,7 +54,7 @@ impl Endpoint {
         cortex_m::asm::isb();
 
         // The last eight 8-KiB SPU RAM regions are reserved by both linkers.
-        // SAFETY: only the app core configures SPU and P0.31 during startup.
+        // SAFETY: only the app core configures SPU during startup.
         let spu = unsafe { &*pac::SPU::ptr() };
         spu.extdomain[0]
             .perm
@@ -78,8 +80,6 @@ impl Endpoint {
         shared.magic.store(MAGIC, Ordering::Release);
         let endpoint = Self { shared };
         Self::configure_interrupt();
-        // SAFETY: only the app BSP assigns the radio LED to the network core.
-        unsafe { &*pac::P0::ptr() }.pin_cnf[31].modify(|_, w| w.mcusel().network_mcu());
         cortex_m::asm::dsb();
         reset.network.forceoff.write(|w| w.forceoff().release());
         endpoint
@@ -158,8 +158,44 @@ impl Endpoint {
         .await
     }
 
+    /// Application core only. Send the startup probe and wait for the network
+    /// core's echo through the real frame queues. The caller owns the timeout.
+    #[cfg(feature = "app")]
+    pub async fn probe(&mut self) -> Result<(), Error> {
+        self.send(STARTUP_PROBE).await?;
+        let mut buffer = [0; MAX_FRAME_SIZE];
+        let length = self.receive(&mut buffer).await?;
+        if &buffer[..length] != STARTUP_PROBE {
+            return Err(Error::StartupMismatch);
+        }
+        Ok(())
+    }
+
     /// Cancel-safe: the frame is consumed only in the poll that returns it.
+    #[cfg(feature = "app")]
     pub async fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
+        self.receive_frame(buffer).await
+    }
+
+    /// Cancel-safe: the frame is consumed only in the poll that returns it.
+    /// Startup probes from the app core are echoed whenever they arrive and
+    /// never returned, so a network-core-only restart needs no handshake phase.
+    #[cfg(feature = "net")]
+    pub async fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
+        loop {
+            let length = self.receive_frame(buffer).await?;
+            if &buffer[..length] != STARTUP_PROBE {
+                return Ok(length);
+            }
+            // No await between dequeue and echo, so cancellation cannot drop a probe.
+            match self.try_send(STARTUP_PROBE) {
+                Ok(()) => defmt::info!("app-core IPC probe answered"),
+                Err(error) => defmt::warn!("app-core IPC probe echo failed: {:?}", error),
+            }
+        }
+    }
+
+    async fn receive_frame(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
         poll_fn(|cx| {
             WAKER.register(cx.waker());
             match self.incoming().pop(buffer) {
