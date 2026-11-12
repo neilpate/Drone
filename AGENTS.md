@@ -112,7 +112,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 
 **Documentation lives in:** [doc/](doc/README.md)
 **Hardware files live in:** [hardware/](hardware/README.md) (mechanical CAD under `hardware/mechanical/`, electrical / PCBA under `hardware/electrical/`).
-**Rust crates live in:** [crates/](crates/README.md) (empty until Phase 1 design lands).
+**Rust crates live in:** [crates/](crates/README.md) (index of every crate there).
 **Architecture Decision Records:** `doc/decisions/` (one file per decision, format `NNNN-title.md`).
 
 ---
@@ -149,6 +149,7 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 ## Decisions log (quick index)
 
 - ADR 0029 amendment (2026-11-11): the nRF5340 app is a workspace member; build it separately from the micro:bit so Embassy chip features do not unify.
+- ADR 0029 amendment (2026-11-12): the network-core binary is `firmware-drone-nrf5340-radio` (not `-net`), with its own minimal `board` module (`AppCoreInterface`). The IPC startup handshake lives in `nrf5340-ipc`; the app BSP hands the radio LED pin to the network core.
 - [0001](doc/decisions/0001-platform-airframe-stack.md) — Real-hardware quadcopter, roll our own firmware, learning-first scope. (2026-05-21)
 - [0002](doc/decisions/0002-mcu-and-language.md) — BBC micro:bit v2 (nRF52833) + Rust for Phases 1–3. (2026-05-21, amended by 0004)
 - [0003](doc/decisions/0003-imu-icm42688-spi.md) — External IMU: ICM-42688-P on SPI. (2026-05-21)

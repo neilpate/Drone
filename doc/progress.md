@@ -2,6 +2,14 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-11-12 — nRF5340 radio link working end to end on both cores
+
+The `drone_fc` v2 board now runs the real firmware on both cores, and the radio path works end to end. After a power-cycle both LEDs blink, the application core logs `radio-core IPC loopback passed`, the network core logs `app-core IPC probe answered`, and command/telemetry traffic flows with the micro:bit remote on channel 20. Flashing still depends on getting reliable TC2050 contact.
+
+Before flashing, the network core gained its own minimal BSP: a `board` module owning the clock, radio and LED, and an `AppCoreInterface` over the IPC endpoint, mirroring the app's `RadioCoreInterface`. The radio LED pin handover moved out of `nrf5340-ipc` into the app BSP, which now consumes the pin singleton. Both halves of the startup handshake moved into `nrf5340-ipc`; the network core answers probes whenever they arrive instead of panicking after a two-second startup window, so a network-core-only restart no longer stops it.
+
+Round-trip latency through the extra IPC hop and props-off link-loss behavior remain to be measured.
+
 ## 2026-11-12 — nRF5340 IPC/radio images flashed and verified
 
 Both new firmware images were flashed with probe-rs 0.32.0 and verified: network core first, then application core. The first SWD connection failed without writing; reseating the TC2050 restored contact. No chip-wide recovery or erase was requested. Startup logs, IPC loopback, radio traffic and link-loss behavior have not yet been observed with these images.

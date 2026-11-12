@@ -98,10 +98,16 @@ Because board selection is now by **crate identity** (one board per binary), [AD
 **Implementation amendment (2026-11-12).** The nRF5340 app uses a concrete BSP
 `RadioCoreInterface`, not a common `RadioLink` trait. The micro:bit radio task is
 not being backported or changed. Only the nRF5340 cores share the `nrf5340-ipc`
-crate: fixed-layout SPSC frame queues plus a register-level IPC doorbell.
+crate: fixed-layout SPSC frame queues, a register-level IPC doorbell and the
+startup probe handshake. The network-core binary is named
+`firmware-drone-nrf5340-radio` (not `-net` as in §5) and depends on
+`nrf5340-ipc`, not `firmware-types`. It has its own minimal `board` module
+exposing the radio, its status LED and an `AppCoreInterface` over the IPC
+endpoint. The app BSP hands that LED pin to the network core.
 This narrows the originally planned Group-B radio extraction without changing
-the raw-byte boundary below. The implemented transport is build-tested and
-host-tested; hardware loopback and radio latency remain unverified.
+the raw-byte boundary below. The startup loopback and command/telemetry
+traffic with the micro:bit remote were verified on hardware on 2026-11-12;
+radio latency through the IPC hop remains unmeasured.
 
 The network-core binary owns the 802.15.4 PHY and does nothing but shuttle **raw PHY frames** across the inter-core IPC (the nRF5340 IPC peripheral over a shared-RAM region — see §10 for the caveats). All postcard/COBS decoding and all `firmware-types` knowledge stay on the application core, inside `remote_link_body`.
 
