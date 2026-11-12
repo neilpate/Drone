@@ -38,7 +38,7 @@ standard library and calls the installed `probe-rs` executable.
 
 ## Electrical design files
 
-### Application-core LED smoke test
+### Application-core firmware
 
 The [nRF5340 app crate](../../crates/firmware-drone-nrf5340-app/Cargo.toml)
 is a workspace member (ADR 0029) but builds separately from micro:bit firmware. It selects the
@@ -51,18 +51,29 @@ build-script and Clippy checks to it. The micro:bit and groundstation require
 separate editor configuration when working on them.
 Run Cargo from `crates/firmware-drone-nrf5340-app` so its local target/linker
 configuration is loaded: `cargo build`, then `cargo clippy --bin firmware-drone-nrf5340-app -- -D warnings`.
-The app starts the external high-frequency crystal and toggles P0.28 every
-100 ms using Embassy's RTC1 time driver and a blocking delay. Embassy's
-default debug configuration allows access and may write UICR
-to disable application and secure debug protection. The app assigns P0.31 to
-the network core and releases it from force-off.
+The app starts the external high-frequency crystal and creates the BSP and
+flight tasks. Before spawning tasks, it checks the radio-core IPC loopback.
+Embassy's default debug configuration allows access and may write UICR
+to disable application and secure debug protection. P0.03 is configured as
+GPIO rather than NFC for motor M1. The app assigns P0.31 to the network core.
 `cargo run` requires probe-rs 0.32.0 or later on PATH, selects
 `nRF5340_xxAA_APPONLY`, and flashes via the Pico at 100 kHz.
 probe-rs 0.30.0 has a known nRF53 recovery bug (upstream PR 3701).
 The app-only target avoids accessing the network core over SWD.
 Board power and a stable TC2050 contact are required.
 
-### Network-core LED smoke test
+The v2 IMU mounting requires a 180-degree rotation about Y into the FRD body
+frame: `(body_x, body_y, body_z) = (-sensor_x, sensor_y, -sensor_z)`, for both
+accelerometer and gyro. Bench tilt and rotation checks confirmed this mapping
+on 2026-11-12. The app BSP applies it during byte conversion, before calibration
+or estimation. Level and stationary should read approximately `(0, 0, -1)` g.
+
+The app status LED on P0.28 is active-high: the PCB connects its anode to the
+GPIO and its cathode through a resistor to ground. It starts off and displays
+the supervisor-state blink pattern. Repeated publications of the same state
+do not restart the pattern; only a different state interrupts it.
+
+### Network-core radio bridge
 
 The [radio crate](../../crates/firmware-drone-nrf5340-radio/Cargo.toml) selects
 the `nrf5340-net` Embassy feature and the `thumbv8m.main-none-eabi` Rust target
@@ -70,7 +81,65 @@ the `nrf5340-net` Embassy feature and the `thumbv8m.main-none-eabi` Rust target
 running `cargo build` from `crates/firmware-drone-nrf5340-radio`. Its ELF links
 to network flash at `0x01000000`. Its runner selects the full
 `nRF5340_xxAA` target and the Pico probe; network-core debug access and flashing
-have been verified, and both LEDs blink after a cold boot.
+were verified with the previous LED smoke-test images. The current image is
+a raw 802.15.4 payload bridge; it has no postcard or `firmware-types` dependency.
+The entry point initializes hardware and independently spawns
+`tasks::status_led` and `tasks::remote_link`. The LED is a heartbeat, not an
+IPC-readiness indicator. The remote-link task attaches IPC, checks the startup
+loopback and bridges raw payloads. Each task lives in its own file under the
+radio crate's `src/tasks/`.
+
+### Inter-core radio transport
+
+Implemented 2026-11-12; **both images flashed and verified, runtime behavior
+not yet observed**. Network was flashed first, then app, using probe-rs 0.32.0
+without chip-wide recovery. Both cores build and pass Clippy separately;
+the queue has host tests:
+`cargo test -p nrf5340-ipc` and
+`cargo clippy -p nrf5340-ipc --all-targets -- -D warnings`.
+
+- The concrete app BSP `RadioCoreInterface` lives alongside the other wrappers
+  in `src/board/nrf5340.rs` and wraps `nrf5340-ipc`. The micro:bit
+  implementation is unchanged. Postcard and command dispatch stay on the app
+  core; Embassy's radio `Packet` stays on the network core.
+- Both linkers reserve `0x20070000..0x20080000`. The first 1076 bytes contain
+  a version/magic word and two four-slot SPSC queues. Each slot contains a
+  length and up to 125 payload bytes, packed into atomic `u32` words. The PHY
+  header, CRC and LQI are not sent through IPC.
+- The app holds the network core off, configures SPU RAM regions 56--63 as
+  non-secure read/write, initializes both queues, configures IPC and releases
+  the network core. The network domain is non-secure; no access to the rest of
+  the app's RAM is granted. Both binaries check the linker region and the
+  shared layout size.
+- IPC channel/event 0 is reserved on both cores. A doorbell follows each
+  enqueue/dequeue. Acquire/release publication and a `DMB` before notification
+  order memory accesses. The interrupt wakes the local async waiter; the
+  queue, not the event bit, determines whether data is available.
+- Startup sends `drone-ipc-v1` through the real frame queues and echoes it
+  before enabling the radio bridge. Both cores log
+  `radio-core IPC loopback passed`. A mismatch or two-second timeout stops
+  startup. This check is built in but has not yet been observed on hardware.
+- `receive()` returns the actual frame length and is cancellation-safe.
+  `send()` means **queued**, not successfully transmitted over the air.
+  A full app-to-net queue waits at most 50 ms; oversize payloads fail
+  explicitly. A full net-to-app queue drops the incoming frame with a warning
+  rather than blocking outgoing radio traffic. On-air send errors are logged
+  on the network core; IPC does not add retries or delivery guarantees.
+- Chip-temperature sampling was removed from the app. It logs the absence
+  and seeds temperature with NaN, keeping the unchanged sensors aggregator
+  and telemetry schema live without inventing a measurement.
+
+Before hardware testing, disconnect motors or remove propellers. Use matching
+app and network images, then cold-boot both cores; do not combine this app
+with the old network LED-only image. Independent network-core reset/reflash
+does not renegotiate a running session: restart the app (or power-cycle) to
+reinitialize both sides. A startup failure leaves the BSP's continuous motor
+STOP frames running but does not verify physical motor behavior.
+
+Hardware acceptance still required: observe both loopback logs after cold
+boot, confirm command/telemetry traffic with the micro:bit remote on channel
+20, measure round-trip latency, and test link-loss behavior props-off. Do not
+treat a successful build or queue test as flight-readiness evidence.
 
 ### Running each core
 
@@ -90,9 +159,11 @@ cargo r
 ```
 
 The app uses the application-only probe-rs target; the radio uses the full
-two-core target. Both runners were tested: each printed its own boot message,
-and both images verified unchanged after running the other core. Both LEDs
-blinked after a subsequent cold boot. Stop the RTT monitor with Ctrl+C.
+two-core target. Both runners were tested with the previous smoke-test images:
+each printed its own boot message, and both images verified unchanged after
+running the other core. Both LEDs blinked after a subsequent cold boot.
+The new IPC/radio images still need hardware verification. Stop the RTT
+monitor with Ctrl+C.
 
 The radio runner requires a working app image to start and release the network
 core. If probe-rs reports core 1 locked, check that the board is powered, the

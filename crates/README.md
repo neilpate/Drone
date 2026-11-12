@@ -2,6 +2,12 @@
 
 Rust workspace member crates live here.
 
+- `nrf5340-ipc` — nRF5340-only shared frame queues and IPC doorbell. The app
+  and radio binaries select its `app` and `net` features in separate builds.
+  Without those features its queue tests run on the host as a default workspace
+  member. See the
+  [transport contract](../hardware/electrical/README.md#inter-core-radio-transport).
+
 Empty at the moment — populated when Phase 1 design lands and the first `cargo new` runs. See [doc/00-vision.md](../doc/00-vision.md) for the phase plan and [doc/dev-environment.md](../doc/dev-environment.md) for toolchain setup.
 
 Expected initial members (subject to Phase 1 design):

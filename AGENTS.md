@@ -33,6 +33,8 @@ Most modern assistants automatically read `AGENTS.md` (and/or `.github/copilot-i
 - **Hold the showcase quality bar.** This is a hobby project but also a public showcase. "It's just a hobby project" is not a valid excuse to skip a test, leave a TODO, or take an undocumented shortcut. Engineering choices target current best practice for embedded Rust. See [doc/00-vision.md](doc/00-vision.md) “Quality bar”.
 - **`main` stays `rustfmt`-clean and `clippy`-clean.** Every commit satisfies `cargo fmt --check` and `cargo clippy --all-targets -- -D warnings` against the active board feature. Suppressions (`#[allow(...)]`, `#[rustfmt::skip]`) require a justifying comment on the line above. See [ADR 0012](doc/decisions/0012-lint-and-format-policy.md).
 - **Prefer the idiomatic choice.** Where practical, do what someone fluent in the ecosystem would expect — Cargo conventions, Embassy patterns, standard crate / module / file naming, standard layouts. A stranger landing in the repo should not be surprised by *how* anything is done. Surprises are reserved for problem-specific decisions (recorded in an ADR), not for picking a non-standard layout, naming scheme, or pattern when a standard one fits.
+- (2026-11-12) Keep firmware tasks in individual `src/tasks/<task>.rs` files, declared by `src/tasks.rs`; entry points initialize hardware and spawn tasks rather than contain task bodies.
+- (2026-11-12) Keep concrete BSP wrapper types together in the board module, rather than in separate top-level source files.
 
 ## Writing style (docs, ADRs, commit messages, replies)
 
@@ -130,6 +132,12 @@ This is a **hobby learning project**, not a commercial-grade flight controller. 
 ---
 
 ## Tooling gotchas
+
+- (2026-11-12) `Watch::changed()` observes every publication, including equal values. For state-transition-driven behavior (such as LED patterns), use `changed_and` to ignore unchanged states.
+
+- (2026-11-12) The nRF5340 v2 BSP maps both IMU vectors into FRD as `(-sensor_x, sensor_y, -sensor_z)` (180 degrees about Y, bench-confirmed). The micro:bit mapping is unchanged.
+
+- (2026-11-12) `nrf5340-ipc` is shared only by the nRF5340 binaries; build its `app` and `net` features separately. Embassy 0.2 has no public IPC driver, so it uses PAC registers. See [the transport contract](hardware/electrical/README.md#inter-core-radio-transport).
 
 - **Windows PowerShell mangles non-ASCII in pipelines.** Em-dashes (`—`), en-dashes, curly quotes, and anything outside ASCII get corrupted into mojibake (e.g. `├ö├ç├Â`) when piped through commands like `gh issue view ... | Out-File ... | gh issue edit ...`. The console code page (CP437 / CP1252) decodes UTF-8 bytes mid-pipeline.
   - **Rule:** when round-tripping any text that might contain non-ASCII (issue/PR bodies, commit messages, doc snippets), do **not** pipe through PowerShell. Write the file directly (UTF-8, no BOM) and pass it with `gh ... --body-file <path>` or `git commit -F <path>`.

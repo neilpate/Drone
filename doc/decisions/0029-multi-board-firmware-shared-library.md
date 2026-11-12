@@ -95,6 +95,14 @@ Because board selection is now by **crate identity** (one board per binary), [AD
 
 ### 6. The nRF5340 network core is a dumb raw-frame byte pipe
 
+**Implementation amendment (2026-11-12).** The nRF5340 app uses a concrete BSP
+`RadioCoreInterface`, not a common `RadioLink` trait. The micro:bit radio task is
+not being backported or changed. Only the nRF5340 cores share the `nrf5340-ipc`
+crate: fixed-layout SPSC frame queues plus a register-level IPC doorbell.
+This narrows the originally planned Group-B radio extraction without changing
+the raw-byte boundary below. The implemented transport is build-tested and
+host-tested; hardware loopback and radio latency remain unverified.
+
 The network-core binary owns the 802.15.4 PHY and does nothing but shuttle **raw PHY frames** across the inter-core IPC (the nRF5340 IPC peripheral over a shared-RAM region — see §10 for the caveats). All postcard/COBS decoding and all `firmware-types` knowledge stay on the application core, inside `remote_link_body`.
 
 This keeps the net-core binary tiny and near-dependency-free (no `firmware-types`, no core logic), and it means `RadioLink` is one symmetric interface — `receive()` / `send(frame)` — implemented on the micro:bit by the on-chip radio directly, and on the nRF5340 app core by the IPC endpoint. `remote_link_body` is identical over both. Decoding on the net core (typed IPC messages) was rejected: it would duplicate the wire protocol across two cores and drag `firmware-types` onto the net core.
@@ -122,7 +130,7 @@ The binaries share a hardware-imposed contract that §5–§6 gloss over, record
 
 - **The app core brings up the net core.** On reset only the app core runs. For IPC it must make the shared-RAM region accessible to the net core (an SPU permission; whether `embassy_nrf::init` covers it or it needs a `pac` poke is the first thing to establish) and initialise the ring headers before releasing the net core. With `embassy-nrf` 0.2, release uses the `RESET.NETWORK.FORCEOFF` PAC register; the previously proposed `reset::release_network_core()` helper is not present in this version. `RADIO` is *not* granted — it is inherently net-core-owned. Net-core startup is an app-core responsibility, not a separate boot.
 - **The shared-RAM region is a cross-binary linker contract.** Both `memory.x` files must agree, byte-for-byte, on the region's address and size. This is the one place the two binaries are coupled at link time, with no compiler to check it; a mismatch corrupts the pipe silently.
-- **The primitives exist; the transport does not.** `embassy-nrf` supplies the doorbell (`ipc::Ipc` + `Event`/`EventTrigger`, signal-only, no payload) and the net-core `radio` (the same `ieee802154::Radio` API the micro:bit uses today); net-core release uses the PAC as described above. It does **not** supply the shared-RAM ring or the SPU carve-out. So the risk is *integration*, not *feasibility* — assembling known parts with no reference to copy.
+- **Version-specific support (verified 2026-11-12).** The installed `embassy-nrf` 0.2 has the net-core radio driver but no public IPC driver. The `ipc::Ipc` / `Event` / `EventTrigger` API described in the original research belongs to a newer Embassy revision. `nrf5340-ipc` therefore configures IPC channel 0, the IPC interrupt, SPU RAM permissions and network-core reset through the installed PAC. Its shared queues use acquire/release atomics; publication is ordered before the doorbell with `DMB`.
 - **De-risk with a spike before writing any `RadioLink` code.** Two minimal binaries: app core inits the region and releases the net core; ping-pong a `u32` counter through one ring with a doorbell each way; confirm the round-trip and eyeball the latency on hardware. If that works, the whole `RadioLink`-over-IPC design rests on known-good plumbing; if the SPU/memory setup fights, it is learned on 30 lines, not through the radio path. Fallback if the bare ring proves painful: a thin ICMsg-style framed transport (still our own Rust), not the heavyweight RPMsg/OpenAMP stack.
 - **Secure world only.** The app core runs secure-only (`nrf5340-app-s`); the TrustZone secure/non-secure split is not used. One fewer axis of complexity for a hobby build.
 - **Latency is a budget, not a deadline.** The reply path now crosses app → net over IPC before reaching the air, adding to the ~100 Hz round-trip and the RTT echo ([ADR 0027](0027-split-telemetry-high-low-rate.md)). Raw 802.15.4 PHY has no hardware-ACK deadline ([ADR 0014](0014-radio-protocol-ieee802154.md)), so this is a budget to measure, not a hard timing constraint — but it must be measured, not assumed.

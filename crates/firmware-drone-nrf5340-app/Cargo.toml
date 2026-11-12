@@ -1,7 +1,7 @@
 [package]
 name        = "firmware-drone-nrf5340-app"
 version     = "0.1.0"
-description = "Drone firmware: nRF5340 secure application-core LED smoke test."
+description = "Drone firmware: nRF5340 secure application core."
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -18,15 +18,46 @@ test    = false
 bench   = false
 doctest = false
 
+[features]
+# Exactly one `board-*` feature must be active per build. The selection is
+# enforced at compile time by `src/board/mod.rs`. See ADR 0010.
+default = ["board-nrf5340"]
+board-nrf5340 = []
+
 [dependencies]
-# Do not inherit the workspace embassy-nrf dependency: it selects nRF52833.
-embassy-nrf = { version = "0.2", features = ["nrf5340-app-s", "defmt", "time-driver-rtc1", "unstable-pac"] }
-embassy-time = { workspace = true }
-cortex-m = { workspace = true }
+nrf5340-ipc = { path = "../nrf5340-ipc", features = ["app"] }
+firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
+firmware-drone-shared = { path = "../firmware-drone-shared" }
+
+embassy-embedded-hal = { workspace = true }
+# `postcard` feature enables the PostcardValue trait (pulls in postcard + serde)
+# used to (de)serialise the persisted config record.
+sequential-storage   = { workspace = true, features = ["postcard"] }
+
+embassy-executor = { workspace = true }
+embassy-nrf = { version = "0.2", features = [
+    "nrf5340-app-s",
+    "time-driver-rtc1",
+    "gpiote",
+    "defmt",
+    "unstable-pac",
+    "nfc-pins-as-gpio",
+] }
+embassy-time     = { workspace = true }
+embassy-sync     = { workspace = true }
+embassy-futures  = { workspace = true }
+
+cortex-m    = { workspace = true }
 cortex-m-rt = { workspace = true }
-defmt = { workspace = true }
-defmt-rtt = { workspace = true }
+
+defmt       = { workspace = true}
+defmt-rtt   = { workspace = true }
 panic-probe = { workspace = true }
+
+firmware-types = { path = "../firmware-types", features = ["defmt"] }
+
+postcard = { workspace = true }
+serde    = { workspace = true }
 
 [lints]
 workspace = true

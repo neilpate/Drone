@@ -2,6 +2,13 @@
 
 Background research for [ADR 0029 §10](../decisions/0029-multi-board-firmware-shared-library.md). Captured so Phase-4/5 bring-up does not re-derive this cold. Records *what was found* and *how to de-risk it*; the ADR records the decision.
 
+**Version correction (2026-11-12):** the API table below describes Embassy's
+then-current git documentation, not the installed `embassy-nrf` 0.2 release.
+That release has neither the public IPC driver nor the reset helper listed
+below. The implementation uses PAC registers instead; see the amendment in
+[ADR 0029](../decisions/0029-multi-board-firmware-shared-library.md) and the
+[current transport contract](../../hardware/electrical/README.md#inter-core-radio-transport).
+
 ## The problem, and why it is unavoidable
 
 On the nRF5340 the two cores are not peers over one bus — peripherals are partitioned. The **`RADIO` is a network-core peripheral**; the application core cannot access it. Confirmed in `embassy-nrf`: the `radio` module appears under the `nrf5340-net` chip build and **not** under `nrf5340-app-s`.

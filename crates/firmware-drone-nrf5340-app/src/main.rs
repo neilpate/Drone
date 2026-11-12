@@ -16,93 +16,62 @@ include!(concat!(env!("OUT_DIR"), "/version.rs"));
 #[used]
 static VERSION: u32 = FIRMWARE_VERSION;
 
-// use defmt_rtt as _;
-// use embassy_executor::{InterruptExecutor, SendSpawner, Spawner};
-// use embassy_nrf::interrupt;
-// use embassy_nrf::interrupt::{InterruptExt, Priority};
-// use firmware_drone_shared::signals::cpu_load;
-
-// use firmware_drone_shared::spawn_shared_tasks;
-// // use firmware_drone_shared::{load_profiler, spawn_load_profiler}; //Not used for now
-// use firmware_types::CpuLoad;
-// use panic_probe as _;
-
-// mod board;
-// mod radio_link;
-// mod tasks;
-
-// static EXEC: InterruptExecutor = InterruptExecutor::new();
-// #[interrupt]
-// unsafe fn SWI0_EGU0() {
-//     unsafe { EXEC.on_interrupt() }
-// }
-
-// fn spawn_hardware_tasks(spawner: SendSpawner, board: board::Board) {
-//     spawner.must_spawn(tasks::status_led::status_led(board.status_led));
-//     spawner.must_spawn(tasks::remote_link::remote_link(board.radio));
-//     spawner.must_spawn(tasks::esc_telemetry::esc_telemetry(board.esc_telemetry));
-//     spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
-//     spawner.must_spawn(tasks::temperature::temperature(board.temperature_sensor));
-//     spawner.must_spawn(tasks::imu::imu(board.imu));
-//     spawner.must_spawn(tasks::config_manager::config_manager(board.config_storage));
-// }
-
-// #[embassy_executor::main]
-// async fn main(_thread_mode_spawner: Spawner) {
-//     let board = board::Board::new();
-
-//     defmt::info!("firmware-drone-microbit on {}: boot ", board::NAME);
-
-//     // let calibration_baseline = load_profiler::calibrate();
-//     // Seed cpu_load so the telemetry aggregator never blocks on first-publish.
-//     // Harmless when the profiler runs (it overwrites this 0%); keeps telemetry
-//     // alive when the profiler is disabled.
-//     cpu_load::set(CpuLoad::from_percentage(0.0));
-
-//     interrupt::SWI0_EGU0.set_priority(Priority::P6);
-//     let high_priority_spawner = EXEC.start(interrupt::SWI0_EGU0);
-
-//     spawn_shared_tasks(high_priority_spawner, FIRMWARE_VERSION);
-//     spawn_hardware_tasks(high_priority_spawner, board);
-
-//     // spawn_load_profiler(_thread_mode_spawner, calibration_baseline);
-// }
-
-use embassy_nrf::config::{Config, HfclkSource};
-use embassy_nrf::gpio::{Level, Output, OutputDrive};
-
 use defmt_rtt as _;
+use embassy_executor::{InterruptExecutor, SendSpawner, Spawner};
+use embassy_nrf::interrupt;
+use embassy_nrf::interrupt::{InterruptExt, Priority};
+use firmware_drone_shared::signals::cpu_load;
+
+use firmware_drone_shared::spawn_shared_tasks;
+// use firmware_drone_shared::{load_profiler, spawn_load_profiler}; //Not used for now
+use firmware_types::CpuLoad;
 use panic_probe as _;
 
-#[cortex_m_rt::entry]
-fn main() -> ! {
-    defmt::info!("Started app core 2");
+mod board;
+mod tasks;
 
-    let mut config = Config::default();
-    config.hfclk_source = HfclkSource::ExternalXtal;
-    let p = embassy_nrf::init(config);
+static EXEC: InterruptExecutor = InterruptExecutor::new();
+#[interrupt]
+unsafe fn EGU0() {
+    unsafe { EXEC.on_interrupt() }
+}
 
-    let status_led = p.P0_28;
+fn spawn_hardware_tasks(spawner: SendSpawner, board: board::Board) {
+    spawner.must_spawn(tasks::status_led::status_led(board.status_led));
+    spawner.must_spawn(tasks::remote_link::remote_link(board.radio_core_interface));
+    spawner.must_spawn(tasks::esc_telemetry::esc_telemetry(board.esc_telemetry));
+    spawner.must_spawn(tasks::motor_controller::motor_controller(board.motors));
+    spawner.must_spawn(tasks::imu::imu(board.imu));
+    spawner.must_spawn(tasks::config_manager::config_manager(board.config_storage));
+}
 
-    let mut led_state = Level::Low;
-    let mut status_led = Output::new(status_led, led_state, OutputDrive::Standard);
+#[embassy_executor::main]
+async fn main(_thread_mode_spawner: Spawner) {
+    let mut board = board::Board::new();
 
-    // Configure P0.31 for the network MCU (radio LED) usage.
-    // SAFETY: The application core is the only code configuring P0.31 here.
-    let port0 = unsafe { &*embassy_nrf::pac::P0::ptr() };
-    port0.pin_cnf[31].modify(|_, w| w.mcusel().network_mcu());
-
-    // SAFETY: Only the application core controls network-core startup here.
-    let reset = unsafe { &*embassy_nrf::pac::RESET::ptr() };
-    reset.network.forceoff.write(|w| w.forceoff().release());
-
-    loop {
-        embassy_time::block_for(embassy_time::Duration::from_millis(100));
-        led_state = match led_state {
-            Level::Low => Level::High,
-            Level::High => Level::Low,
-        };
-
-        status_led.set_level(led_state);
+    defmt::info!("firmware-drone-nrf5340-app on {}: boot", board::NAME);
+    if let Err(error) = board.radio_core_interface.check_connection().await {
+        defmt::panic!("radio-core IPC startup failed: {:?}", error);
     }
+    defmt::info!("radio-core IPC loopback passed");
+    // The existing wire schema has no validity flag for chip temperature.
+    // Publish an explicit unavailable value so sensors/telemetry do not block.
+    defmt::warn!("chip temperature unavailable; telemetry reports NaN");
+    firmware_drone_shared::signals::temperature::set(firmware_types::Temperature::from_celsius(
+        f32::NAN,
+    ));
+
+    // let calibration_baseline = load_profiler::calibrate();
+    // Seed cpu_load so the telemetry aggregator never blocks on first-publish.
+    // Harmless when the profiler runs (it overwrites this 0%); keeps telemetry
+    // alive when the profiler is disabled.
+    cpu_load::set(CpuLoad::from_percentage(0.0));
+
+    interrupt::EGU0.set_priority(Priority::P6);
+    let high_priority_spawner = EXEC.start(interrupt::EGU0);
+
+    spawn_shared_tasks(high_priority_spawner, FIRMWARE_VERSION);
+    spawn_hardware_tasks(high_priority_spawner, board);
+
+    // spawn_load_profiler(_thread_mode_spawner, calibration_baseline);
 }

@@ -1,7 +1,4 @@
-//! BBC micro:bit v2 (nRF52833) board support.
-//!
-//! Phase 1–3 development target. Sensors and actuators are breadboarded onto
-//! the edge connector; only the on-board 5x5 LED matrix is used directly.
+//! drone_fc v2 (nRF5340) application-core board support.
 //!
 //! See [ADR 0010](../../../../doc/decisions/0010-board-support-package.md) for
 //! the contract this module satisfies.
@@ -18,7 +15,9 @@ use embassy_nrf::nvmc::Nvmc;
 use embassy_nrf::pwm;
 use embassy_nrf::spim::{self, Spim};
 use embassy_nrf::uarte::{self, Baudrate, Parity, UarteRx, UarteRxWithIdle};
-use embassy_nrf::{bind_interrupts, peripherals, radio, temp};
+use embassy_nrf::{bind_interrupts, peripherals};
+use embassy_time::{Duration, with_timeout};
+use nrf5340_ipc::{Endpoint, Error, MAX_FRAME_SIZE, STARTUP_PROBE};
 use sequential_storage::cache::{Cache, Uncached};
 use sequential_storage::map::{MapConfig, MapStorage, PostcardValue};
 use serde::{Deserialize, Serialize};
@@ -30,10 +29,8 @@ use firmware_types::{
 
 use firmware_drone_shared::signals::esc_telemetry_sample;
 
-pub type Radio = radio::ieee802154::Radio<'static, peripherals::RADIO>; // BSP-typed alias for the embassy IEEE 802.15.4 radio driver bound to this board.
-pub type TemperatureSensor = temp::Temp<'static>;
-pub type Spim3 = spim::Spim<'static, peripherals::SPI3>;
-pub type EscTelemetryRx = UarteRxWithIdle<'static, peripherals::UARTE1, peripherals::TIMER1>;
+pub type Spim3 = spim::Spim<'static, peripherals::SERIAL3>;
+pub type EscTelemetryRx = UarteRxWithIdle<'static, peripherals::SERIAL1, peripherals::TIMER1>;
 
 type ConfigFlash = BlockingAsync<Nvmc<'static>>;
 // Only the `Cache` wrapper implements `CacheImpl`; the bare `Uncached` type does
@@ -42,42 +39,39 @@ type ConfigCache = Cache<Uncached, Uncached, Uncached, u8>;
 type ConfigMap = MapStorage<u8, ConfigFlash, ConfigCache>; //key-value store in flash with no caching
 
 pub const NAME: &str = "NRF5340";
-const RUNTIMECONFIGSTORAGELOCATION: Range<u32> = 0x7D000..0x7F000; //2x 4KB pages of flash memory are allocated for config storage
+const RUNTIMECONFIGSTORAGELOCATION: Range<u32> = 0xFD000..0xFF000; //2x 4KB pages of flash memory are allocated for config storage
 
 bind_interrupts!(struct Irqs {
-    RADIO => radio::InterruptHandler<peripherals::RADIO>;
-    TEMP => temp::InterruptHandler;
-    SPIM3 => spim::InterruptHandler<peripherals::SPI3>;
-    UARTE1 => uarte::InterruptHandler<peripherals::UARTE1>;
+    SERIAL3 => spim::InterruptHandler<peripherals::SERIAL3>;
+    SERIAL1 => uarte::InterruptHandler<peripherals::SERIAL1>;
 });
 
 pub struct Board {
     pub status_led: StatusLed,
     pub motors: Motors,
-    pub radio: Radio,
-    pub temperature_sensor: TemperatureSensor,
     pub imu: Imu,
     pub esc_telemetry: ESCTelemetry,
     pub config_storage: ConfigStorage,
+    pub radio_core_interface: RadioCoreInterface,
 }
 
-// Pin map — BBC micro:bit v2 / nRF52833
+// Pin map - drone_fc v2 / MDBT53-P1M (nRF5340)
 //
-// | Function       | nRF pin | Edge | Peripheral | Notes               |
-// |----------------|---------|------|------------|---------------------|
-// | Motor M1       | P0.02   | 0    | PWM0 ch0   | rear-right (CCW), large pad    |
-// | Motor M2       | P0.12   | 12   | PWM0 ch1   | front-right (CW)               |
-// | Motor M3       | P0.09   | 9    | PWM0 ch2   | rear-left (CW), NFC1 -> GPIO   |
-// | Motor M4       | P0.10   | 8    | PWM0 ch3   | front-left (CCW), NFC2 -> GPIO |
-// | IMU SCK        | P0.17   | 13   | SPIM3      | SPI_EXT block       |
-// | IMU MISO       | P0.01   | 14   | SPIM3      |                     |
-// | IMU MOSI       | P0.13   | 15   | SPIM3      |                     |
-// | IMU CS         | P1.02   | 16   | GPIO out   | manual, idle high   |
-// | ESC telem RX   | P0.26   | 19   | UARTE      | 115200 8N1, RX-only, I2C_EXT SCL pad |
-// | Status LED row | P0.21   | -    | GPIO out   | onboard 5x5 matrix  |
-// | Status LED col | P0.28   | -    | GPIO out   | onboard 5x5 matrix  |
-// | Radio          | -       | -    | RADIO      | internal, 802.15.4  |
-// | Temp sensor    | -       | -    | TEMP       | internal            |
+// | Function        | nRF pin | Peripheral | Notes                          |
+// |-----------------|---------|------------|--------------------------------|
+// | Motor M1        | P0.03   | GPIO       | DShot; rear-right (CCW)        |
+// | Motor M2        | P0.16   | GPIO       | DShot; front-right (CW)        |
+// | Motor M3        | P0.17   | GPIO       | DShot; rear-left (CW)          |
+// | Motor M4        | P0.22   | GPIO       | DShot; front-left (CCW)        |
+// | IMU SCK         | P0.07   | SPI        | SPI_SCK                        |
+// | IMU MISO        | P0.18   | SPI        | SPI_MISO                       |
+// | IMU MOSI        | P0.10   | SPI        | SPI_MOSI                       |
+// | IMU CS          | P1.05   | GPIO out   | Active-low                     |
+// | IMU INT1        | P0.19   | GPIO in    | Data-ready interrupt           |
+// | ESC telemetry RX | P0.08   | UARTE      | 115200 8N1, RX-only            |
+// | Status LED      | P0.28   | GPIO out   | LED_STATUS                     |
+// | Radio LED       | P0.31   | GPIO out   | LED_RADIO; network core        |
+// | Radio           | -       | RADIO      | Internal, 802.15.4, net core   |
 //
 // Motors share PWM0 (one frequency, independent duty). The NFC pins
 // (P0.09 / P0.10) require the `nfc-pins-as-gpio` embassy-nrf feature.
@@ -111,14 +105,54 @@ impl Board {
         let p = embassy_nrf::init(config);
 
         Self {
-            status_led: StatusLed::new(p.P0_21, p.P0_28),
-            motors: Motors::new(p.PWM0, p.P0_02, p.P0_12, p.P0_09, p.P0_10),
-            radio: Radio::new(p.RADIO, Irqs),
-            temperature_sensor: TemperatureSensor::new(p.TEMP, Irqs),
-            imu: Imu::new(p.SPI3, p.P0_17, p.P0_01, p.P0_13, p.P1_02),
-            esc_telemetry: ESCTelemetry::new(p.UARTE1, p.P0_26, p.TIMER1, p.PPI_CH0, p.PPI_CH1),
+            status_led: StatusLed::new(p.P0_28),
+            motors: Motors::new(p.PWM0, p.P0_03, p.P0_16, p.P0_17, p.P0_22),
+            imu: Imu::new(p.SERIAL3, p.P0_07, p.P0_18, p.P0_10, p.P1_05),
+            esc_telemetry: ESCTelemetry::new(p.SERIAL1, p.P0_08, p.TIMER1, p.PPI_CH0, p.PPI_CH1),
             config_storage: ConfigStorage::new(p.NVMC),
+            radio_core_interface: RadioCoreInterface::new(),
         }
+    }
+}
+
+const STARTUP_TIMEOUT: Duration = Duration::from_secs(2);
+const SEND_TIMEOUT: Duration = Duration::from_millis(50);
+
+pub struct RadioCoreInterface {
+    endpoint: Endpoint,
+}
+
+impl RadioCoreInterface {
+    pub fn new() -> Self {
+        Self {
+            endpoint: Endpoint::boot_network(),
+        }
+    }
+
+    /// Validate the two-core transport before any pilot commands are accepted.
+    pub async fn check_connection(&mut self) -> Result<(), Error> {
+        with_timeout(STARTUP_TIMEOUT, async {
+            self.endpoint.send(STARTUP_PROBE).await?;
+            let mut buffer = [0; MAX_FRAME_SIZE];
+            let length = self.endpoint.receive(&mut buffer).await?;
+            if &buffer[..length] != STARTUP_PROBE {
+                return Err(Error::StartupMismatch);
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|_| Error::Timeout)?
+    }
+
+    pub async fn receive(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
+        self.endpoint.receive(buffer).await
+    }
+
+    /// Enqueue a payload for the radio core. On-air errors are logged there.
+    pub async fn send(&mut self, bytes: &[u8]) -> Result<(), Error> {
+        with_timeout(SEND_TIMEOUT, self.endpoint.send(bytes))
+            .await
+            .map_err(|_| Error::Timeout)?
     }
 }
 
@@ -197,23 +231,21 @@ impl ConfigStorage {
 }
 
 pub struct StatusLed {
-    _row: Output<'static>,
-    col: Output<'static>,
+    output: Output<'static>,
 }
 
 impl StatusLed {
-    pub fn new(row: impl Pin, col: impl Pin) -> Self {
+    pub fn new(pin: impl Pin) -> Self {
         Self {
-            _row: Output::new(row.degrade(), Level::High, OutputDrive::Standard),
-            col: Output::new(col.degrade(), Level::High, OutputDrive::Standard),
+            output: Output::new(pin.degrade(), Level::Low, OutputDrive::Standard),
         }
     }
 
     pub fn on(&mut self) {
-        self.col.set_low();
+        self.output.set_high();
     }
     pub fn off(&mut self) {
-        self.col.set_high();
+        self.output.set_low();
     }
 }
 
@@ -223,7 +255,7 @@ pub struct ESCTelemetry {
 
 impl ESCTelemetry {
     pub fn new(
-        uarte: peripherals::UARTE1,
+        uarte: peripherals::SERIAL1,
         pin: impl Pin,
         timer: peripherals::TIMER1,
         ppi_ch1: peripherals::PPI_CH0,
@@ -448,7 +480,7 @@ impl Imu {
     const GYRO_LSB_PER_DPS: f32 = 16.4; // ±2000 degrees per second range
 
     pub fn new(
-        spi: peripherals::SPI3,
+        spi: peripherals::SERIAL3,
         sck: impl Pin,
         miso: impl Pin,
         mosi: impl Pin,
@@ -517,18 +549,19 @@ impl Imu {
         let gyro_y = i16::from_be_bytes([data[8], data[9]]);
         let gyro_z = i16::from_be_bytes([data[10], data[11]]);
 
+        // PCB mounting to FRD: 180 degrees about Y, for both accel and gyro.
         ImuData {
-            acceleration_x: Acceleration::from_g(acceleration_x as f32 / Self::ACCEL_LSB_PER_G),
+            acceleration_x: Acceleration::from_g(-(acceleration_x as f32) / Self::ACCEL_LSB_PER_G),
             acceleration_y: Acceleration::from_g(acceleration_y as f32 / Self::ACCEL_LSB_PER_G),
-            acceleration_z: Acceleration::from_g(acceleration_z as f32 / Self::ACCEL_LSB_PER_G),
+            acceleration_z: Acceleration::from_g(-(acceleration_z as f32) / Self::ACCEL_LSB_PER_G),
             angular_rate_x: AngularRate::from_degrees_per_second(
-                gyro_x as f32 / Self::GYRO_LSB_PER_DPS,
+                -(gyro_x as f32) / Self::GYRO_LSB_PER_DPS,
             ),
             angular_rate_y: AngularRate::from_degrees_per_second(
                 gyro_y as f32 / Self::GYRO_LSB_PER_DPS,
             ),
             angular_rate_z: AngularRate::from_degrees_per_second(
-                gyro_z as f32 / Self::GYRO_LSB_PER_DPS,
+                -(gyro_z as f32) / Self::GYRO_LSB_PER_DPS,
             ),
         }
     }

@@ -1,0 +1,21 @@
+[package]
+name = "nrf5340-ipc"
+version = "0.1.0"
+description = "Bounded byte-frame transport between the nRF5340 cores."
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[features]
+app = ["dep:embassy-nrf", "embassy-nrf/nrf5340-app-s", "dep:embassy-sync", "dep:cortex-m", "dep:defmt"]
+net = ["dep:embassy-nrf", "embassy-nrf/nrf5340-net", "dep:embassy-sync", "dep:cortex-m", "dep:defmt"]
+
+[dependencies]
+defmt = { workspace = true, optional = true }
+embassy-nrf = { version = "0.2", features = ["unstable-pac"], optional = true }
+embassy-sync = { workspace = true, optional = true }
+cortex-m = { workspace = true, optional = true }
+
+[lints]
+workspace = true

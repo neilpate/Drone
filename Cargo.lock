@@ -473,9 +473,20 @@ dependencies = [
  "cortex-m-rt",
  "defmt 0.3.100",
  "defmt-rtt",
+ "embassy-embedded-hal",
+ "embassy-executor",
+ "embassy-futures",
  "embassy-nrf",
+ "embassy-sync",
  "embassy-time",
+ "firmware-drone-core",
+ "firmware-drone-shared",
+ "firmware-types",
+ "nrf5340-ipc",
  "panic-probe",
+ "postcard",
+ "sequential-storage",
+ "serde",
 ]
 
 [[package]]
@@ -486,19 +497,12 @@ dependencies = [
  "cortex-m-rt",
  "defmt 0.3.100",
  "defmt-rtt",
- "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures",
  "embassy-nrf",
- "embassy-sync",
  "embassy-time",
- "firmware-drone-core",
- "firmware-drone-shared",
- "firmware-types",
+ "nrf5340-ipc",
  "panic-probe",
- "postcard",
- "sequential-storage",
- "serde",
 ]
 
 [[package]]
@@ -786,6 +790,16 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "vcell",
+]
+
+[[package]]
+name = "nrf5340-ipc"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "defmt 0.3.100",
+ "embassy-nrf",
+ "embassy-sync",
 ]
 
 [[package]]

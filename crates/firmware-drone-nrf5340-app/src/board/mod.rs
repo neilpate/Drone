@@ -74,13 +74,13 @@ macro_rules! board_pins {
 #[allow(unused_imports)]
 pub(crate) use board_pins;
 
-#[cfg(feature = "board-microbit-v2")]
-mod microbit_v2;
-#[cfg(feature = "board-microbit-v2")]
-pub use microbit_v2::*;
+#[cfg(feature = "board-nrf5340")]
+mod nrf5340;
+#[cfg(feature = "board-nrf5340")]
+pub use nrf5340::*;
 
-#[cfg(not(any(feature = "board-microbit-v2")))]
+#[cfg(not(any(feature = "board-nrf5340")))]
 compile_error!(
     "no board selected: enable exactly one `board-*` feature on the `firmware-drone` crate \
-     (e.g. `--features board-microbit-v2`)"
+     (e.g. `--features board-nrf5340`)"
 );

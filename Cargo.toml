@@ -19,6 +19,7 @@ default-members = [
     "crates/firmware-types",
     "crates/firmware-drone-core",
     "crates/firmware-remote-core",
+    "crates/nrf5340-ipc",
 ]
 
 [workspace.package]

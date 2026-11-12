@@ -43,21 +43,28 @@ fn pattern_for_state(s: DroneState) -> LedPattern {
 
 async fn play_pattern(
     status_led: &mut board::StatusLed,
-    pattern: LedPattern,
+    current_state: DroneState,
     state_change_receiver: &mut status::Receiver,
 ) -> DroneState {
-    match pattern {
+    match pattern_for_state(current_state) {
         LedPattern::Blinking { on_ms, off_ms } => loop {
             status_led.on();
-            if let Either::Second(state) =
-                select(Timer::after_millis(on_ms), state_change_receiver.changed()).await
+            // Repeated publications of the same state must not restart the blink.
+            if let Either::Second(state) = select(
+                Timer::after_millis(on_ms),
+                state_change_receiver.changed_and(|state| *state != current_state),
+            )
+            .await
             {
                 return state;
             }
 
             status_led.off();
-            if let Either::Second(state) =
-                select(Timer::after_millis(off_ms), state_change_receiver.changed()).await
+            if let Either::Second(state) = select(
+                Timer::after_millis(off_ms),
+                state_change_receiver.changed_and(|state| *state != current_state),
+            )
+            .await
             {
                 return state;
             }
@@ -74,7 +81,6 @@ pub async fn status_led(mut status_led: board::StatusLed) -> ! {
     let mut current_state = status_receiver.changed().await;
 
     loop {
-        let pattern = pattern_for_state(current_state);
-        current_state = play_pattern(&mut status_led, pattern, &mut status_receiver).await;
+        current_state = play_pattern(&mut status_led, current_state, &mut status_receiver).await;
     }
 }

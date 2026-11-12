@@ -4,7 +4,7 @@
  * - 64 KiB network-core RAM   @ 0x2100_0000
  * - 64 KiB shared IPC region  @ 0x2007_0000 (in app-core RAM)
  *
- * The smoke test uses cortex-m-rt's standard stack at the top of RAM.
+ * The stack uses network-core RAM; SHARED_RAM is owned by the IPC transport.
  */
 
 MEMORY
@@ -26,6 +26,9 @@ SECTIONS
   .shared_ram (NOLOAD) :
   {
     . = ALIGN(4);
+    __radio_shared_start = .;
     KEEP(*(.shared_ram .shared_ram.*));
+    . = ORIGIN(SHARED_RAM) + LENGTH(SHARED_RAM);
+    __radio_shared_end = .;
   } > SHARED_RAM
 } INSERT AFTER .text;

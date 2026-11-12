@@ -2,6 +2,16 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-11-12 — nRF5340 IPC/radio images flashed and verified
+
+Both new firmware images were flashed with probe-rs 0.32.0 and verified: network core first, then application core. The first SWD connection failed without writing; reseating the TC2050 restored contact. No chip-wide recovery or erase was requested. Startup logs, IPC loopback, radio traffic and link-loss behavior have not yet been observed with these images.
+
+## 2026-11-12 — nRF5340 radio IPC implemented and build-tested
+
+The application port and network-core radio bridge now build separately. The app BSP's `RadioCoreInterface` exchanges bounded byte frames through two shared-memory queues and IPC interrupts; postcard remains on the app core, and the network core bridges raw 802.15.4 payloads on channel 20. Both images include a startup IPC loopback check before flight tasks start. The micro:bit implementation is unchanged.
+
+The four host queue tests and Clippy pass, both firmware images build and pass Clippy, and their linked shared-memory regions agree. No new firmware has been flashed: startup loopback, command/telemetry traffic, latency and props-off link-loss behavior remain hardware acceptance work. See the [transport contract and bring-up notes](../hardware/electrical/README.md#inter-core-radio-transport).
+
 ## 2026-11-11 — nRF5340 dual-core board bring-up
 
 The assembled `drone_fc` v2 board has reached dual-core smoke-test bring-up. Both application and network cores were flashed independently and their LEDs were observed blinking together after a cold boot. The [hardware bring-up notes](../hardware/electrical/README.md) record the flashing workflow and the SWD probe investigation.

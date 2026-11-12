@@ -17,25 +17,11 @@ test    = false
 bench   = false
 doctest = false
 
-[features]
-# Exactly one `board-*` feature must be active per build. The selection is
-# enforced at compile time by `src/board/mod.rs`. See ADR 0010.
-default = ["board-microbit-v2"]
-board-microbit-v2 = []
-
 [dependencies]
-firmware-drone-core = { path = "../firmware-drone-core", features = ["defmt"] }
-firmware-drone-shared = { path = "../firmware-drone-shared" }
-
-embassy-embedded-hal = { workspace = true }
-# `postcard` feature enables the PostcardValue trait (pulls in postcard + serde)
-# used to (de)serialise the persisted config record.
-sequential-storage   = { workspace = true, features = ["postcard"] }
-
+nrf5340-ipc = { path = "../nrf5340-ipc", features = ["net"] }
 embassy-executor = { workspace = true }
 embassy-nrf      = { version = "0.2", features = ["nrf5340-net", "defmt", "time-driver-rtc1"] }
 embassy-time     = { workspace = true }
-embassy-sync     = { workspace = true }
 embassy-futures  = { workspace = true }
 
 cortex-m    = { workspace = true }
@@ -44,11 +30,6 @@ cortex-m-rt = { workspace = true }
 defmt       = { workspace = true}
 defmt-rtt   = { workspace = true }
 panic-probe = { workspace = true }
-
-firmware-types = { path = "../firmware-types", features = ["defmt"] }
-
-postcard = { workspace = true }
-serde    = { workspace = true }
 
 [lints]
 workspace = true
