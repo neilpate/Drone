@@ -64,6 +64,15 @@ probe-rs 0.30.0 has a known nRF53 recovery bug (upstream PR 3701).
 The app-only target avoids accessing the network core over SWD.
 Board power and a stable TC2050 contact are required.
 
+For the bare-metal motor-pin bench test, disconnect the ESC and power the board
+separately. Run `cargo run --example motor-gpio-test` from the app crate. It
+disables NFCT and drives M1 (P0.03) low then high, about 2 s each, with the
+input buffer connected. The status LED shows the value read back from the pin,
+so it should alternate in step with the drive; M1 should measure about 0 V and
+3.3 V. If UICR still selects NFC pins, the LED stays on and the pins are not
+configured. The test restores the UICR debug-protection settings at startup
+without modifying UICR. Flash the normal app to restore DShot operation.
+
 The v2 IMU mounting requires a 180-degree rotation about Y into the FRD body
 frame: `(body_x, body_y, body_z) = (-sensor_x, sensor_y, -sensor_z)`, for both
 accelerometer and gyro. Bench tilt and rotation checks confirmed this mapping
