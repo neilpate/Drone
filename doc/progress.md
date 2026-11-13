@@ -2,6 +2,17 @@
 
 A reverse-chronological log of notable milestones. The [README](../README.md) reflects only the current state; this file keeps the dated history so the front page stays uncluttered.
 
+## 2026-11-13 — M1 traced to a faulty P0.03 on the nRF5340 module
+
+Bench-testing the motors on the `drone_fc` v2 board, M3 worked while M2 buzzed and M1 did nothing. With the ESC disconnected, the investigation narrowed the M1 failure to the module's P0.03 (NFC2, pad 30) on the second board.
+
+- The Raytac datasheet, PCB footprint and nets, firmware mapping, and continuity on an unpopulated board all agree: M1 is pad 30 / P0.03.
+- `UICR.NFCPINS` selects GPIO, and the other NFC pin, P0.02, responds correctly to its internal pull-up and pull-down, so a missed NFC configuration is very unlikely.
+- A bare-metal diagnostic with no Embassy ([motor-gpio-test](../crates/firmware-drone-nrf5340-app/examples/motor-gpio-test.rs)) showed that P0.03 reads high with its internal pull-down enabled, ignores an external pull-up, does not follow the neighbouring pads 29 and 31, and reads high even while driven low. The M1 net stays at 0 V.
+- The same input test works on M2.
+
+A PCB solder fault cannot stop the chip reading back its own output, so the fault is on the module side of pad 30. The first board also shows an M1 fault (about 180 Ω to ground), so M1 has misbehaved on both boards. The cause is not yet known. Options are module rework or moving M1 to a spare GPIO. The second board currently runs the diagnostic; flash the normal app and verify the network-core image before using it again.
+
 ## 2026-11-12 — nRF5340 radio link working end to end on both cores
 
 The `drone_fc` v2 board now runs the real firmware on both cores, and the radio path works end to end. After a power-cycle both LEDs blink, the application core logs `radio-core IPC loopback passed`, the network core logs `app-core IPC probe answered`, and command/telemetry traffic flows with the micro:bit remote on channel 20. Flashing still depends on getting reliable TC2050 contact.
